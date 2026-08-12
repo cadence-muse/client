@@ -6,10 +6,9 @@ class BandsScreen extends StatelessWidget {
   const BandsScreen({super.key});
 
   static const _mockBands = [
-    Band(name: 'The Night Owls', genre: 'Rock', memberCount: 4),
-    Band(name: 'Blue Horizon', genre: 'Jazz', memberCount: 5),
-    Band(name: 'Static Echo', genre: 'Indie', memberCount: 3),
-    Band(name: 'Crimson Tide', genre: 'Funk', memberCount: 6),
+    Band(name: 'B.A.T.H.', genre: 'Thrash metal', memberCount: 5),
+    Band(name: 'Devil in I', genre: 'Alternative metal', memberCount: 4),
+    Band(name: 'Ostego', genre: 'Metalcore', memberCount: 5),
   ];
 
   @override
