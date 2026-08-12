@@ -1,6 +1,9 @@
 /.idea/
 /.vscode/
 
+# Local dart-define config (copy env/config.example.json -> env/config.json)
+/env/config.json
+
 # Miscellaneous
 *.class
 *.log

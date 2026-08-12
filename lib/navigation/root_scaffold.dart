@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../api/public_api.dart';
 import '../features/bands/bands_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
@@ -7,9 +8,10 @@ import '../features/songs/songs_screen.dart';
 import '../theme/theme_controller.dart';
 
 class RootScaffold extends StatefulWidget {
-  const RootScaffold({super.key, required this.themeController});
+  const RootScaffold({super.key, required this.themeController, required this.publicApi});
 
   final ThemeController themeController;
+  final PublicApi publicApi;
 
   @override
   State<RootScaffold> createState() => _RootScaffoldState();
@@ -24,7 +26,7 @@ class _RootScaffoldState extends State<RootScaffold> {
       const HomeScreen(),
       const SongsScreen(),
       const BandsScreen(),
-      ProfileScreen(themeController: widget.themeController),
+      ProfileScreen(themeController: widget.themeController, publicApi: widget.publicApi),
     ];
 
     return Scaffold(
