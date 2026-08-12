@@ -35,7 +35,7 @@ class CadenceApp extends StatelessWidget {
             publicApi: publicApi,
             builder: (context) => RootScaffold(
               themeController: themeController,
-              publicApi: publicApi,
+              authSession: authSession,
             ),
           ),
         );

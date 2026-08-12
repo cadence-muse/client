@@ -1,7 +1,7 @@
 import 'api_client.dart';
 
-/// Maps to the `Register`/`Login`/`Logout` operations in
-/// `lib/api/publicapi.yml`.
+/// Maps to the `Register`/`Login` operations in `lib/api/publicapi.yml`.
+/// Logging out just drops the local token, see [AuthSession.signOut].
 class PublicApi {
   PublicApi(this._client);
 
@@ -28,15 +28,5 @@ class PublicApi {
     );
     final token = response!['token'] as String;
     await _client.authSession.signIn(token);
-  }
-
-  /// Calls the API to invalidate the session, then always clears the local
-  /// token, even if the request fails, so the user is signed out locally.
-  Future<void> logout() async {
-    try {
-      await _client.send('POST', '/api/logout');
-    } finally {
-      await _client.authSession.signOut();
-    }
   }
 }

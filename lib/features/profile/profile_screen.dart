@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../api/public_api.dart';
+import '../../api/auth_session.dart';
 import '../../theme/theme_controller.dart';
 import '../settings/settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key, required this.themeController, required this.publicApi});
+  const ProfileScreen({super.key, required this.themeController, required this.authSession});
 
   final ThemeController themeController;
-  final PublicApi publicApi;
+  final AuthSession authSession;
 
   @override
   Widget build(BuildContext context) {
@@ -46,15 +46,7 @@ class ProfileScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Log out'),
-            onTap: () async {
-              try {
-                await publicApi.logout();
-              } catch (_) {
-                // Local session is already cleared regardless of the
-                // network result; AuthGate will fall back to the login
-                // screen either way.
-              }
-            },
+            onTap: () => authSession.signOut(),
           ),
         ],
       ),
