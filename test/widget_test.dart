@@ -67,6 +67,6 @@ void main() {
     await tester.tap(find.text('Bands'));
     await tester.pumpAndSettle();
 
-    expect(find.text('The Night Owls'), findsOneWidget);
+    expect(find.text('B.A.T.H.'), findsOneWidget);
   });
 }

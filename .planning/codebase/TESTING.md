@@ -69,7 +69,7 @@ void main() {
     await tester.tap(find.text('Bands'));
     await tester.pumpAndSettle();
 
-    expect(find.text('The Night Owls'), findsOneWidget);
+    expect(find.text('B.A.T.H.'), findsOneWidget);
   });
 }
 ```
@@ -144,7 +144,7 @@ class _FakeSecureStorage extends FlutterSecureStoragePlatform with MockPlatformI
 No fixtures or factory pattern currently used in `test/widget_test.dart`.
 
 **Current Approach:**
-- Hardcoded test data in test function: `'test-token'` for auth, `'The Night Owls'` for band name
+- Hardcoded test data in test function: `'test-token'` for auth, `'B.A.T.H.'` for band name
 - Objects constructed inline: `AuthSession(tokenStorage: TokenStorage())`, `ApiClient(baseUrl: 'http://localhost', authSession: authSession)`
 
 **Location:**
@@ -197,7 +197,7 @@ testWidgets('description', (WidgetTester tester) async {
 ```dart
 find.text('Home')                  # Find by text content
 find.text('Home'), findsWidgets    # Multiple matches expected
-find.text('The Night Owls'), findsOneWidget  # Exactly one match expected
+find.text('B.A.T.H.'), findsOneWidget  # Exactly one match expected
 find.byIcon(Icons.home)            # Find by icon
 find.byType(FloatingActionButton)  # Find by widget type
 ```
