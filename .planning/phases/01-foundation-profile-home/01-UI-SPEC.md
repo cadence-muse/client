@@ -78,9 +78,9 @@ Material Design 3 dynamic theming via `ColorScheme.fromSeed`.
 
 | Role | Seed | Primary | Surface | OnSurface | Description |
 |------|------|---------|---------|-----------|-------------|
-| Dominant (60%) | `Colors.deepPurple` | Deep Purple | White/light gray | Dark gray/black | Backgrounds, surfaces, app chrome |
-| Secondary (30%) | Auto-derived from seed | Teal/purple tones | Card surfaces, sidebar backgrounds | Contrast text | Cards, elevated surfaces, navigation |
-| Accent (10%) | Auto-derived (primary) | Deep Purple/teal | Interactive elements | Contrast text | Primary buttons, links, active states only |
+| Dominant (60%) | `Colors.green` | Green | White/light gray | Dark gray/black | Backgrounds, surfaces, app chrome |
+| Secondary (30%) | Auto-derived from seed | Mint/green tones | Card surfaces, sidebar backgrounds | Contrast text | Cards, elevated surfaces, navigation |
+| Accent (10%) | Auto-derived (primary) | Green/mint | Interactive elements | Contrast text | Primary buttons, links, active states only |
 | Destructive | Red (Material 3 error) | `Color(0xFFB3261E)` | Error surfaces | White/light text | Delete/logout actions, destructive confirmations only |
 
 **Dark Theme:**
@@ -109,7 +109,7 @@ Never use accent for secondary actions, disabled states, or informational text.
 
 **Implementation:** Use `Theme.of(context).colorScheme` for all color references. No hardcoded hex values except error red (Material 3 standard).
 
-**Source:** Pre-populated from `lib/theme/app_theme.dart` (light: `Colors.deepPurple`, dark: `Colors.green`) + Flutter Material 3 ColorScheme.fromSeed dynamics. Confirmed by codebase scan.
+**Source:** Pre-populated from `lib/theme/app_theme.dart` (light: `Colors.green`, dark: `Colors.green`) + Flutter Material 3 ColorScheme.fromSeed dynamics. Confirmed by codebase scan.
 
 ---
 
