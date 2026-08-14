@@ -44,6 +44,8 @@ A band member can open the app without signal — at a venue, in a basement, on 
 
 **Platform note:** Repo builds for Android, iOS, and web (release pipeline + Dockerfile for web/ghcr exist per recent commits). Offline caching this milestone targets Android/iOS only.
 
+**API gap:** `publicapi.yml` was extended with `UserProfile.id` and `Band.ownerId` (both required, both missing before this milestone) — the client cannot self-identify (for self-leave) or gate owner-only actions without them. See REQUIREMENTS.md "API Gaps" for the backend work needed and the client-side fallback until it ships.
+
 ## Constraints
 
 - **Tech stack**: Flutter/Dart, must reuse existing `ApiClient`/`AuthSession`/`TokenStorage` patterns rather than replacing them — minimize churn on already-working auth
@@ -59,6 +61,7 @@ A band member can open the app without signal — at a venue, in a basement, on 
 | Offline caching mobile-only (Android/iOS), web excluded | Web already requires network for the pipeline/hosting model; avoids browser storage quirks this milestone | — Pending |
 | Persist login token across restarts | Already implemented via flutter_secure_storage; confirmed as desired behavior going forward | ✓ Good |
 | Introduce Provider or Riverpod for state management | Band/track/setlist screens need shared state across tabs; current ChangeNotifier+DI prop-drilling was already flagged as an anti-pattern in the codebase map | — Pending |
+| Extend `publicapi.yml` with `UserProfile.id` and `Band.ownerId` rather than fake it client-side | Client genuinely cannot self-identify or gate owner-only UI without these; username-matching or hiding-nothing were the only workarounds and both are fragile/wrong | — Pending (needs backend implementation) |
 
 ## Evolution
 
