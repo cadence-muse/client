@@ -1,7 +1,7 @@
 ---
 phase: 1
 slug: foundation-profile-home
-status: draft
+status: approved
 shadcn_initialized: false
 preset: not applicable
 created: 2026-08-14
@@ -122,9 +122,10 @@ Never use accent for secondary actions, disabled states, or informational text.
 | Screen title | "Profile" |
 | Label: Username | "Username" |
 | Label: User ID | "ID" (if displayed; often internal only) |
-| Refresh action | "Refresh" or refresh icon button |
-| No data (error state) | **Heading:** "Couldn't load profile" **Body:** "Please check your connection and try again." [Retry button] |
+| Refresh action | Icon button, `tooltip`/`semanticLabel`: "Refresh" (icon-only, accessible via tooltip) |
+| No data (error state) | **Heading:** "Couldn't load profile" **Body:** "Please check your connection and try again." **Button:** "Retry" |
 | Empty/no username | (API contract guarantees username is required; treat as error) |
+| Focal point | Username is the visual anchor (largest/first text); ID is secondary detail below it |
 
 **Home Screen (USER-02: "User can view homepage summary (username, bands count) on app home tab via GET /api/homepage"):**
 
@@ -134,9 +135,10 @@ Never use accent for secondary actions, disabled states, or informational text.
 | Welcome message | "Welcome, [username]" (dynamic) |
 | Bands count label | "Your bands" |
 | Bands count display | "[N] band" or "[N] bands" (pluralize) |
-| Empty state (zero bands) | **Heading:** "No bands yet" **Body:** "Create or join a band to get started. Tap the '+' icon to create one or ask a bandmate for an invite code." [Create Button] |
-| No data (error state) | **Heading:** "Couldn't load home" **Body:** "Please check your connection and try again." [Retry button] |
-| Refresh action | "Refresh" or refresh icon button |
+| Empty state (zero bands) | **Heading:** "No bands yet" **Body:** "Create or join a band to get started. Tap the '+' icon to create one or ask a bandmate for an invite code." **Button:** "Create Band" |
+| No data (error state) | **Heading:** "Couldn't load home" **Body:** "Please check your connection and try again." **Button:** "Retry" |
+| Refresh action | Icon button, `tooltip`/`semanticLabel`: "Refresh" (icon-only, accessible via tooltip) |
+| Focal point | Welcome message is the visual anchor (largest/first text); bands count card is secondary |
 
 **Cache-First Loading (Phase 1 behavior, no explicit copy, silent):**
 - On screen load, show cached data immediately if available (no "Loading..." spinner).
@@ -162,8 +164,8 @@ Never use accent for secondary actions, disabled states, or informational text.
 | Error | Stale/offline data | 🧪 backstop | Cache shows as-is (no "last synced" cue); staleness UI deferred to Phase 5 OFFL-03. Verification: manual UI test in offline mode. |
 | Populated | Profile username/ID display | ✅ covered | Two-column or stacked layout (designer choice); text read from `UserProfile` schema |
 | Populated | Home username + bands count | ✅ covered | Welcome message (dynamic username) + card/row displaying band count |
-| Long text | Very long username (>20 chars) | ⚠️ unresolved | Planner assumption: text truncates to 1-2 lines with ellipsis or wraps naturally per Material 3 TextField defaults |
-| Overflow (many bands) | Bands count >999 | ⚠️ unresolved | Planner assumption: displays as-is (e.g., "1,250 bands"); no abbreviation (K/M shorthand) defined |
+| Long text | Very long username (>20 chars) | ✅ resolved | Truncates to a single line with ellipsis (`TextOverflow.ellipsis`, `maxLines: 1`) |
+| Overflow (many bands) | Bands count >999 | ✅ resolved | Displays exact number, no abbreviation (e.g., "1,250 bands") |
 
 ---
 
@@ -185,7 +187,29 @@ Never use accent for secondary actions, disabled states, or informational text.
 
 ---
 
-## UI Considerations & Assumptions
+## UI Considerations
+
+Resolved via ui-consideration-probe (8 elements, 33 applicable state considerations — cross-referenced and consolidated below; duplicates across Profile/Home error and empty states point to the single Copywriting Contract entry that governs them).
+
+**Long username (>20 chars), Profile & Home:**
+Truncates to a single line with ellipsis (`TextOverflow.ellipsis`, `maxLines: 1`). Verification: explicit.
+
+**Band count overflow (>999), Home:**
+Displays the exact number, no K/M abbreviation (e.g. "1,250 bands"). Verification: explicit.
+
+**Profile — empty/absent username:** Dismissed. API contract (`UserProfile`) guarantees `username` is required; an absent value is treated as the Profile error state, not a distinct empty state.
+
+**Profile — partial data:** Dismissed. `UserProfile` schema returns username + ID atomically; no partial-field case exists.
+
+**Home — partial data:** Dismissed. Homepage schema returns username + band count atomically; no partial-field case exists.
+
+**Profile/Home — loading state:** Dismissed. Cache-first loading (D-04) shows cached data immediately with no spinner; see below.
+
+**Home — zero/one/many bands:** Resolved explicit. Pluralized copy ("1 band" / "N bands") per Copywriting Contract; zero case routes to the Home empty state.
+
+**Refresh action — empty/loading/error/populated/overflow/long-text states:** Dismissed. Refresh is a static icon button with fixed label "Refresh"; it carries no data-driven states of its own.
+
+**Error-state copy (Profile & Home) — overflow/long-text:** Dismissed. Error heading/body are fixed strings, not user data; no overflow risk.
 
 **Cache-First Loading Pattern (D-04):**
 - On screen load: show cached data immediately if available (zero delay).
@@ -225,14 +249,14 @@ Exact visual treatment (e.g., card borders, spacing, image assets) left to execu
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS (Flutter Material; no npm registries involved)
+- [x] Dimension 1 Copywriting: PASS (button labels now explicit)
+- [x] Dimension 2 Visuals: PASS (focal points + refresh accessibility added)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS (Flutter Material; no npm registries involved)
 
-**Approval:** pending
+**Approval:** approved
 
 ---
 
