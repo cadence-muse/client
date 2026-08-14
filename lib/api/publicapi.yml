@@ -9,14 +9,15 @@ tags:
   - name: Songs
 
 security:
-  - cookieAuth: [ ]
+  - sessionAuth: [ ]
 
 paths:
   /api/register:
     post:
       operationId: Register
       summary: Registers a new user
-      security: []
+      tags: [ Users ]
+      security: [ ]
       requestBody:
         required: true
         content:
@@ -37,7 +38,8 @@ paths:
     post:
       operationId: Login
       summary: Logs in the user and returns token
-      security: []
+      tags: [ Users ]
+      security: [ ]
       requestBody:
         required: true
         content:
@@ -51,18 +53,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponseBody'
-        '401':
-          description: Invalid username or password
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
-  /api/logout:
-    post:
-      operationId: Logout
-      summary: Logs out the current user and removes the session
+  /api/me:
+    get:
+      operationId: GetUserProfile
+      summary: Get logged in user profile info
+      tags: [ Users ]
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       responses:
         '200':
           description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/homepage:
+    get:
+      operationId: GetHomepageData
+      summary: Get homepage data for current user
+      tags: [ Users ]
+      security:
+        - sessionAuth: [ ]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomepageData'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -72,14 +96,14 @@ paths:
       summary: Returns a list of current user's bands
       tags: [ Bands ]
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       responses:
         '200':
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BandList'
+                $ref: '#/components/schemas/ListBandsResponseBody'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -89,7 +113,7 @@ paths:
       summary: Create a new band
       tags: [ Bands ]
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       requestBody:
         required: true
         content:
@@ -97,8 +121,12 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateBandRequestBody'
       responses:
-        '200':
+        '201':
           description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBandResponseBody'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -108,7 +136,7 @@ paths:
       summary: Get detailed band info
       tags: [ Bands ]
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/BandId'
       responses:
@@ -125,7 +153,7 @@ paths:
       operationId: UpdateBand
       summary: Update band info
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/BandId'
       requestBody:
@@ -140,12 +168,30 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /api/band/join:
+    post:
+      operationId: JoinBand
+      summary: Join a band by invite code
+      security:
+        - sessionAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JoinBandRequestBody'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /api/band/{bandId}/track/list:
     get:
       operationId: ListBandTracks
       summary: List all band tracks
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/BandId'
       responses:
@@ -154,7 +200,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrackList'
+                $ref: '#/components/schemas/ListBandTracksResponseBody'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -163,7 +209,7 @@ paths:
       operationId: CreateBandTrack
       summary: Create band track
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/BandId'
       requestBody:
@@ -173,8 +219,12 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateBandTrackRequestBody'
       responses:
-        '200':
+        '201':
           description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBandTrackResponseBody'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -183,19 +233,17 @@ paths:
       operationId: GetBandTrack
       summary: Get detailed band track info
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/BandId'
         - $ref: '#/components/parameters/TrackId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BandTrack'
       responses:
         '200':
           description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandTrack'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -203,7 +251,7 @@ paths:
       operationId: UpdateBandTrack
       summary: Update band track info
       security:
-        - cookieAuth: [ ]
+        - sessionAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/BandId'
         - $ref: '#/components/parameters/TrackId'
@@ -221,11 +269,11 @@ paths:
 
 components:
   securitySchemes:
-    cookieAuth:
+    sessionAuth:
       type: apiKey
-      in: cookie
-      name: cadencesession
-      description: Session cookie for authentication
+      in: header
+      name: Authorization
+      description: Session ID passed via the Authorization header
 
   responses:
     BadRequest:
@@ -322,10 +370,34 @@ components:
       required:
         - token
 
-    BandList:
-      type: array
-      items:
-        $ref: '#/components/schemas/BandListItem'
+    UserProfile:
+      type: object
+      properties:
+        username:
+          type: string
+      required:
+        - username
+
+    HomepageData:
+      type: object
+      properties:
+        username:
+          type: string
+        bandsCount:
+          type: integer
+      required:
+        - username
+        - bandsCount
+
+    ListBandsResponseBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BandListItem'
+      required:
+        - items
 
     BandListItem:
       type: object
@@ -347,6 +419,15 @@ components:
       required:
         - name
 
+    CreateBandResponseBody:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+      required:
+        - id
+
     Band:
       type: object
       properties:
@@ -355,22 +436,52 @@ components:
           format: uuid
         name:
           type: string
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/BandMember'
+        inviteCode:
+          type: string
       required:
         - id
         - name
+        - members
+        - inviteCode
+
+    BandMember:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+      required:
+        - username
 
     UpdateBandRequestBody:
       type: object
       properties:
         name:
           type: string
-      required:
-        - name
 
-    TrackList:
-      type: array
-      items:
-        $ref: '#/components/schemas/TrackListItem'
+    JoinBandRequestBody:
+      type: object
+      properties:
+        inviteCode:
+          type: string
+      required:
+        - inviteCode
+
+    ListBandTracksResponseBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackListItem'
+      required:
+        - items
 
     TrackListItem:
       type: object
@@ -380,17 +491,42 @@ components:
           format: uuid
         title:
           type: string
+        artist:
+          type: string
+        durationSeconds:
+          type: integer
       required:
         - id
         - title
+        - artist
 
     CreateBandTrackRequestBody:
       type: object
       properties:
         title:
           type: string
+        artist:
+          type: string
+        durationSeconds:
+          type: integer
+        tempo:
+          type: integer
+        key:
+          type: string
+        notes:
+          type: string
       required:
         - title
+        - artist
+
+    CreateBandTrackResponseBody:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+      required:
+        - id
 
     BandTrack:
       type: object
@@ -400,14 +536,37 @@ components:
           format: uuid
         title:
           type: string
+        artist:
+          type: string
+        durationSeconds:
+          type: integer
+        tempo:
+          type: integer
+        key:
+          type: string
+        notes:
+          type: string
       required:
         - id
         - title
+        - artist
 
     UpdateBandTrackRequestBody:
       type: object
       properties:
         title:
           type: string
-      required:
-        - title
+        artist:
+          type: string
+        durationSeconds:
+          type: integer
+          nullable: true
+        tempo:
+          type: integer
+          nullable: true
+        key:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
