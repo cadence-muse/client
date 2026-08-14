@@ -168,6 +168,19 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+    delete:
+      operationId: Remove band
+      summary: Remove band. Only band owner is allowed to remove the band.
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+      responses:
+        '204':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /api/band/join:
     post:
       operationId: JoinBand
@@ -182,6 +195,21 @@ paths:
               $ref: '#/components/schemas/JoinBandRequestBody'
       responses:
         '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/remove-member/{userId}:
+    delete:
+      operationId: RemoveBandMember
+      summary: Remove band member by user ID. You can remove yourself and owner can remove anybody from the band.
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
           description: Success
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -267,6 +295,173 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+    delete:
+      operationId: RemoveBandTrack
+      summary: Remove band track
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/TrackId'
+      responses:
+        '204':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/setlist/list:
+    get:
+      operationId: ListBandSetlists
+      summary: List band setlists
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListBandSetlistsResponseBody'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/setlist:
+    post:
+      operationId: CreateBandSetlist
+      summary: Create band setlist
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBandSetlistsRequestBody'
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBandSetlistsResponseBody'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/setlist/{setlistId}:
+    get:
+      operationId: GetBandSetlist
+      summary: Get band setlist detailed info
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/SetlistId'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandSetlist'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    put:
+      operationId: UpdateBandSetlist
+      summary: Update band setlist
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/SetlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBandSetlistRequestBody'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    delete:
+      operationId: RemoveBandSetlist
+      summary: Remove band setlist
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/SetlistId'
+      responses:
+        '204':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/setlist/{setlistId}/track:
+    post:
+      operationId: AddSetlistTrack
+      summary: Add a track to a setlist
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/SetlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSetlistTrackRequestBody'
+      responses:
+        '204':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/setlist/{setlistId}/track/{trackId}:
+    delete:
+      operationId: RemoveSetlistTrack
+      summary: Remove a track from a setlist
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/SetlistId'
+        - $ref: '#/components/parameters/TrackId'
+      responses:
+        '204':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/setlist/{setlistId}/tracks/reorder:
+    put:
+      operationId: ReorderSetlistTracks
+      summary: Reorder the tracks of a setlist
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/SetlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderSetlistTracksRequestBody'
+      responses:
+        '204':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
 components:
   securitySchemes:
     sessionAuth:
@@ -284,6 +479,14 @@ components:
             $ref: '#/components/schemas/BadRequestResponseBody'
 
   parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
     BandId:
       name: bandId
       in: path
@@ -294,6 +497,14 @@ components:
 
     TrackId:
       name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    SetlistId:
+      name: setlistId
       in: path
       required: true
       schema:
@@ -570,3 +781,141 @@ components:
         notes:
           type: string
           nullable: true
+
+    ListBandSetlistsResponseBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetlistListItem'
+      required:
+        - items
+
+    SetlistListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        tracksCount:
+          type: integer
+        durationSeconds:
+          type: integer
+        eventDate:
+          type: string
+          format: date
+      required:
+        - id
+        - name
+        - tracksCount
+        - durationSeconds
+
+    CreateBandSetlistsRequestBody:
+      type: object
+      properties:
+        name:
+          type: string
+        eventLocation:
+          type: string
+        eventDate:
+          type: string
+          format: date
+        trackIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+      required:
+        - name
+
+    CreateBandSetlistsResponseBody:
+      type: object
+      properties: 
+        id:
+          type: string
+          format: uuid
+      required:
+        - id
+
+    BandSetlist:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        durationSeconds:
+          type: integer
+        eventLocation:
+          type: string
+        eventDate:
+          type: string
+          format: date
+        tracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetlistTrackItem'
+      required:
+        - id
+        - name
+        - durationSeconds
+        - tracks
+
+    SetlistTrackItem:
+      type: object
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        position:
+          type: integer
+        title:
+          type: string
+        artist:
+          type: string
+        durationSeconds:
+          type: integer
+      required:
+        - trackId
+        - position
+        - title
+        - artist
+
+    UpdateBandSetlistRequestBody:
+      type: object
+      properties:
+        name:
+          type: string
+        eventLocation:
+          type: string
+          nullable: true
+        eventDate:
+          type: string
+          format: date
+          nullable: true
+
+    AddSetlistTrackRequestBody:
+      type: object
+      properties:
+        trackId:
+          type: string
+          format: uuid
+      required:
+        - trackId
+
+    ReorderSetlistTracksRequestBody:
+      type: object
+      properties:
+        trackIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+      required:
+        - trackIds
