@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
@@ -256,6 +257,35 @@ void main() {
 
       expect(find.text('Invalid invite code'), findsOneWidget);
       expect(find.byType(AlertDialog), findsOneWidget);
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a non-ApiException failure (e.g. offline) shows the generic fallback '
+    'message and re-enables the Join button',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([]);
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/join') {
+          throw const SocketException('Network is unreachable');
+        }
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await openDialog(tester);
+      await tester.enterText(find.byType(TextFormField), 'ABC123');
+      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Something went wrong. Please try again.'),
+        findsOneWidget,
+      );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
     },

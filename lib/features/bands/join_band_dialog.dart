@@ -116,6 +116,8 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
       }
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
+    } catch (_) {
+      setState(() => _errorMessage = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

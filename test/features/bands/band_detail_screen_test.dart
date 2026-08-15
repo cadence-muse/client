@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
@@ -670,6 +671,114 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Remove failed'), findsOneWidget);
+      final removeButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Remove'),
+      );
+      expect(removeButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a Delete failure from a non-ApiException error (e.g. offline) shows '
+    'the generic fallback message and re-enables the Delete button',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'The Band'));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(name: 'The Band'),
+        onMutate: (request) async {
+          throw const SocketException('Network is unreachable');
+        },
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'The Band');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Something went wrong. Please try again.'),
+        findsOneWidget,
+      );
+      final deleteButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Delete'),
+      );
+      expect(deleteButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a Leave failure from a non-ApiException error (e.g. offline) shows '
+    'the generic fallback message and re-enables the Leave button',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+        onMutate: (request) async {
+          throw const SocketException('Network is unreachable');
+        },
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Leave'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Something went wrong. Please try again.'),
+        findsOneWidget,
+      );
+      final leaveButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Leave'),
+      );
+      expect(leaveButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a Remove failure from a non-ApiException error (e.g. offline) shows '
+    'the generic fallback message and re-enables the Remove button',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(members: members),
+        onMutate: (request) async {
+          throw const SocketException('Network is unreachable');
+        },
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Something went wrong. Please try again.'),
+        findsOneWidget,
+      );
       final removeButton = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Remove'),
       );

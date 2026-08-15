@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
@@ -202,6 +203,28 @@ void main() {
 
       expect(callCount, 1);
       expect(find.byType(EditBandScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a non-ApiException failure (e.g. offline) shows the generic fallback '
+    'message and re-enables the Save button',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        throw const SocketException('Network is unreachable');
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), 'New Name');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Something went wrong. Please try again.'),
+        findsOneWidget,
+      );
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
     },
   );
 
