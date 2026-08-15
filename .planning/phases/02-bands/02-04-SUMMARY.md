@@ -166,3 +166,7 @@ _Note: Task 1 was `type="tracer"` with `tdd="true"`; verification (`flutter test
 ---
 *Phase: 02-bands*
 *Completed: 2026-08-15*
+
+## Self-Check: PASSED
+
+All claimed files verified present on disk (`lib/api/public_api.dart`, `lib/providers/bands_provider.dart`, `lib/features/bands/band_detail_screen.dart`, `lib/features/bands/edit_band_screen.dart`, `test/providers/band_detail_provider_test.dart`, `test/features/bands/edit_band_screen_test.dart`, `test/features/bands/band_detail_screen_test.dart`). All claimed commit hashes (`81369f1`, `478ae85`) verified present in `git log`.
