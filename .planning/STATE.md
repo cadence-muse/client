@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: bands
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-08-15T13:48:30.089Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-08-15T14:01:47Z"
 last_activity: 2026-08-15
-last_activity_desc: Phase 01 execution started
+last_activity_desc: Phase 02 execution — 02-02 (band detail) complete
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 ## Current Position
 
 Phase: 02 (bands) — EXECUTING
-Plan: 2 of 5
-Status: Ready to execute
-Last activity: 2026-08-15 — Phase 02 execution resumed (wave continue)
+Plan: 3 of 5
+Status: Executing Phase 02
+Last activity: 2026-08-15 — Completed 02-02-PLAN.md (band detail, BAND-03/BAND-07)
 
-Progress: [█████░░░░░] 50%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3
+- Total plans completed: 4
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -62,6 +62,7 @@ Progress: [█████░░░░░] 50%
 | Phase 01 P02 | 15min | 1 tasks | 2 files |
 | Phase 01 P03 | 40min | 2 tasks | 8 files |
 | Phase 02 P01 | 25min | 2 tasks | 11 files |
+| Phase 02 P02 | 20min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 01-03: Generalized CacheService's internal store abstraction (_ProfileStore -> _KeyValueStore) to back two independent Hive boxes (profileBox, homepageBox), proving D-02's per-endpoint-box pattern generalizes for Phase 2's bandsBox
 - [Phase ?]: 02-01: band.dart's Band stub deleted with no typed replacement — screens use raw Map<String, dynamic> per Phase 1's D-03 no-typed-model pattern (BandListItem is id+name only)
 - [Phase ?]: 02-01: BandAvatar kept as its own dedicated widget file (not inlined in ListTile.leading) per D-06, so a future milestone can swap in a real image avatar by editing only that file
+- [Phase ?]: 02-02: BandDetailData is the project's first family Riverpod AsyncNotifier (build(String bandId)); per-band detail cached as band_<id>-keyed entries inside the existing bandsBox from 02-01, not a new Hive box
+- [Phase ?]: 02-02: BandDetailScreen reads bandAsync.valueOrNull (not .value) for the AppBar title — AsyncValue.value rethrows on AsyncError, which crashed the widget on the error path before its own error UI could render
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-15T13:48:30.066Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-08-15T14:01:47Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
