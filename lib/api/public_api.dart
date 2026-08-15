@@ -89,4 +89,16 @@ class PublicApi {
   Future<void> deleteBand(String bandId) async {
     await _client.send('DELETE', '/api/band/$bandId');
   }
+
+  /// Removes a member from a band. Serves both self-leave (any member may
+  /// remove themselves) and owner-initiated removal (owner may remove
+  /// anybody) — see `RemoveBandMember` in `publicapi.yml`; `'204'` no
+  /// content. The only difference between the two call sites is which
+  /// [userId] is passed.
+  Future<void> removeMember({
+    required String bandId,
+    required String userId,
+  }) async {
+    await _client.send('DELETE', '/api/band/$bandId/remove-member/$userId');
+  }
 }

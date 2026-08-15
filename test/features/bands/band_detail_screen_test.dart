@@ -423,4 +423,76 @@ void main() {
       expect(find.text('Bands list root'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'non-owner sees a "Leave" action, owner does not (leave)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+
+      // Non-owner: profile id doesn't match ownerId ('u1').
+      final memberApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(memberApiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leave'), findsOneWidget);
+
+      // Owner: profile id matches ownerId.
+      final ownerCacheService = CacheService.inMemory();
+      await ownerCacheService.writeBandDetail('b1', band());
+      final ownerApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(ownerApiClient, ownerCacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leave'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'confirming Leave calls removeMember with the current user\'s own id, '
+    'invalidates the bands list, and returns to the Bands list (leave)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+
+      final removeRequests = <http.Request>[];
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+        onMutate: (request) async {
+          removeRequests.add(request);
+          return http.Response('', 204);
+        },
+      );
+
+      await tester.pumpWidget(
+        wrapWithListRoot(apiClient, cacheService, bandId: 'b1'),
+      );
+      await tester.tap(find.text('Bands list root'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Leave'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
+      await tester.pumpAndSettle();
+
+      expect(removeRequests, hasLength(1));
+      expect(removeRequests.single.method, 'DELETE');
+      expect(
+        removeRequests.single.url.path,
+        '/api/band/b1/remove-member/u2',
+      );
+      expect(find.byType(BandDetailScreen), findsNothing);
+      expect(find.text('Bands list root'), findsOneWidget);
+    },
+  );
 }

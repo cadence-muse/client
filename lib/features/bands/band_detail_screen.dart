@@ -6,6 +6,7 @@ import '../../providers/bands_provider.dart';
 import '../../providers/profile_provider.dart';
 import 'band_avatar.dart';
 import 'confirm_delete_band_dialog.dart';
+import 'confirm_leave_band_dialog.dart';
 import 'edit_band_screen.dart';
 
 class BandDetailScreen extends ConsumerWidget {
@@ -156,6 +157,24 @@ class BandDetailScreen extends ConsumerWidget {
               context: context,
               builder: (_) =>
                   ConfirmDeleteBandDialog(bandId: bandId, bandName: name),
+            ),
+          ),
+        ],
+        if (isOwner == false) ...[
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(
+              Icons.logout,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              'Leave',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (_) =>
+                  ConfirmLeaveBandDialog(bandId: bandId, bandName: name),
             ),
           ),
         ],
