@@ -62,6 +62,7 @@ class _FakeSecureStorage extends FlutterSecureStoragePlatform
 /// sign-out) actually runs without depending on real Hive storage.
 class _FakeCacheService implements CacheService {
   final Map<String, dynamic> _profile = {};
+  final Map<String, dynamic> _homepage = {};
   int clearAllCallCount = 0;
   bool get clearAllCalled => clearAllCallCount > 0;
 
@@ -78,9 +79,22 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
+  Future<Map<String, dynamic>?> readHomepage() async => _homepage.isEmpty
+      ? null
+      : Map<String, dynamic>.from(_homepage);
+
+  @override
+  Future<void> writeHomepage(Map<String, dynamic> data) async {
+    _homepage
+      ..clear()
+      ..addAll(data);
+  }
+
+  @override
   Future<void> clearAll() async {
     clearAllCallCount++;
     _profile.clear();
+    _homepage.clear();
   }
 }
 

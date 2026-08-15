@@ -4,18 +4,19 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'cache_service.g.dart';
 
-/// Backing store for one Hive-cached endpoint's data. [_HiveProfileStore] is
-/// the real, Hive-backed implementation used at runtime; [_InMemoryProfileStore]
-/// is a plain-`Map` test double (see [CacheService.inMemory]) that avoids
-/// real file I/O in widget tests.
-abstract class _ProfileStore {
+/// Backing store for one Hive-cached endpoint's box (e.g. `profileBox`,
+/// `homepageBox` — see D-02: one Hive box per endpoint). [_HiveStore] is the
+/// real, Hive-backed implementation used at runtime; [_InMemoryStore] is a
+/// plain-`Map` test double (see [CacheService.inMemory]) that avoids real
+/// file I/O in widget tests. One instance backs exactly one box.
+abstract class _KeyValueStore {
   Map<String, dynamic>? get(String key);
   Future<void> put(String key, Map<String, dynamic> value);
   Future<void> clear();
 }
 
-class _HiveProfileStore implements _ProfileStore {
-  _HiveProfileStore(this._box);
+class _HiveStore implements _KeyValueStore {
+  _HiveStore(this._box);
 
   final Box<Map> _box;
 
@@ -33,7 +34,7 @@ class _HiveProfileStore implements _ProfileStore {
   Future<void> clear() => _box.clear();
 }
 
-class _InMemoryProfileStore implements _ProfileStore {
+class _InMemoryStore implements _KeyValueStore {
   final Map<String, Map<String, dynamic>> _data = {};
 
   @override
@@ -57,21 +58,27 @@ class _InMemoryProfileStore implements _ProfileStore {
 /// [initialize] does NOT call `Hive.initFlutter()` itself — that stays the
 /// caller's job (see `lib/main.dart`).
 class CacheService {
-  CacheService._(this._store);
+  CacheService._(this._profileStore, this._homepageStore);
 
-  /// Test double backed by a plain in-memory `Map`, with no Hive/file I/O.
+  /// Test double backed by plain in-memory `Map`s, with no Hive/file I/O.
   /// Used via `cacheServiceProvider.overrideWithValue(CacheService.inMemory())`
   /// in widget tests.
   @visibleForTesting
-  factory CacheService.inMemory() => CacheService._(_InMemoryProfileStore());
+  factory CacheService.inMemory() =>
+      CacheService._(_InMemoryStore(), _InMemoryStore());
 
   static CacheService? _instance;
 
-  final _ProfileStore _store;
+  final _KeyValueStore _profileStore;
+  final _KeyValueStore _homepageStore;
 
   static Future<void> initialize() async {
     final profileBox = await Hive.openBox<Map>('profileBox');
-    _instance = CacheService._(_HiveProfileStore(profileBox));
+    final homepageBox = await Hive.openBox<Map>('homepageBox');
+    _instance = CacheService._(
+      _HiveStore(profileBox),
+      _HiveStore(homepageBox),
+    );
   }
 
   static CacheService get instance {
@@ -83,10 +90,11 @@ class CacheService {
   }
 
   static const _profileKey = 'profile';
+  static const _homepageKey = 'homepage';
 
   Future<Map<String, dynamic>?> readProfile() async {
     try {
-      return _store.get(_profileKey);
+      return _profileStore.get(_profileKey);
     } catch (_) {
       return null;
     }
@@ -94,7 +102,24 @@ class CacheService {
 
   Future<void> writeProfile(Map<String, dynamic> data) async {
     try {
-      await _store.put(_profileKey, data);
+      await _profileStore.put(_profileKey, data);
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  Future<Map<String, dynamic>?> readHomepage() async {
+    try {
+      return _homepageStore.get(_homepageKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeHomepage(Map<String, dynamic> data) async {
+    try {
+      await _homepageStore.put(_homepageKey, data);
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
@@ -102,7 +127,8 @@ class CacheService {
   }
 
   Future<void> clearAll() async {
-    await _store.clear();
+    await _profileStore.clear();
+    await _homepageStore.clear();
   }
 }
 
