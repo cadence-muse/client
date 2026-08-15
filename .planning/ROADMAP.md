@@ -61,12 +61,12 @@ Plans:
   4. User can update a band's name, and — if they're the owner — delete the band.
   5. User can join another band via invite code, leave a band they're in, and — if owner — remove another member.
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Bands list end-to-end (tracer): API + cache + provider + BandsScreen (BAND-01)
+- [x] 02-01-PLAN.md — Bands list end-to-end (tracer): API + cache + provider + BandsScreen (BAND-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation, Profile & Home | 3/3 | Complete    | 2026-08-15 |
-| 2. Bands | 0/TBD | Not started | - |
+| 2. Bands | 1/5 | In Progress|  |
 | 3. Tracks | 0/TBD | Not started | - |
 | 4. Setlists | 0/TBD | Not started | - |
 | 5. Offline Trust & Connectivity UX | 0/TBD | Not started | - |

@@ -14,7 +14,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Bands
 
-- [ ] **BAND-01**: User can view list of bands they belong to
+- [x] **BAND-01**: User can view list of bands they belong to
 - [ ] **BAND-02**: User can create a new band
 - [ ] **BAND-03**: User can view band detail (name, members, invite code)
 - [ ] **BAND-04**: User can update a band's name
@@ -99,7 +99,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | USER-02 | Phase 1 | Complete |
 | OFFL-01 | Phase 1 | Complete |
 | OFFL-06 | Phase 1 | Complete |
-| BAND-01 | Phase 2 | Pending |
+| BAND-01 | Phase 2 | Complete |
 | BAND-02 | Phase 2 | Pending |
 | BAND-03 | Phase 2 | Pending |
 | BAND-04 | Phase 2 | Pending |
