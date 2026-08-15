@@ -170,4 +170,102 @@ void main() {
       expect(cached?['name'], 'New Name');
     },
   );
+
+  test(
+    'a local updateName() mutation is not clobbered by a slower in-flight '
+    'background refresh (WR-02)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', {
+        'id': 'b1',
+        'name': 'Cached Band',
+        'ownerId': 'u1',
+        'members': [
+          {'id': 'u1', 'username': 'alice'},
+        ],
+        'inviteCode': 'abc-123',
+      });
+
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        return http.Response(
+          jsonEncode({
+            'id': 'b1',
+            'name': 'Stale Network Name',
+            'ownerId': 'u1',
+            'members': [
+              {'id': 'u1', 'username': 'alice'},
+            ],
+            'inviteCode': 'abc-123',
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
+      addTearDown(sub.close);
+
+      // build()'s cache hit fires an unawaited background refresh whose
+      // (delayed) response hasn't arrived yet.
+      await container.read(bandDetailDataProvider('b1').future);
+
+      await container
+          .read(bandDetailDataProvider('b1').notifier)
+          .updateName('Locally Renamed');
+
+      // Let the delayed background refresh's response resolve.
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+
+      final finalState = container
+          .read(bandDetailDataProvider('b1'))
+          .valueOrNull;
+      expect(finalState?['name'], 'Locally Renamed');
+    },
+  );
+
+  test(
+    'a background refresh with no intervening local mutation still updates '
+    'state to the fetched data',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', {
+        'id': 'b1',
+        'name': 'Cached Band',
+        'ownerId': 'u1',
+        'members': [
+          {'id': 'u1', 'username': 'alice'},
+        ],
+        'inviteCode': 'abc-123',
+      });
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 'b1',
+            'name': 'Fresh Network Name',
+            'ownerId': 'u1',
+            'members': [
+              {'id': 'u1', 'username': 'alice'},
+            ],
+            'inviteCode': 'abc-123',
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
+      addTearDown(sub.close);
+
+      await container.read(bandDetailDataProvider('b1').future);
+      // Let the unawaited background refresh settle.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final finalState = container
+          .read(bandDetailDataProvider('b1'))
+          .valueOrNull;
+      expect(finalState?['name'], 'Fresh Network Name');
+    },
+  );
 }

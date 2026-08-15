@@ -23,6 +23,13 @@ part 'bands_provider.g.dart';
 class BandsListData extends _$BandsListData {
   Future<void>? _inFlightRefresh;
 
+  /// Monotonic counter bumped by every local-mutation method ([setBands],
+  /// [renameBand]). [_refresh]/[_doRefresh] capture this before their
+  /// network await and discard a fetched result if it changed while the
+  /// fetch was in flight — otherwise a slower background refresh could
+  /// silently revert a local edit that landed first (WR-02).
+  int _version = 0;
+
   @override
   Future<List<Map<String, dynamic>>> build() async {
     final cache = ref.watch(cacheServiceProvider);
@@ -44,9 +51,12 @@ class BandsListData extends _$BandsListData {
   /// surfaces an error — a failed background refresh just leaves the
   /// currently-cached data displayed.
   Future<void> _refresh() async {
+    final capturedVersion = _version;
     try {
       final fresh = await _fetchAndCache();
-      state = AsyncData(fresh);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
     } catch (_) {
       // Keep showing cached data.
     }
@@ -62,9 +72,12 @@ class BandsListData extends _$BandsListData {
   }
 
   Future<void> _doRefresh() async {
+    final capturedVersion = _version;
     try {
       final fresh = await _fetchAndCache();
-      state = AsyncData(fresh);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);
@@ -77,7 +90,25 @@ class BandsListData extends _$BandsListData {
   /// (e.g. [showJoinBandDialog]'s post-join `listBands()` call), without
   /// firing another network request.
   void setBands(List<Map<String, dynamic>> bands) {
+    _version++;
     state = AsyncData(bands);
+  }
+
+  /// Patches [bandId]'s name in-place in the cached list after a
+  /// successful `updateBand()` call (WR-01 gap-closure), mirroring
+  /// [setBands]'s direct-state-patch pattern so BandsScreen (kept alive in
+  /// RootScaffold's IndexedStack) reflects a rename immediately instead of
+  /// showing the old name until an unrelated manual refresh.
+  void renameBand(String bandId, String newName) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = [
+      for (final band in current)
+        if (band['id'] == bandId) {...band, 'name': newName} else band,
+    ];
+    _version++;
+    state = AsyncData(updated);
+    unawaited(ref.read(cacheServiceProvider).writeBands(updated));
   }
 }
 
@@ -92,6 +123,13 @@ class BandsListData extends _$BandsListData {
 @riverpod
 class BandDetailData extends _$BandDetailData {
   Future<void>? _inFlightRefresh;
+
+  /// Monotonic counter bumped by every local-mutation method
+  /// ([updateName]). [_refresh]/[_doRefresh] capture this before their
+  /// network await and discard a fetched result if it changed while the
+  /// fetch was in flight — otherwise a slower background refresh could
+  /// silently revert a local edit that landed first (WR-02).
+  int _version = 0;
 
   @override
   Future<Map<String, dynamic>> build(String bandId) async {
@@ -114,9 +152,12 @@ class BandDetailData extends _$BandDetailData {
   /// surfaces an error — a failed background refresh just leaves the
   /// currently-cached data displayed.
   Future<void> _refresh(String bandId) async {
+    final capturedVersion = _version;
     try {
       final fresh = await _fetchAndCache(bandId);
-      state = AsyncData(fresh);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
     } catch (_) {
       // Keep showing cached data.
     }
@@ -132,9 +173,12 @@ class BandDetailData extends _$BandDetailData {
   }
 
   Future<void> _doRefresh() async {
+    final capturedVersion = _version;
     try {
       final fresh = await _fetchAndCache(bandId);
-      state = AsyncData(fresh);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);
@@ -152,6 +196,7 @@ class BandDetailData extends _$BandDetailData {
     final current = state.valueOrNull;
     if (current == null) return;
     final updated = {...current, 'name': newName};
+    _version++;
     state = AsyncData(updated);
     await ref.read(cacheServiceProvider).writeBandDetail(bandId, updated);
   }

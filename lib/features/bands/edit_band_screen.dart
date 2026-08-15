@@ -59,6 +59,12 @@ class _EditBandScreenState extends ConsumerState<EditBandScreen> {
             .read(bandDetailDataProvider(widget.bandId).notifier)
             .updateName(name);
       }
+      // Same reasoning as above: only patch bandsListDataProvider if it's
+      // already alive (BandsScreen stays mounted in RootScaffold's
+      // IndexedStack in real usage, so this is normally a no-op guard).
+      if (ref.exists(bandsListDataProvider)) {
+        ref.read(bandsListDataProvider.notifier).renameBand(widget.bandId, name);
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
     } on ApiException catch (e) {

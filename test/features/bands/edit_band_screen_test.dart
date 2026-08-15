@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/edit_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/bands_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -201,6 +202,54 @@ void main() {
 
       expect(callCount, 1);
       expect(find.byType(EditBandScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a successful save propagates the rename to bandsListDataProvider\'s '
+    'cached list entry (WR-01)',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'b1', 'name': 'The Testers'},
+      ]);
+
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(apiClient),
+          cacheServiceProvider.overrideWithValue(cacheService),
+        ],
+      );
+      addTearDown(container.dispose);
+      // Establish bandsListDataProvider's cached state before the screen
+      // mutates it, mirroring BandsScreen already being mounted in
+      // RootScaffold's IndexedStack. bandsListDataProvider is autoDispose,
+      // so a live listener is needed to keep it alive across the pump below
+      // — otherwise it would be torn down and rebuilt from scratch once
+      // read() completes and nothing is watching it.
+      container.listen(bandsListDataProvider, (_, _) {});
+      await container.read(bandsListDataProvider.future);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: EditBandScreen(bandId: 'b1', currentName: 'The Testers'),
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextFormField), 'New Name');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      final bands = container.read(bandsListDataProvider).valueOrNull;
+      expect(bands, [
+        {'id': 'b1', 'name': 'New Name'},
+      ]);
     },
   );
 }
