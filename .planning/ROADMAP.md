@@ -30,7 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User can view a homepage summary (username, band count) on the home tab via `GET /api/homepage`.
   3. Profile and homepage screens still show the last-fetched data when the device has no connectivity, proving the cache-store pattern end-to-end for the first two screens.
   4. Auth, profile, and homepage state flows through Riverpod providers instead of constructor-injected `ChangeNotifier` — no dual source of truth for auth state during or after the migration.
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Riverpod + Hive walking skeleton: Profile end-to-end (auth/theme migration, ApiClient decoupling, cache-store pattern)
+- [ ] 01-02-PLAN.md — Auth/theme provider test coverage (OFFL-06 regression guard, cache-clear-on-signOut mitigation)
+- [ ] 01-03-PLAN.md — Home screen: cache-first GET /api/homepage + full test coverage
 **UI hint**: yes
 
 ### Phase 2: Bands
