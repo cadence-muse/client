@@ -10,7 +10,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Users
 
 - [x] **USER-01**: User can view own profile info via `GET /api/me`
-- [ ] **USER-02**: User can view homepage summary (username, bands count) on app home tab via `GET /api/homepage`
+- [x] **USER-02**: User can view homepage summary (username, bands count) on app home tab via `GET /api/homepage`
 
 ### Bands
 
@@ -96,7 +96,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | USER-01 | Phase 1 | Complete |
-| USER-02 | Phase 1 | Pending |
+| USER-02 | Phase 1 | Complete |
 | OFFL-01 | Phase 1 | Complete |
 | OFFL-06 | Phase 1 | Complete |
 | BAND-01 | Phase 2 | Pending |
