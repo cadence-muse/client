@@ -84,4 +84,88 @@ void main() {
 
     await tester.pumpAndSettle();
   });
+
+  testWidgets(
+    'no cache and network failure shows "Couldn\'t load bands" + Retry',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'network_error', 'message': 'offline'}),
+          500,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't load bands"), findsOneWidget);
+      expect(
+        find.text('Please check your connection and try again.'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'band name longer than 30 characters truncates to a single line with ellipsis',
+    (tester) async {
+      const longName = 'A Band Name That Is Definitely Over Thirty Chars';
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': longName},
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': longName},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      final textWidget = tester.widget<Text>(find.text(longName));
+      expect(textWidget.maxLines, 1);
+      expect(textWidget.overflow, TextOverflow.ellipsis);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'two bands with the same name but different ids render as two separate ListTiles',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'Same'},
+        {'id': 'b', 'name': 'Same'},
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'Same'},
+              {'id': 'b', 'name': 'Same'},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byType(ListTile), findsNWidgets(2));
+
+      await tester.pumpAndSettle();
+    },
+  );
 }
