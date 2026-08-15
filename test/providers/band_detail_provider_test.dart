@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
+import 'package:cadence/api/api_exception.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
@@ -72,4 +73,22 @@ void main() {
       expect(data['name'], 'Cached Band');
     },
   );
+
+  test('no cache and network failure yields AsyncError', () async {
+    final cacheService = CacheService.inMemory();
+    final apiClient = buildApiClient((request) async {
+      return http.Response(
+        jsonEncode({'code': 'network_error', 'message': 'offline'}),
+        500,
+      );
+    });
+
+    final container = buildContainer(apiClient, cacheService);
+
+    await expectLater(
+      container.read(bandDetailDataProvider('b1').future),
+      throwsA(isA<ApiException>()),
+    );
+    expect(container.read(bandDetailDataProvider('b1')).hasError, isTrue);
+  });
 }

@@ -118,4 +118,113 @@ void main() {
     },
   );
 
+  testWidgets('cached data present renders immediately with no spinner', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
+
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode(band(name: 'Cached Band')), 200);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Cached Band'), findsWidgets);
+
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+    'background refresh silently replaces displayed data with no spinner',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'Old Name'));
+
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response(jsonEncode(band(name: 'New Name')), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.text('Old Name'), findsWidgets);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('New Name'), findsWidgets);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets('empty members array renders a graceful "No members" fallback', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBandDetail('b1', band(members: const []));
+
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode(band(members: const [])), 200);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pump();
+
+    expect(find.text('No members'), findsOneWidget);
+
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+    'no cache and network failure shows "Couldn\'t load band details" + Retry',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'network_error', 'message': 'offline'}),
+          500,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't load band details"), findsOneWidget);
+      expect(
+        find.text('Please check your connection and try again.'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'band name longer than 30 characters truncates to a single line with ellipsis',
+    (tester) async {
+      const longName = 'A Band Name That Is Definitely Over Thirty Chars';
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: longName));
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode(band(name: longName)), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      final headingFinder = find.descendant(
+        of: find.byType(ListView),
+        matching: find.text(longName),
+      );
+      final textWidget = tester.widget<Text>(headingFinder);
+      expect(textWidget.maxLines, 1);
+      expect(textWidget.overflow, TextOverflow.ellipsis);
+
+      await tester.pumpAndSettle();
+    },
+  );
 }
