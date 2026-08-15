@@ -73,3 +73,66 @@ class BandsListData extends _$BandsListData {
     }
   }
 }
+
+/// Cache-first `GET /api/band/{bandId}` data, keyed per band (this project's
+/// first family provider — [build]'s extra `bandId` parameter is
+/// auto-detected by riverpod_generator as the family key).
+///
+/// Mirrors [BandsListData]'s cache-first shape: cache hit returns
+/// immediately with a silent background refresh; cache miss fetches inline
+/// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
+/// band details" + Retry error state).
+@riverpod
+class BandDetailData extends _$BandDetailData {
+  Future<void>? _inFlightRefresh;
+
+  @override
+  Future<Map<String, dynamic>> build(String bandId) async {
+    final cache = ref.watch(cacheServiceProvider);
+    final cached = await cache.readBandDetail(bandId);
+    if (cached != null) {
+      unawaited(_refresh(bandId));
+      return cached;
+    }
+    return _fetchAndCache(bandId);
+  }
+
+  Future<Map<String, dynamic>> _fetchAndCache(String bandId) async {
+    final band = await ref.read(publicApiProvider).getBand(bandId);
+    await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
+    return band;
+  }
+
+  /// Silent background refresh fired from [build] on a cache hit. Never
+  /// surfaces an error — a failed background refresh just leaves the
+  /// currently-cached data displayed.
+  Future<void> _refresh(String bandId) async {
+    try {
+      final fresh = await _fetchAndCache(bandId);
+      state = AsyncData(fresh);
+    } catch (_) {
+      // Keep showing cached data.
+    }
+  }
+
+  /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
+  /// Deduplicates concurrent calls so tapping refresh twice in quick
+  /// succession triggers exactly one network request.
+  Future<void> refresh() {
+    return _inFlightRefresh ??= _doRefresh().whenComplete(
+      () => _inFlightRefresh = null,
+    );
+  }
+
+  Future<void> _doRefresh() async {
+    try {
+      final fresh = await _fetchAndCache(bandId);
+      state = AsyncData(fresh);
+    } catch (e, st) {
+      if (state.value == null) {
+        state = AsyncError(e, st);
+      }
+      // Otherwise silently keep the last good data visible.
+    }
+  }
+}

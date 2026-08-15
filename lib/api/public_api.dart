@@ -42,4 +42,11 @@ class PublicApi {
     final response = await _client.send('GET', '/api/band/list');
     return (response!['items'] as List).cast<Map<String, dynamic>>();
   }
+
+  /// Returns full band detail (`Band` — id, name, ownerId, members,
+  /// inviteCode).
+  Future<Map<String, dynamic>> getBand(String bandId) async {
+    final response = await _client.send('GET', '/api/band/$bandId');
+    return response!;
+  }
 }

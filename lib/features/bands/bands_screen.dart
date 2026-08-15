@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import 'band_avatar.dart';
+import 'band_detail_screen.dart';
 
 class BandsScreen extends ConsumerWidget {
   const BandsScreen({super.key});
@@ -60,6 +61,11 @@ class BandsScreen extends ConsumerWidget {
           leading: BandAvatar(bandName: name),
           title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => BandDetailScreen(bandId: band['id'] as String),
+            ),
+          ),
         );
       },
     );

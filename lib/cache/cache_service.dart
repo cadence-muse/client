@@ -152,6 +152,25 @@ class CacheService {
     }
   }
 
+  Future<Map<String, dynamic>?> readBandDetail(String bandId) async {
+    try {
+      return _bandsStore.get(_bandDetailKey(bandId));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeBandDetail(String bandId, Map<String, dynamic> data) async {
+    try {
+      await _bandsStore.put(_bandDetailKey(bandId), data);
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  static String _bandDetailKey(String bandId) => 'band_$bandId';
+
   Future<void> clearAll() async {
     await _profileStore.clear();
     await _homepageStore.clear();
