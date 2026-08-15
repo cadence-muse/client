@@ -58,26 +58,32 @@ class _InMemoryStore implements _KeyValueStore {
 /// [initialize] does NOT call `Hive.initFlutter()` itself — that stays the
 /// caller's job (see `lib/main.dart`).
 class CacheService {
-  CacheService._(this._profileStore, this._homepageStore);
+  CacheService._(this._profileStore, this._homepageStore, this._bandsStore);
 
   /// Test double backed by plain in-memory `Map`s, with no Hive/file I/O.
   /// Used via `cacheServiceProvider.overrideWithValue(CacheService.inMemory())`
   /// in widget tests.
   @visibleForTesting
-  factory CacheService.inMemory() =>
-      CacheService._(_InMemoryStore(), _InMemoryStore());
+  factory CacheService.inMemory() => CacheService._(
+    _InMemoryStore(),
+    _InMemoryStore(),
+    _InMemoryStore(),
+  );
 
   static CacheService? _instance;
 
   final _KeyValueStore _profileStore;
   final _KeyValueStore _homepageStore;
+  final _KeyValueStore _bandsStore;
 
   static Future<void> initialize() async {
     final profileBox = await Hive.openBox<Map>('profileBox');
     final homepageBox = await Hive.openBox<Map>('homepageBox');
+    final bandsBox = await Hive.openBox<Map>('bandsBox');
     _instance = CacheService._(
       _HiveStore(profileBox),
       _HiveStore(homepageBox),
+      _HiveStore(bandsBox),
     );
   }
 
@@ -91,6 +97,7 @@ class CacheService {
 
   static const _profileKey = 'profile';
   static const _homepageKey = 'homepage';
+  static const _bandsKey = 'bands';
 
   Future<Map<String, dynamic>?> readProfile() async {
     try {
@@ -126,9 +133,29 @@ class CacheService {
     }
   }
 
+  Future<List<Map<String, dynamic>>?> readBands() async {
+    try {
+      final cached = _bandsStore.get(_bandsKey);
+      if (cached == null) return null;
+      return (cached['items'] as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeBands(List<Map<String, dynamic>> data) async {
+    try {
+      await _bandsStore.put(_bandsKey, {'items': data});
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
   Future<void> clearAll() async {
     await _profileStore.clear();
     await _homepageStore.clear();
+    await _bandsStore.clear();
   }
 }
 

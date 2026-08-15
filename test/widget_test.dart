@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/api/token_storage.dart';
 import 'package:cadence/app.dart';
+import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
@@ -65,23 +66,42 @@ void main() {
     FlutterSecureStoragePlatform.instance = _FakeSecureStorage();
     await TokenStorage().write('test-token');
 
-    // RootScaffold's IndexedStack mounts ProfileScreen (and therefore
-    // profileDataProvider) even while the Bands tab is visible, so the real
-    // apiClientProvider must not attempt a live network call.
+    // RootScaffold's IndexedStack mounts ProfileScreen and BandsScreen (and
+    // therefore profileDataProvider/bandsListDataProvider) even while the
+    // Bands tab is visible, so the real apiClientProvider must not attempt a
+    // live network call for any endpoint it hits.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          cacheServiceProvider.overrideWithValue(CacheService.inMemory()),
           apiClientProvider.overrideWithValue(
             ApiClient(
               baseUrl: 'http://localhost',
               getToken: () => 'test-token',
               onUnauthorized: () async {},
-              httpClient: MockClient(
-                (request) async => http.Response(
-                  jsonEncode({'id': 'u1', 'username': 'testuser'}),
-                  200,
-                ),
-              ),
+              httpClient: MockClient((request) async {
+                switch (request.url.path) {
+                  case '/api/band/list':
+                    return http.Response(
+                      jsonEncode({
+                        'items': [
+                          {'id': 'b1', 'name': 'B.A.T.H.'},
+                        ],
+                      }),
+                      200,
+                    );
+                  case '/api/homepage':
+                    return http.Response(
+                      jsonEncode({'username': 'testuser', 'bandsCount': 1}),
+                      200,
+                    );
+                  default:
+                    return http.Response(
+                      jsonEncode({'id': 'u1', 'username': 'testuser'}),
+                      200,
+                    );
+                }
+              }),
             ),
           ),
         ],

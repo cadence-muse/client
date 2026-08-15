@@ -36,4 +36,10 @@ class PublicApi {
     );
     return response!['token'] as String;
   }
+
+  /// Returns the current user's bands (`BandListItem` — id + name only).
+  Future<List<Map<String, dynamic>>> listBands() async {
+    final response = await _client.send('GET', '/api/band/list');
+    return (response!['items'] as List).cast<Map<String, dynamic>>();
+  }
 }

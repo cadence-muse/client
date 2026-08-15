@@ -63,6 +63,7 @@ class _FakeSecureStorage extends FlutterSecureStoragePlatform
 class _FakeCacheService implements CacheService {
   final Map<String, dynamic> _profile = {};
   final Map<String, dynamic> _homepage = {};
+  List<Map<String, dynamic>>? _bands;
   int clearAllCallCount = 0;
   bool get clearAllCalled => clearAllCallCount > 0;
 
@@ -91,10 +92,21 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
+  Future<List<Map<String, dynamic>>?> readBands() async => _bands == null
+      ? null
+      : List<Map<String, dynamic>>.from(_bands!);
+
+  @override
+  Future<void> writeBands(List<Map<String, dynamic>> data) async {
+    _bands = List<Map<String, dynamic>>.from(data);
+  }
+
+  @override
   Future<void> clearAll() async {
     clearAllCallCount++;
     _profile.clear();
     _homepage.clear();
+    _bands = null;
   }
 }
 
