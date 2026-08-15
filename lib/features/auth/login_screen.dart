@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
-import '../../api/public_api.dart';
+import '../../providers/auth_provider.dart';
 
 enum _AuthMode { login, signUp }
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.publicApi});
-
-  final PublicApi publicApi;
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -42,9 +41,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     try {
+      final publicApi = ref.read(publicApiProvider);
       if (_mode == _AuthMode.signUp) {
         try {
-          await widget.publicApi.register(username: username, password: password);
+          await publicApi.register(username: username, password: password);
         } on ApiException catch (e) {
           if (e.statusCode == 400 && e.code == 'already_exists') {
             throw ApiException(
@@ -57,7 +57,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
       try {
-        await widget.publicApi.login(username: username, password: password);
+        final token = await publicApi.login(
+          username: username,
+          password: password,
+        );
+        await ref.read(authSessionProvider.notifier).signIn(token);
       } on ApiException catch (e) {
         if (e.statusCode == 401) {
           throw ApiException(
@@ -97,7 +101,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Image.asset('assets/images/logo.png', height: 128, width: 128),
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 128,
+                    width: 128,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Cadence',
@@ -113,7 +121,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) =>
-                        (value == null || value.trim().isEmpty) ? 'Enter a username' : null,
+                        (value == null || value.trim().isEmpty)
+                        ? 'Enter a username'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -125,14 +135,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Password',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) =>
-                        (value == null || value.length < 8) ? 'At least 8 characters' : null,
+                    validator: (value) => (value == null || value.length < 8)
+                        ? 'At least 8 characters'
+                        : null,
                   ),
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 16),
                     Text(
                       _errorMessage!,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 24),

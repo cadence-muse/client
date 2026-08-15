@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import 'api_exception.dart';
-import 'auth_session.dart';
 import 'http_client_factory.dart';
 
 /// Thin HTTP wrapper around `lib/api/publicapi.yml`.
@@ -21,12 +20,22 @@ import 'http_client_factory.dart';
 /// ourselves. Native platforms don't have that restriction, and their
 /// `HttpClient` cookie jar is in-memory only (lost on process restart), so
 /// there we still forward the persisted token as the cookie explicitly.
+///
+/// [getToken] and [onUnauthorized] decouple this class from the concrete
+/// auth-state implementation (a Riverpod-generated `AuthSession` class, not
+/// a plain object with a synchronous `.token` getter) — see
+/// `lib/providers/auth_provider.dart`.
 class ApiClient {
-  ApiClient({required this.baseUrl, required this.authSession, http.Client? httpClient})
-    : _httpClient = httpClient ?? createHttpClient();
+  ApiClient({
+    required this.baseUrl,
+    required this.getToken,
+    required this.onUnauthorized,
+    http.Client? httpClient,
+  }) : _httpClient = httpClient ?? createHttpClient();
 
   final String baseUrl;
-  final AuthSession authSession;
+  final String? Function() getToken;
+  final Future<void> Function() onUnauthorized;
   final http.Client _httpClient;
 
   Future<Map<String, dynamic>?> send(
@@ -38,7 +47,7 @@ class ApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final headers = {'Content-Type': 'application/json'};
 
-    final token = authSession.token;
+    final token = getToken();
     if (requireAuth && token != null && !kIsWeb) {
       headers['Cookie'] = 'cadencesession=$token';
     }
@@ -50,7 +59,7 @@ class ApiClient {
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 403) {
-      await authSession.signOut();
+      await onUnauthorized();
       throw ApiException.fromResponse(response);
     }
     if (response.statusCode >= 400) {

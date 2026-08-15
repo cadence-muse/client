@@ -1,23 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-import 'api/api_client.dart';
-import 'api/auth_session.dart';
-import 'api/public_api.dart';
-import 'api/token_storage.dart';
 import 'app.dart';
-import 'config/app_config.dart';
-import 'theme/theme_controller.dart';
+import 'cache/cache_service.dart';
 
-void main() {
-  final authSession = AuthSession(tokenStorage: TokenStorage());
-  final apiClient = ApiClient(baseUrl: AppConfig.apiBaseUrl, authSession: authSession);
-  final publicApi = PublicApi(apiClient);
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await CacheService.initialize();
 
-  runApp(
-    CadenceApp(
-      themeController: ThemeController(),
-      authSession: authSession,
-      publicApi: publicApi,
-    ),
-  );
+  runApp(const ProviderScope(child: CadenceApp()));
 }

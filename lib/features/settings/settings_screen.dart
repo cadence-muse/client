@@ -1,44 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../theme/theme_controller.dart';
+import '../../providers/theme_provider.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key, required this.themeController});
-
-  final ThemeController themeController;
+class SettingsScreen extends ConsumerWidget {
+  const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeControllerProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListenableBuilder(
-        listenable: themeController,
-        builder: (context, _) {
-          return RadioGroup<ThemeMode>(
-            groupValue: themeController.value,
-            onChanged: (mode) => themeController.setThemeMode(mode!),
-            child: ListView(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Text('Theme', style: TextStyle(fontWeight: FontWeight.w600)),
-                ),
-                const RadioListTile<ThemeMode>(
-                  title: Text('System'),
-                  value: ThemeMode.system,
-                ),
-                const RadioListTile<ThemeMode>(
-                  title: Text('Light'),
-                  value: ThemeMode.light,
-                ),
-                const RadioListTile<ThemeMode>(
-                  title: Text('Dark'),
-                  value: ThemeMode.dark,
-                ),
-              ],
+      body: RadioGroup<ThemeMode>(
+        groupValue: mode,
+        onChanged: (mode) =>
+            ref.read(themeControllerProvider.notifier).setThemeMode(mode!),
+        child: ListView(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'Theme',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
-          );
-        },
+            const RadioListTile<ThemeMode>(
+              title: Text('System'),
+              value: ThemeMode.system,
+            ),
+            const RadioListTile<ThemeMode>(
+              title: Text('Light'),
+              value: ThemeMode.light,
+            ),
+            const RadioListTile<ThemeMode>(
+              title: Text('Dark'),
+              value: ThemeMode.dark,
+            ),
+          ],
+        ),
       ),
     );
   }

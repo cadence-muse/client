@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../api/auth_session.dart';
 import '../features/bands/bands_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/songs/songs_screen.dart';
-import '../theme/theme_controller.dart';
 
 class RootScaffold extends StatefulWidget {
-  const RootScaffold({super.key, required this.themeController, required this.authSession});
-
-  final ThemeController themeController;
-  final AuthSession authSession;
+  const RootScaffold({super.key});
 
   @override
   State<RootScaffold> createState() => _RootScaffoldState();
@@ -26,14 +21,15 @@ class _RootScaffoldState extends State<RootScaffold> {
       const HomeScreen(),
       const SongsScreen(),
       const BandsScreen(),
-      ProfileScreen(themeController: widget.themeController, authSession: widget.authSession),
+      const ProfileScreen(),
     ];
 
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+        onDestinationSelected: (index) =>
+            setState(() => _selectedIndex = index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

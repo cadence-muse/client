@@ -9,7 +9,10 @@ class PublicApi {
 
   /// Returns the new user's id. Note the API doesn't log the user in on
   /// register, so callers should follow up with [login].
-  Future<String> register({required String username, required String password}) async {
+  Future<String> register({
+    required String username,
+    required String password,
+  }) async {
     final response = await _client.send(
       'POST',
       '/api/register',
@@ -19,14 +22,18 @@ class PublicApi {
     return response!['id'] as String;
   }
 
-  Future<void> login({required String username, required String password}) async {
+  /// Returns the session token. Callers are responsible for persisting it
+  /// (e.g. via `authSessionProvider.notifier.signIn`), see [AuthSession.signOut].
+  Future<String> login({
+    required String username,
+    required String password,
+  }) async {
     final response = await _client.send(
       'POST',
       '/api/login',
       body: {'username': username, 'password': password},
       requireAuth: false,
     );
-    final token = response!['token'] as String;
-    await _client.authSession.signIn(token);
+    return response!['token'] as String;
   }
 }
