@@ -1,7 +1,7 @@
 ---
 phase: 2
 slug: bands
-status: draft
+status: approved
 design_system: flutter-material
 tool_version: Material Design 3
 created: 2026-08-15
@@ -167,24 +167,84 @@ Material Design 3 text theme hierarchy. All roles inherit from Material's `TextT
 
 ## UI Considerations
 
-State coverage and edge cases for this phase:
+State coverage produced by the UI-consideration probe (gsd-core `ui-consideration-probe`) run
+against every element/surface named in this contract. 61 applicable considerations across 10
+elements; 0 unresolved. `resolved (explicit)` rows state a concrete truth already locked in this
+spec; `resolved (backstop)` rows require a visual/UAT check at implementation time; `dismissed`
+rows record why the category doesn't apply, with a reason.
 
-| Category | Element(s) | Status | Resolution |
-|----------|------------|--------|-----------|
-| **Empty** | Band list (no bands) | ✅ covered | Empty-state heading + body + "Create Band" CTA render when `GET /api/band/list` returns empty `items[]` |
-| **Loading** | Band list, band detail | ✅ covered | Material CircularProgressIndicator shown in center of body while fetching (cache-first pattern: cached data shown immediately if present; loading overlay only on first fetch) |
-| **Error** | Band list, band detail, create/join/delete mutations | ✅ covered | Centered error layout with heading, body, and "Retry" button. Matches Phase 1 profile/home error pattern (ApiException caught at UI layer, generic "Couldn't load" + connection advice) |
-| **Populated** | Band list items | ✅ covered | Material ListTile with CircleAvatar (band initial), band name (bodyLarge), no subtitle (members/genre removed per D-05, real API schema is id+name only) |
-| **Overflow** | Long band names in list/detail | 🧪 backstop | Band names truncate with ellipsis (maxLines: 1, overflow: TextOverflow.ellipsis) — visual test required to verify readability at typical name lengths (10–40 chars expected) |
-| **Overflow** | Invite code display | 🧪 backstop | Invite code (typically UUID ~36 chars) fits in single line or wraps gracefully. Recommend monospace font for code. Visual test for various screen widths (mobile portrait/landscape) |
-| **Long-text** | Member names in detail | 🧪 backstop | Member usernames (typically 4–20 chars) truncate if exceed space. Visual test for edge case (very long username in narrow list column) |
-| **Zero-one-many** | Band members list | ✅ covered | Detail screen shows "Members" section with count and list. Empty members list unlikely (creator always member), but handled gracefully (empty section or "No members" message) |
-| **Zero-one-many** | Destructive actions visibility | ✅ covered | "Delete" and "Remove member" hidden for non-owners (D-02); "Leave" hidden for owners (D-03). Actions conditionally rendered based on `Band.ownerId === currentUserId` |
+| Element | Category | Status | Resolution |
+|---------|----------|--------|-----------|
+| Bands list screen (E1) | Empty | resolved (explicit) | "No bands yet" heading + "Create a band or ask a bandmate for an invite code to join one." body + "Create Band" CTA render when GET /api/band/list returns empty items[]. |
+| Bands list screen (E1) | Loading | resolved (explicit) | CircularProgressIndicator centered, shown only on first fetch / cache miss. Cache-first: cached list shown immediately with silent background refresh on subsequent loads. |
+| Bands list screen (E1) | Error | resolved (explicit) | "Couldn't load bands" heading + "Please check your connection and try again." body + "Retry" button. |
+| Bands list screen (E1) | Populated | resolved (explicit) | ListView.separated of Material ListTiles: BandAvatar (initial), band name (bodyLarge), trailing chevron, onTap -> detail. |
+| Bands list screen (E1) | Partial | dismissed | Reason: Band list schema is id+name only (D-05); no optional fields exist to be partially present this phase. |
+| Bands list screen (E1) | Overflow | resolved (backstop) | Band names truncate with ellipsis (maxLines: 1) — visual/UAT check required. |
+| Bands list screen (E1) | Zero-one-many | resolved (explicit) | Zero -> empty state (above). One/many -> same ListView.separated rendering; no singular/plural copy variance needed since heading text is state-based (empty vs populated), not count-based. |
+| Bands list screen (E1) | Long-text | resolved (backstop) | Same ellipsis truncation as Overflow — visual/UAT check required. |
+| Band detail screen (E2) | Empty | dismissed | Reason: Band detail always has data once a valid band is loaded (screen only reachable by navigating to an existing band) — not a zero-item collection screen. |
+| Band detail screen (E2) | Loading | resolved (explicit) | Cache-first: cached detail shown immediately with silent background refresh; first-time load (no cache) shows centered CircularProgressIndicator. |
+| Band detail screen (E2) | Error | resolved (explicit) | "Couldn't load band details" heading + body + "Retry" button, same layout pattern as list error state. |
+| Band detail screen (E2) | Populated | resolved (explicit) | Sections in order: band info (name heading + avatar, focal point) -> Members -> invite code + copy -> actions (Edit/Leave/Delete, owner-gated). |
+| Band detail screen (E2) | Partial | dismissed | Reason: Band detail schema (id, name, ownerId) has no optional fields this phase; partial-data states do not apply. |
+| Band detail screen (E2) | Overflow | resolved (backstop) | Long band name truncates with ellipsis — visual/UAT check required. |
+| Band detail screen (E2) | Zero-one-many | dismissed | Reason: Detail screen renders exactly one band; the zero/one/many axis for its members sub-list is covered separately under E3. |
+| Band detail screen (E2) | Long-text | resolved (backstop) | Same ellipsis truncation as Overflow — visual/UAT check required. |
+| Members list (band detail) (E3) | Empty | resolved (explicit) | Empty members list handled gracefully (empty section / "No members" fallback), though not expected in practice since the creator is always a member. |
+| Members list (band detail) (E3) | Loading | dismissed | Reason: Members are fetched as part of the band detail request (same payload); no separate loading state — covered by E2 loading. |
+| Members list (band detail) (E3) | Error | dismissed | Reason: Members are fetched as part of the band detail request; no separate error state — covered by E2 error. |
+| Members list (band detail) (E3) | Populated | resolved (explicit) | ListTile/Row per member: username (bodyMedium), trailing Remove icon shown only when current user is the band owner. |
+| Members list (band detail) (E3) | Partial | dismissed | Reason: Member entries are username-only this phase; no optional fields to be partially present. |
+| Members list (band detail) (E3) | Overflow | resolved (backstop) | Many members scroll within the detail screen's ListView — visual/UAT check required for large rosters. |
+| Members list (band detail) (E3) | Zero-one-many | resolved (backstop) | Exact singular/plural copy for the "Members" section label at 0/1/many not pinned — visual/UAT check required. |
+| Invite code display (E4) | Loading | dismissed | Reason: Invite code is part of the band detail payload; no separate loading state — covered by E2 loading. |
+| Invite code display (E4) | Error | dismissed | Reason: Invite code is part of the band detail payload; no separate error state — covered by E2 error. |
+| Invite code display (E4) | Overflow | resolved (backstop) | Invite code (~36-char UUID) fit/wrap across screen widths — visual/UAT check required; monospace font recommended. |
+| Invite code display (E4) | Long-text | resolved (backstop) | Same as Overflow — visual/UAT check required. |
+| Create band screen (E5) | Empty | resolved (explicit) | Form always starts with an empty, unfilled band-name input (no pre-fill) — default/initial state, not an error condition. |
+| Create band screen (E5) | Loading | resolved (explicit) | Submit triggers standard async mutation; no loading-state UI declared beyond disabling the Create button during submission (mirrors Phase 1 form pattern). |
+| Create band screen (E5) | Error | resolved (backstop) | Create-band submit failure surfacing not explicitly specified beyond the generic ApiException-at-UI-layer pattern — visual/UAT check required to confirm inline error rendering on the form. |
+| Create band screen (E5) | Partial | dismissed | Reason: Single required field (band name); no optional fields, so partial-fill states don't apply beyond standard validation. |
+| Create band screen (E5) | Overflow | resolved (backstop) | Long band name input overflow/wrap in the text field — visual/UAT check required. |
+| Create band screen (E5) | Long-text | resolved (backstop) | Same as Overflow — visual/UAT check required. |
+| Join band dialog (E6) | Empty | resolved (explicit) | Dialog always starts with an empty, unfilled invite-code input, autofocused (D-11) — default/initial state. |
+| Join band dialog (E6) | Loading | resolved (explicit) | Submit triggers standard async mutation; Join button follows Material's default disabled-during-submit pattern. |
+| Join band dialog (E6) | Error | resolved (backstop) | Join-dialog submit failure surfacing (e.g. invalid code) not explicitly specified — visual/UAT check required to confirm inline error rendering in the dialog. |
+| Join band dialog (E6) | Partial | dismissed | Reason: Single required field (invite code); no optional fields, so partial-fill states don't apply. |
+| Join band dialog (E6) | Overflow | resolved (backstop) | Pasted invite code overflow/wrap in the text field — visual/UAT check required. |
+| Join band dialog (E6) | Long-text | resolved (backstop) | Same as Overflow — visual/UAT check required. |
+| Delete band confirm dialog (E7) | Empty | resolved (explicit) | Type-to-confirm field always starts empty; Delete button is disabled by default until the typed text exactly matches the band name (D-13). |
+| Delete band confirm dialog (E7) | Loading | resolved (explicit) | Delete button follows Material's default disabled-during-submit pattern once tapped. |
+| Delete band confirm dialog (E7) | Error | resolved (backstop) | Delete-mutation failure surfacing not explicitly specified — visual/UAT check required. |
+| Delete band confirm dialog (E7) | Partial | dismissed | Reason: Single required field (type-to-confirm band name); no optional fields. |
+| Delete band confirm dialog (E7) | Overflow | resolved (backstop) | Long band name in the type-to-confirm field/dialog title — visual/UAT check required. |
+| Delete band confirm dialog (E7) | Long-text | resolved (backstop) | Same as Overflow — visual/UAT check required. |
+| Leave band confirm dialog (E8) | Loading | resolved (explicit) | Leave button follows Material's default disabled-during-submit pattern once tapped. |
+| Leave band confirm dialog (E8) | Error | resolved (backstop) | Leave-mutation failure surfacing not explicitly specified — visual/UAT check required. |
+| Leave band confirm dialog (E8) | Overflow | resolved (backstop) | Long band name in interpolated dialog heading/body — visual/UAT check required. |
+| Leave band confirm dialog (E8) | Long-text | resolved (backstop) | Same as Overflow — visual/UAT check required. |
+| Remove member confirm dialog (E9) | Loading | resolved (explicit) | Remove button follows Material's default disabled-during-submit pattern once tapped. |
+| Remove member confirm dialog (E9) | Error | resolved (backstop) | Remove-mutation failure surfacing not explicitly specified — visual/UAT check required. |
+| Remove member confirm dialog (E9) | Overflow | resolved (backstop) | Long username/band name in interpolated dialog heading/body — visual/UAT check required. |
+| Remove member confirm dialog (E9) | Long-text | resolved (backstop) | Same as Overflow — visual/UAT check required. |
+| FAB action menu (bands list) (E10) | Empty | dismissed | Reason: FAB action menu is a fixed, always-populated bottom sheet with exactly two static actions (D-09) — not a data-driven collection that can be empty. |
+| FAB action menu (bands list) (E10) | Loading | dismissed | Reason: Bottom sheet options are static, not fetched — no loading state applies. |
+| FAB action menu (bands list) (E10) | Error | dismissed | Reason: Bottom sheet options are static, not fetched — no error state applies. |
+| FAB action menu (bands list) (E10) | Populated | resolved (explicit) | Bottom sheet always shows exactly two actions: "Create band" and "Join with code" (D-09). |
+| FAB action menu (bands list) (E10) | Partial | dismissed | Reason: Fixed two-item static menu; no optional/partial data. |
+| FAB action menu (bands list) (E10) | Overflow | dismissed | Reason: Two short fixed labels never overflow standard bottom-sheet width. |
+| FAB action menu (bands list) (E10) | Zero-one-many | dismissed | Reason: Always exactly two actions, never zero/one/many — a fixed static menu, not a variable-count list. |
+| FAB action menu (bands list) (E10) | Long-text | dismissed | Reason: Fixed short labels ("Create band", "Join with code"); not user- or API-generated text. |
 
 **Notes:**
-- All error states and empty states reference copywriting contract above — no separate text needed here.
-- Phase 1 established backstop tests for long-text truncation in profile_screen.dart (username ellipsis); extend pattern to band names and member usernames.
-- Loading state is non-intrusive: if cached data exists, show cached + silent background refresh (no spinner overlay).
+- All copy referenced above is defined in full in the Copywriting Contract, above.
+- `resolved (backstop)` rows (23 total, mostly Overflow/Long-text/mutation-Error) are the concrete
+  backstop-test checklist for implementation/UAT — Flutter `TextOverflow.ellipsis` + `maxLines: 1`
+  patterns established in Phase 1's profile_screen.dart cover the truncation rows; the mutation-Error
+  rows need an inline-error-rendering check per dialog/form during UAT.
+- `dismissed` rows (19 total) explain why a taxonomy category doesn't apply to this phase's minimal
+  id+name data model or to static (non-fetched) surfaces like the FAB menu — not gaps.
 
 ---
 
@@ -347,14 +407,14 @@ Below summarizes locked decisions from `.planning/phases/02-bands/02-CONTEXT.md`
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS (N/A — Flutter native, no third-party registries)
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS (N/A — Flutter native, no third-party registries)
 
-**Approval:** pending
+**Approval:** approved (2026-08-15, after 1 revision cycle fixing typography over-declaration)
 
 ---
 
