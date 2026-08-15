@@ -91,4 +91,83 @@ void main() {
     );
     expect(container.read(bandDetailDataProvider('b1')).hasError, isTrue);
   });
+
+  test(
+    'updateName() merges the new name into cached state without an '
+    'additional network fetch',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', {
+        'id': 'b1',
+        'name': 'Old Name',
+        'ownerId': 'u1',
+        'members': [
+          {'id': 'u1', 'username': 'alice'},
+        ],
+        'inviteCode': 'abc-123',
+      });
+
+      var getBandCallCount = 0;
+      final apiClient = buildApiClient((request) async {
+        getBandCallCount++;
+        return http.Response(
+          jsonEncode({
+            'id': 'b1',
+            'name': 'Old Name',
+            'ownerId': 'u1',
+            'members': [
+              {'id': 'u1', 'username': 'alice'},
+            ],
+            'inviteCode': 'abc-123',
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      // bandDetailDataProvider is autoDispose (plain @riverpod); a bare
+      // container.read() doesn't hold a subscription, so the provider would
+      // get disposed and silently rebuilt (resetting state to AsyncLoading
+      // then a fresh cache-hit) between reads. Keep it alive for the
+      // duration of this test the same way a watching widget would.
+      final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
+      addTearDown(sub.close);
+
+      // Establish the provider (cache-hit path — data returns from cache
+      // immediately, but a silent background refresh is also fired per
+      // build()'s cache-first contract; let that settle before recording a
+      // baseline, so this test isolates updateName()'s own call count
+      // rather than racing that unrelated background refresh).
+      final initial = await container.read(
+        bandDetailDataProvider('b1').future,
+      );
+      expect(initial['name'], 'Old Name');
+      // The unawaited background refresh chains several awaits (HTTP send +
+      // response decode) before it settles; a real (not just microtask-tick)
+      // delay is needed so it reliably completes before the baseline below
+      // is captured — otherwise it can race past updateName() and clobber
+      // the merged name back to the stale network value.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final baselineCallCount = getBandCallCount;
+
+      await container
+          .read(bandDetailDataProvider('b1').notifier)
+          .updateName('New Name');
+
+      final updated = container.read(bandDetailDataProvider('b1')).valueOrNull;
+      expect(updated?['name'], 'New Name');
+      // Other fields are preserved by the merge, not dropped.
+      expect(updated?['id'], 'b1');
+      expect(updated?['inviteCode'], 'abc-123');
+      // updateName() itself triggered no additional GET /api/band/{bandId}
+      // fetch beyond whatever had already happened via the background
+      // refresh above.
+      expect(getBandCallCount, baselineCallCount);
+
+      // The merged name is also persisted to the local cache.
+      final cached = await cacheService.readBandDetail('b1');
+      expect(cached?['name'], 'New Name');
+    },
+  );
 }

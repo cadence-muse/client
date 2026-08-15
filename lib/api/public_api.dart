@@ -72,4 +72,13 @@ class PublicApi {
       body: {'inviteCode': inviteCode.trim()},
     );
   }
+
+  /// Updates a band's name. `UpdateBand`'s `'200'` response has no content
+  /// schema (see `publicapi.yml`), so the client does not receive the
+  /// updated `Band` back — callers merge their own submitted [name] into any
+  /// local cache/state instead of trusting an echoed response (see
+  /// `edit_band_screen.dart`).
+  Future<void> updateBand({required String bandId, required String name}) async {
+    await _client.send('PUT', '/api/band/$bandId', body: {'name': name});
+  }
 }

@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/band_avatar.dart';
 import 'package:cadence/features/bands/band_detail_screen.dart';
+import 'package:cadence/features/bands/edit_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -225,6 +226,43 @@ void main() {
       expect(textWidget.overflow, TextOverflow.ellipsis);
 
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'tapping Edit, changing the name, and saving updates the name shown '
+    'on return to BandDetailScreen (not the stale cached value)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'Old Name'));
+
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'PUT') {
+          return http.Response('', 200);
+        }
+        return http.Response(jsonEncode(band(name: 'Old Name')), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.text('Old Name'), findsWidgets);
+
+      await tester.tap(find.byIcon(Icons.edit));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditBandScreen), findsOneWidget);
+      final field = tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(field.controller!.text, 'Old Name');
+
+      await tester.enterText(find.byType(TextFormField), 'New Name');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditBandScreen), findsNothing);
+      expect(find.byType(BandDetailScreen), findsOneWidget);
+      expect(find.text('New Name'), findsWidgets);
+      expect(find.text('Old Name'), findsNothing);
     },
   );
 }
