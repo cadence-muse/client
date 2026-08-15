@@ -78,7 +78,7 @@
 
 **Required env vars:**
 - `API_BASE_URL`: Backend API endpoint
-  - Format: Full URL (e.g., `http://localhost:8080`, `https://api.cadence.app`)
+  - Format: Full URL (e.g., `http://localhost:8080`, `https://cadence.app`)
   - Default: `http://localhost:8080`
   - Method: Set via `--dart-define=API_BASE_URL=<url>` or config file
 
