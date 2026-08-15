@@ -61,7 +61,29 @@ Plans:
   4. User can update a band's name, and — if they're the owner — delete the band.
   5. User can join another band via invite code, leave a band they're in, and — if owner — remove another member.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Bands list end-to-end (tracer): API + cache + provider + BandsScreen (BAND-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — Band detail view + invite code copy (BAND-03, BAND-07)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02-03-PLAN.md — Create band + join via invite code, single FAB entry point (BAND-02, BAND-06)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 02-04-PLAN.md — Edit band name (BAND-04)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 02-05-PLAN.md — Delete band, leave band, remove member (owner-gated destructive actions) (BAND-05, BAND-08, BAND-09)
+
 **UI hint**: yes
 
 ### Phase 3: Tracks
