@@ -81,4 +81,12 @@ class PublicApi {
   Future<void> updateBand({required String bandId, required String name}) async {
     await _client.send('PUT', '/api/band/$bandId', body: {'name': name});
   }
+
+  /// Deletes a band. Server-enforced owner-only (see `Remove band` in
+  /// `publicapi.yml`); `'204'` no content. The client-side owner gate (see
+  /// `band_detail_screen.dart`'s `_isOwner`) only hides the UI path — the
+  /// server remains the authoritative enforcer.
+  Future<void> deleteBand(String bandId) async {
+    await _client.send('DELETE', '/api/band/$bandId');
+  }
 }

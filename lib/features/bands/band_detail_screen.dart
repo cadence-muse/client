@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
+import '../../providers/profile_provider.dart';
 import 'band_avatar.dart';
+import 'confirm_delete_band_dialog.dart';
 import 'edit_band_screen.dart';
 
 class BandDetailScreen extends ConsumerWidget {
@@ -11,9 +13,33 @@ class BandDetailScreen extends ConsumerWidget {
 
   final String bandId;
 
+  /// `true` only when [currentUserId] (from `profileDataProvider`, once
+  /// loaded) equals [ownerId] (from `BandDetailData`) — both server-returned
+  /// values, never a client-supplied id (D-01/D-02). Returns `false` (not a
+  /// crash) for a `null` [currentUserId], which happens while the profile is
+  /// still loading — callers must additionally gate on profile-loaded state
+  /// via [_ownershipStatus] so a `false` here (unresolved) isn't confused
+  /// with a definite "not the owner" (RESEARCH.md Pitfall 2).
+  static bool _isOwner(String? currentUserId, String? ownerId) =>
+      currentUserId != null && ownerId != null && currentUserId == ownerId;
+
+  /// Tri-state ownership: `true` (owner), `false` (member, resolved), or
+  /// `null` (profile hasn't loaded yet — owner-only/member-only actions must
+  /// stay hidden, never optimistically rendered then hidden).
+  static bool? _ownershipStatus(
+    AsyncValue<Map<String, dynamic>> profileAsync,
+    String? ownerId,
+  ) {
+    return profileAsync.maybeWhen(
+      data: (profile) => _isOwner(profile['id'] as String?, ownerId),
+      orElse: () => null,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bandAsync = ref.watch(bandDetailDataProvider(bandId));
+    final profileAsync = ref.watch(profileDataProvider);
     final bandName = bandAsync.valueOrNull?['name'] as String?;
 
     return Scaffold(
@@ -34,7 +60,7 @@ class BandDetailScreen extends ConsumerWidget {
         ],
       ),
       body: bandAsync.when(
-        data: (band) => _buildContent(context, band),
+        data: (band) => _buildContent(context, band, profileAsync),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _buildError(
           context,
@@ -44,10 +70,16 @@ class BandDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, Map<String, dynamic> band) {
+  Widget _buildContent(
+    BuildContext context,
+    Map<String, dynamic> band,
+    AsyncValue<Map<String, dynamic>> profileAsync,
+  ) {
     final name = band['name'] as String;
+    final ownerId = band['ownerId'] as String?;
     final members = (band['members'] as List).cast<Map<String, dynamic>>();
     final inviteCode = (band['inviteCode'] as String).trim();
+    final isOwner = _ownershipStatus(profileAsync, ownerId);
 
     return ListView(
       children: [
@@ -109,6 +141,24 @@ class BandDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
+        if (isOwner == true) ...[
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(
+              Icons.delete,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (_) =>
+                  ConfirmDeleteBandDialog(bandId: bandId, bandName: name),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
       ],
     );

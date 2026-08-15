@@ -39,6 +39,60 @@ void main() {
     );
   }
 
+  /// Mounts a fake "Bands list" root screen with a button that pushes
+  /// [BandDetailScreen] on top of it — mirrors the real app's navigation
+  /// depth (list -> detail) so destructive-action tests can assert the
+  /// double-pop (dialog -> detail -> list) actually lands back on the list,
+  /// not just that the dialog closed.
+  Widget wrapWithListRoot(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    required String bandId,
+  }) {
+    return ProviderScope(
+      overrides: [
+        apiClientProvider.overrideWithValue(apiClient),
+        cacheServiceProvider.overrideWithValue(cacheService),
+      ],
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BandDetailScreen(bandId: bandId),
+                  ),
+                ),
+                child: const Text('Bands list root'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Routes a mock handler by request method+path: `/api/me` gets
+  /// [profile], `/api/band/{bandId}` (GET) gets [band], and anything else
+  /// (DELETE mutations) is delegated to [onMutate].
+  ApiClient buildRoutedApiClient({
+    required Map<String, dynamic> Function() profile,
+    required Map<String, dynamic> Function() band,
+    Future<http.Response> Function(http.Request)? onMutate,
+  }) {
+    return buildApiClient((request) async {
+      if (request.url.path == '/api/me') {
+        return http.Response(jsonEncode(profile()), 200);
+      }
+      if (request.method == 'GET') {
+        return http.Response(jsonEncode(band()), 200);
+      }
+      if (onMutate != null) return onMutate(request);
+      return http.Response('', 204);
+    });
+  }
+
   Map<String, dynamic> band({
     String name = 'The Testers',
     List<Map<String, dynamic>> members = const [
@@ -263,6 +317,110 @@ void main() {
       expect(find.byType(BandDetailScreen), findsOneWidget);
       expect(find.text('New Name'), findsWidgets);
       expect(find.text('Old Name'), findsNothing);
+    },
+  );
+
+  testWidgets('owner sees a "Delete" action, non-owner does not (delete)', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBandDetail('b1', band());
+
+    // Owner: profile id matches band()'s ownerId ('u1').
+    final ownerApiClient = buildRoutedApiClient(
+      profile: () => {'id': 'u1', 'username': 'owner'},
+      band: band,
+    );
+
+    await tester.pumpWidget(wrap(ownerApiClient, cacheService));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete'), findsOneWidget);
+
+    // Non-owner: profile id doesn't match ownerId.
+    final memberCacheService = CacheService.inMemory();
+    await memberCacheService.writeBandDetail('b1', band());
+    final memberApiClient = buildRoutedApiClient(
+      profile: () => {'id': 'u2', 'username': 'member'},
+      band: band,
+    );
+
+    await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete'), findsNothing);
+  });
+
+  testWidgets(
+    "Delete button stays disabled until typed text exactly matches the "
+    'band name (delete)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'The Band'));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(name: 'The Band'),
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      FilledButton deleteButton() =>
+          tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Delete'));
+
+      expect(deleteButton().onPressed, isNull);
+
+      // Case-sensitive near-match must still be disabled.
+      await tester.enterText(find.byType(TextField), 'the band');
+      await tester.pump();
+      expect(deleteButton().onPressed, isNull);
+
+      // Exact match enables it.
+      await tester.enterText(find.byType(TextField), 'The Band');
+      await tester.pump();
+      expect(deleteButton().onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'confirming Delete calls deleteBand, invalidates the bands list, and '
+    'returns to the Bands list (delete)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'The Band'));
+
+      final deleteRequests = <http.Request>[];
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(name: 'The Band'),
+        onMutate: (request) async {
+          deleteRequests.add(request);
+          return http.Response('', 204);
+        },
+      );
+
+      await tester.pumpWidget(
+        wrapWithListRoot(apiClient, cacheService, bandId: 'b1'),
+      );
+      await tester.tap(find.text('Bands list root'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'The Band');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(deleteRequests, hasLength(1));
+      expect(deleteRequests.single.method, 'DELETE');
+      expect(deleteRequests.single.url.path, '/api/band/b1');
+      expect(find.byType(BandDetailScreen), findsNothing);
+      expect(find.text('Bands list root'), findsOneWidget);
     },
   );
 }
