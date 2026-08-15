@@ -142,4 +142,17 @@ class BandDetailData extends _$BandDetailData {
       // Otherwise silently keep the last good data visible.
     }
   }
+
+  /// Merges [newName] into the currently cached band-detail map after a
+  /// successful [PublicApi.updateBand] call, without an additional network
+  /// fetch (`UpdateBand`'s `'200'` response has no body to refetch-and-trust
+  /// — see `edit_band_screen.dart`). No-ops if there's no data to merge
+  /// into (e.g. called while still loading or in an error state).
+  Future<void> updateName(String newName) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = {...current, 'name': newName};
+    state = AsyncData(updated);
+    await ref.read(cacheServiceProvider).writeBandDetail(bandId, updated);
+  }
 }

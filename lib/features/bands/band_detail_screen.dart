@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import 'band_avatar.dart';
+import 'edit_band_screen.dart';
 
 class BandDetailScreen extends ConsumerWidget {
   const BandDetailScreen({super.key, required this.bandId});
@@ -16,7 +17,22 @@ class BandDetailScreen extends ConsumerWidget {
     final bandName = bandAsync.valueOrNull?['name'] as String?;
 
     return Scaffold(
-      appBar: AppBar(title: Text(bandName ?? 'Band')),
+      appBar: AppBar(
+        title: Text(bandName ?? 'Band'),
+        actions: [
+          if (bandName != null)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: 'Edit',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      EditBandScreen(bandId: bandId, currentName: bandName),
+                ),
+              ),
+            ),
+        ],
+      ),
       body: bandAsync.when(
         data: (band) => _buildContent(context, band),
         loading: () => const Center(child: CircularProgressIndicator()),
