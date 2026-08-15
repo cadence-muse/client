@@ -5,6 +5,7 @@ import '../../providers/bands_provider.dart';
 import 'band_avatar.dart';
 import 'band_detail_screen.dart';
 import 'create_band_screen.dart';
+import 'join_band_dialog.dart';
 
 class BandsScreen extends ConsumerWidget {
   const BandsScreen({super.key});
@@ -48,7 +49,10 @@ class BandsScreen extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.qr_code),
               title: const Text('Join with code'),
-              onTap: () => Navigator.of(sheetContext).pop(),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                showJoinBandDialog(context, ref);
+              },
             ),
           ],
         ),

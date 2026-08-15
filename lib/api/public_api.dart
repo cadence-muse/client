@@ -60,4 +60,16 @@ class PublicApi {
     );
     return response!;
   }
+
+  /// Joins a band by invite code. `POST /api/band/join` has no response
+  /// schema (see `publicapi.yml`), so the newly-joined band's id isn't
+  /// returned here — callers resolve it client-side (see
+  /// `join_band_dialog.dart`).
+  Future<void> joinBand({required String inviteCode}) async {
+    await _client.send(
+      'POST',
+      '/api/band/join',
+      body: {'inviteCode': inviteCode.trim()},
+    );
+  }
 }

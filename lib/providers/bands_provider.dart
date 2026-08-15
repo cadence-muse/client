@@ -72,6 +72,13 @@ class BandsListData extends _$BandsListData {
       // Otherwise silently keep the last good data visible.
     }
   }
+
+  /// Overwrites the cached list with data already fetched by the caller
+  /// (e.g. [showJoinBandDialog]'s post-join `listBands()` call), without
+  /// firing another network request.
+  void setBands(List<Map<String, dynamic>> bands) {
+    state = AsyncData(bands);
+  }
 }
 
 /// Cache-first `GET /api/band/{bandId}` data, keyed per band (this project's
