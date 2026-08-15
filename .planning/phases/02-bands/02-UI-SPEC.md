@@ -50,13 +50,13 @@ Declared values (all multiples of 4):
 
 ## Typography
 
-Material Design 3 text theme hierarchy. All roles inherit from Material's `TextTheme`:
+Material Design 3 text theme hierarchy. All roles inherit from Material's `TextTheme`.
+
+**Actively used this phase (4 sizes):**
 
 | Role | Flutter Token | Size | Weight | Line Height |
 |------|---------------|------|--------|-------------|
-| Display | displayLarge | 57px | 500 (medium) | 1.2 |
 | Heading | headlineMedium | 28px | 500 (medium) | 1.2 |
-| Subheading | headlineSmall | 24px | 500 (medium) | 1.2 |
 | Body | bodyLarge | 16px | 400 (regular) | 1.5 |
 | Body | bodyMedium | 14px | 400 (regular) | 1.5 |
 | Label | labelLarge | 14px | 500 (medium) | 1.2 |
@@ -68,9 +68,13 @@ Material Design 3 text theme hierarchy. All roles inherit from Material's `TextT
 - **bodyMedium** (14px, 400): Secondary text (member count, invite code display, supporting details)
 - **labelLarge** (14px, 500): Button labels (CTA, actions), dialog titles
 
+**Inherited from Phase 1 (out of scope for Phase 2 implementation):**
+- displayLarge (57px) — not used in Phase 2
+- headlineSmall (24px) — not used in Phase 2
+
 **Line heights:** Fixed at Material defaults (1.2 for headings/labels, 1.5 for body). No adjustments per phase.
 
-**Source:** Phase 1 profile_screen.dart uses `Theme.of(context).textTheme.headlineMedium` and `headlineSmall`, establishing the pattern. home_screen.dart confirms `bodyLarge`.
+**Source:** Phase 1 profile_screen.dart uses `Theme.of(context).textTheme.headlineMedium`, establishing the pattern. home_screen.dart confirms `bodyLarge`.
 
 ---
 
@@ -95,7 +99,7 @@ Material Design 3 text theme hierarchy. All roles inherit from Material's `TextT
 **Accent Reserved For:**
 - Primary CTA: "Create Band" FAB and button
 - Primary CTA: "Join Band" dialog submit
-- Confirmation buttons: "Confirm" in destructive dialogs (e.g., "Remove member?")
+- Safe confirmation: "Join" button in join dialog
 - Active/focused states in forms
 - Material-generated interactive focus rings
 
@@ -226,6 +230,7 @@ Components to be built or updated for this phase:
 ### Band Detail Screen
 
 - **Layout:** Scaffold with AppBar (band name as title, no actions) + ListView for content
+- **Focal point:** Band name section (heading + avatar) positioned at top of scrollable content — primary visual anchor for identifying which band is displayed
 - **Sections:** 
   1. Band info (name heading, avatar)
   2. Members section (label + member list)
