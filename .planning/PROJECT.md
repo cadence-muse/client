@@ -16,10 +16,11 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - ✓ User can log in and session token persists across app restarts (secure storage) — existing
 - ✓ 403 responses trigger automatic logout — existing
 - ✓ App shell exists: bottom nav (Home/Songs/Bands/Profile), light/dark theme — existing
+- ✓ User can view their profile (`GET /api/me`) and homepage summary (`GET /api/homepage`) — Phase 1
+- ✓ App migrates off constructor-injected ChangeNotifier/prop-drilling to Riverpod, with a working local cache layer (proven end-to-end on profile/homepage) — Phase 1
 
 ### Active
 
-- [ ] User can view their profile (`GET /api/me`) and homepage summary (`GET /api/homepage`)
 - [ ] User can list, create, view, update, and delete bands they belong to
 - [ ] User can join a band via invite code
 - [ ] User (owner) can remove a band member; any member can remove themselves
@@ -27,7 +28,6 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - [ ] User can list, create, view, update, and delete setlists within a band
 - [ ] User can add/remove tracks on a setlist and reorder them
 - [ ] All GET-able band/track/setlist/profile data is cached locally on Android/iOS and remains viewable when offline (read-only; mutations require connectivity)
-- [ ] App migrates off constructor-injected ChangeNotifier/prop-drilling toward Provider or Riverpod as band/track/setlist state is introduced
 
 ### Out of Scope
 
@@ -60,7 +60,7 @@ A band member can open the app without signal — at a venue, in a basement, on 
 | Read-only offline cache, not offline writes+sync | Keeps v1 scope bounded — no conflict resolution or retry-queue complexity needed | — Pending |
 | Offline caching mobile-only (Android/iOS), web excluded | Web already requires network for the pipeline/hosting model; avoids browser storage quirks this milestone | — Pending |
 | Persist login token across restarts | Already implemented via flutter_secure_storage; confirmed as desired behavior going forward | ✓ Good |
-| Introduce Provider or Riverpod for state management | Band/track/setlist screens need shared state across tabs; current ChangeNotifier+DI prop-drilling was already flagged as an anti-pattern in the codebase map | — Pending |
+| Introduce Provider or Riverpod for state management | Band/track/setlist screens need shared state across tabs; current ChangeNotifier+DI prop-drilling was already flagged as an anti-pattern in the codebase map | ✓ Good — Phase 1 |
 | Extend `publicapi.yml` with `UserProfile.id` and `Band.ownerId` rather than fake it client-side | Client genuinely cannot self-identify or gate owner-only UI without these; username-matching or hiding-nothing were the only workarounds and both are fragile/wrong | — Pending (needs backend implementation) |
 
 ## Evolution
@@ -81,4 +81,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-14 after initialization*
+*Last updated: 2026-08-15 — Phase 1 complete*
