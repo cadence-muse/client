@@ -34,11 +34,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Profile and homepage screens still show the last-fetched data when the device has no connectivity, proving the cache-store pattern end-to-end for the first two screens.
   4. Auth, profile, and homepage state flows through Riverpod providers instead of constructor-injected `ChangeNotifier` — no dual source of truth for auth state during or after the migration.
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Riverpod + Hive walking skeleton: Profile end-to-end (auth/theme migration, ApiClient decoupling, cache-store pattern)
+- [x] 01-01-PLAN.md — Riverpod + Hive walking skeleton: Profile end-to-end (auth/theme migration, ApiClient decoupling, cache-store pattern)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -120,7 +120,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Profile & Home | 0/TBD | Not started | - |
+| 1. Foundation, Profile & Home | 1/3 | In Progress|  |
 | 2. Bands | 0/TBD | Not started | - |
 | 3. Tracks | 0/TBD | Not started | - |
 | 4. Setlists | 0/TBD | Not started | - |

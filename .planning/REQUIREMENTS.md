@@ -9,7 +9,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Users
 
-- [ ] **USER-01**: User can view own profile info via `GET /api/me`
+- [x] **USER-01**: User can view own profile info via `GET /api/me`
 - [ ] **USER-02**: User can view homepage summary (username, bands count) on app home tab via `GET /api/homepage`
 
 ### Bands
@@ -46,12 +46,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Offline & State
 
-- [ ] **OFFL-01**: Profile, homepage, band, track, and setlist GET data is cached locally on Android/iOS
+- [x] **OFFL-01**: Profile, homepage, band, track, and setlist GET data is cached locally on Android/iOS
 - [ ] **OFFL-02**: Cached data remains viewable when the device has no connectivity
 - [ ] **OFFL-03**: Mutations (create/update/delete) require connectivity and are disabled/blocked when offline
 - [ ] **OFFL-04**: Each cached screen shows a "last synced Xm ago" indicator, escalating to a warning style past ~30 minutes stale
 - [ ] **OFFL-05**: App shows a global offline-mode banner when the device has no connectivity
-- [ ] **OFFL-06**: App state management migrates from ChangeNotifier/constructor-injected DI to Provider or Riverpod for band/track/setlist state shared across tabs
+- [x] **OFFL-06**: App state management migrates from ChangeNotifier/constructor-injected DI to Provider or Riverpod for band/track/setlist state shared across tabs
 
 ## v2 Requirements
 
@@ -95,10 +95,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| USER-01 | Phase 1 | Pending |
+| USER-01 | Phase 1 | Complete |
 | USER-02 | Phase 1 | Pending |
-| OFFL-01 | Phase 1 | Pending |
-| OFFL-06 | Phase 1 | Pending |
+| OFFL-01 | Phase 1 | Complete |
+| OFFL-06 | Phase 1 | Complete |
 | BAND-01 | Phase 2 | Pending |
 | BAND-02 | Phase 2 | Pending |
 | BAND-03 | Phase 2 | Pending |
@@ -128,6 +128,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OFFL-05 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 31 total
 - Mapped to phases: 31
 - Unmapped: 0 ✓
