@@ -138,4 +138,69 @@ void main() {
     expect(find.byType(EditBandScreen), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Open Edit'), findsOneWidget);
   });
+
+  testWidgets(
+    'an updateBand() failure renders an inline error and re-enables the '
+    'Save button',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'bad_request', 'message': 'Name is taken'}),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), 'New Name');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Name is taken'), findsOneWidget);
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a long/multi-byte-script band name is accepted by the field without a '
+    'layout exception',
+    (tester) async {
+      const longName = 'Группа Very Long Название 乐队名称超过三十个字符长度测试';
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), longName);
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(longName), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'submitting the same unchanged name still calls updateBand() exactly '
+    'once per tap and pops successfully',
+    (tester) async {
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrapWithHomeRoute(apiClient, currentName: 'The Testers'),
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Open Edit'));
+      await tester.pumpAndSettle();
+
+      // No change to the pre-filled text — submit as-is.
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(callCount, 1);
+      expect(find.byType(EditBandScreen), findsNothing);
+    },
+  );
 }
