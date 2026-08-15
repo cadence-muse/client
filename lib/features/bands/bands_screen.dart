@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/bands_provider.dart';
 import 'band_avatar.dart';
 import 'band_detail_screen.dart';
+import 'create_band_screen.dart';
 
 class BandsScreen extends ConsumerWidget {
   const BandsScreen({super.key});
@@ -19,6 +20,38 @@ class BandsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
             _buildError(context, () => ref.invalidate(bandsListDataProvider)),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateJoinMenu(context, ref),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showCreateJoinMenu(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('Create band'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CreateBandScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.qr_code),
+              title: const Text('Join with code'),
+              onTap: () => Navigator.of(sheetContext).pop(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -44,6 +77,13 @@ class BandsScreen extends ConsumerWidget {
                 'Create a band or ask a bandmate for an invite code to '
                 'join one.',
                 textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const CreateBandScreen()),
+                ),
+                child: const Text('Create Band'),
               ),
             ],
           ),

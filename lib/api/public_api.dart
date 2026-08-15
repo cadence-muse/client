@@ -49,4 +49,15 @@ class PublicApi {
     final response = await _client.send('GET', '/api/band/$bandId');
     return response!;
   }
+
+  /// Creates a new band. Returns the raw `CreateBandResponseBody` map
+  /// (`{id}`).
+  Future<Map<String, dynamic>> createBand({required String name}) async {
+    final response = await _client.send(
+      'POST',
+      '/api/band',
+      body: {'name': name},
+    );
+    return response!;
+  }
 }
