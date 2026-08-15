@@ -14,15 +14,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Bands
 
-- [x] **BAND-01**: User can view list of bands they belong to
+- [ ] **BAND-01**: User can view list of bands they belong to
 - [ ] **BAND-02**: User can create a new band
-- [x] **BAND-03**: User can view band detail (name, members, invite code)
+- [ ] **BAND-03**: User can view band detail (name, members, invite code)
 - [ ] **BAND-04**: User can update a band's name
-- [x] **BAND-05**: Band owner can delete a band
+- [ ] **BAND-05**: Band owner can delete a band
 - [ ] **BAND-06**: User can join a band via invite code
-- [x] **BAND-07**: User can view and copy the band's invite code to share with others
-- [x] **BAND-08**: User can leave a band (remove self from member list)
-- [x] **BAND-09**: Band owner can remove another member from the band
+- [ ] **BAND-07**: User can view and copy the band's invite code to share with others
+- [ ] **BAND-08**: User can leave a band (remove self from member list)
+- [ ] **BAND-09**: Band owner can remove another member from the band
 
 ### Tracks
 
@@ -99,15 +99,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | USER-02 | Phase 1 | Complete |
 | OFFL-01 | Phase 1 | Complete |
 | OFFL-06 | Phase 1 | Complete |
-| BAND-01 | Phase 2 | Complete |
+| BAND-01 | Phase 2 | Gaps Found |
 | BAND-02 | Phase 2 | Pending |
-| BAND-03 | Phase 2 | Complete |
+| BAND-03 | Phase 2 | Gaps Found |
 | BAND-04 | Phase 2 | Pending |
-| BAND-05 | Phase 2 | Complete |
+| BAND-05 | Phase 2 | Gaps Found |
 | BAND-06 | Phase 2 | Pending |
-| BAND-07 | Phase 2 | Complete |
-| BAND-08 | Phase 2 | Complete |
-| BAND-09 | Phase 2 | Complete |
+| BAND-07 | Phase 2 | Gaps Found |
+| BAND-08 | Phase 2 | Gaps Found |
+| BAND-09 | Phase 2 | Gaps Found |
 | TRACK-01 | Phase 3 | Pending |
 | TRACK-02 | Phase 3 | Pending |
 | TRACK-03 | Phase 3 | Pending |
