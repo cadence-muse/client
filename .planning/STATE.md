@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: bands
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-08-15T14:01:47Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-08-15T15:10:00Z"
 last_activity: 2026-08-15
-last_activity_desc: Phase 02 execution — 02-02 (band detail) complete
+last_activity_desc: Phase 02 execution — 02-03 (create/join band) complete
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 8
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 ## Current Position
 
 Phase: 02 (bands) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Executing Phase 02
-Last activity: 2026-08-15 — Completed 02-02-PLAN.md (band detail, BAND-03/BAND-07)
+Last activity: 2026-08-15 — Completed 02-03-PLAN.md (create/join band, BAND-02/BAND-06)
 
-Progress: [████░░░░░░] 40%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [████░░░░░░] 40%
 | Phase 01 P03 | 40min | 2 tasks | 8 files |
 | Phase 02 P01 | 25min | 2 tasks | 11 files |
 | Phase 02 P02 | 20min | 2 tasks | 9 files |
+| Phase 02 P03 | 35min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-01: BandAvatar kept as its own dedicated widget file (not inlined in ListTile.leading) per D-06, so a future milestone can swap in a real image avatar by editing only that file
 - [Phase ?]: 02-02: BandDetailData is the project's first family Riverpod AsyncNotifier (build(String bandId)); per-band detail cached as band_<id>-keyed entries inside the existing bandsBox from 02-01, not a new Hive box
 - [Phase ?]: 02-02: BandDetailScreen reads bandAsync.valueOrNull (not .value) for the AppBar title — AsyncValue.value rethrows on AsyncError, which crashed the widget on the error path before its own error UI could render
+- [Phase ?]: 02-03: JoinBandDialog resolves the joined band's id client-side by diffing PublicApi.listBands() before/after the join (POST /api/band/join returns no response body per publicapi.yml) — documented API-contract gap, not a client bug; falls back to the refreshed Bands list on any ambiguous diff (0 or 2+ new ids)
+- [Phase ?]: 02-03: Added BandsListData.setBands() public method instead of the plan's literal `notifier.state = AsyncData(...)` instruction — the latter fails flutter analyze (invalid_use_of_protected_member/visible_for_testing); establishes the pattern that AsyncNotifier state must only be set via a method the class itself defines
 
 ### Pending Todos
 
