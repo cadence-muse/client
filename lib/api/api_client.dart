@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import 'api_exception.dart';
@@ -8,18 +7,10 @@ import 'http_client_factory.dart';
 
 /// Thin HTTP wrapper around `lib/api/publicapi.yml`.
 ///
-/// Attaches the session cookie the API expects (`cadencesession`, see
-/// `components.securitySchemes.cookieAuth` in the spec) to authenticated
+/// Attaches the session token the API expects via the `Authorization` header
+/// (see `components.securitySchemes.sessionAuth` in the spec) to authenticated
 /// requests, and signs the user out whenever a request comes back with a
 /// 403, since that means the session is no longer valid.
-///
-/// On web, scripts can't read or set the `Cookie` header themselves (it's a
-/// forbidden header per the Fetch spec) — the browser attaches it
-/// automatically as long as the client is created with credentials enabled
-/// (see `http_client_factory_web.dart`), so there we just skip setting it
-/// ourselves. Native platforms don't have that restriction, and their
-/// `HttpClient` cookie jar is in-memory only (lost on process restart), so
-/// there we still forward the persisted token as the cookie explicitly.
 ///
 /// [getToken] and [onUnauthorized] decouple this class from the concrete
 /// auth-state implementation (a Riverpod-generated `AuthSession` class, not
@@ -45,11 +36,12 @@ class ApiClient {
     bool requireAuth = true,
   }) async {
     final uri = Uri.parse('$baseUrl$path');
-    final headers = {'Content-Type': 'application/json'};
+    final headers = <String, String>{};
+    if (body != null) headers['Content-Type'] = 'application/json';
 
     final token = getToken();
-    if (requireAuth && token != null && !kIsWeb) {
-      headers['Cookie'] = 'cadencesession=$token';
+    if (requireAuth && token != null) {
+      headers['Authorization'] = token;
     }
 
     final request = http.Request(method, uri)..headers.addAll(headers);
