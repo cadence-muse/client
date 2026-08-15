@@ -122,4 +122,45 @@ void main() {
     expect(callCount, 0);
     expect(find.text('Enter a band name'), findsOneWidget);
   });
+
+  testWidgets(
+    'a createBand() failure renders an inline error and re-enables the '
+    'Create button',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'bad_request', 'message': 'Name is taken'}),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), 'The Testers');
+      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Name is taken'), findsOneWidget);
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a band name longer than 30 characters does not break the '
+    "TextFormField's layout",
+    (tester) async {
+      const longName =
+          'A Band Name That Is Definitely Over Thirty Characters Long';
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'id': 'b1'}), 201);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), longName);
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(longName), findsOneWidget);
+    },
+  );
 }

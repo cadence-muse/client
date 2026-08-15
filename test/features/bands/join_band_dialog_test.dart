@@ -227,4 +227,58 @@ void main() {
       expect(find.text('Joined band!'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'a joinBand() failure renders an inline error and re-enables the Join '
+    'button',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([]);
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/join') {
+          return http.Response(
+            jsonEncode({
+              'code': 'not_found',
+              'message': 'Invalid invite code',
+            }),
+            400,
+          );
+        }
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await openDialog(tester);
+      await tester.enterText(find.byType(TextFormField), 'BADCODE');
+      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invalid invite code'), findsOneWidget);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a long/pasted invite code does not break the TextField\'s layout',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+      const longCode =
+          'AAAAAAAAAA-BBBBBBBBBB-CCCCCCCCCC-DDDDDDDDDD-EEEEEEEEEE';
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await openDialog(tester);
+      await tester.enterText(find.byType(TextFormField), longCode);
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text(longCode), findsOneWidget);
+    },
+  );
 }
