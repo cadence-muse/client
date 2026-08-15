@@ -13,7 +13,7 @@ Cadence goes from a Flutter default-template shell with working auth to a full b
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation, Profile & Home** - Riverpod migration and cache-store infrastructure, proven end-to-end on the profile and homepage screens
+- [x] **Phase 1: Foundation, Profile & Home** - Riverpod migration and cache-store infrastructure, proven end-to-end on the profile and homepage screens (completed 2026-08-15)
 - [ ] **Phase 2: Bands** - Full band management — create, view, edit, delete, join via invite code, and membership
 - [ ] **Phase 3: Tracks** - Song catalog CRUD within a band
 - [ ] **Phase 4: Setlists** - Setlist CRUD, track add/remove/reorder, and running duration
@@ -42,8 +42,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Auth/theme provider test coverage (OFFL-06 regression guard, cache-clear-on-signOut mitigation)
-- [ ] 01-03-PLAN.md — Home screen: cache-first GET /api/homepage + full test coverage
+- [x] 01-02-PLAN.md — Auth/theme provider test coverage (OFFL-06 regression guard, cache-clear-on-signOut mitigation)
+- [x] 01-03-PLAN.md — Home screen: cache-first GET /api/homepage + full test coverage
 
 **UI hint**: yes
 
@@ -120,7 +120,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation, Profile & Home | 1/3 | In Progress|  |
+| 1. Foundation, Profile & Home | 3/3 | Complete    | 2026-08-15 |
 | 2. Bands | 0/TBD | Not started | - |
 | 3. Tracks | 0/TBD | Not started | - |
 | 4. Setlists | 0/TBD | Not started | - |
