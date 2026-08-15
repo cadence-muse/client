@@ -23,7 +23,27 @@ class _HiveStore implements _KeyValueStore {
   @override
   Map<String, dynamic>? get(String key) {
     final raw = _box.get(key);
-    return raw == null ? null : Map<String, dynamic>.from(raw);
+    return raw == null ? null : _deepConvert(raw) as Map<String, dynamic>;
+  }
+
+  /// Recursively normalizes Hive's untyped `Map<dynamic, dynamic>`/
+  /// `List<dynamic>` return shapes into `Map<String, dynamic>`/typed-List
+  /// shapes at every nesting depth (CR-01). Hive's `BinaryReaderImpl`
+  /// (`readMap()`/`readList()`) always constructs `<dynamic, dynamic>`/
+  /// `<dynamic>` containers on a real disk read — a shallow top-level-only
+  /// conversion leaves nested values (e.g. a band's `members` list) as
+  /// untyped containers that throw `TypeError` on the first lazy
+  /// `.cast<Map<String, dynamic>>()` access downstream.
+  static dynamic _deepConvert(dynamic value) {
+    if (value is Map) {
+      return value.map(
+        (key, val) => MapEntry(key as String, _deepConvert(val)),
+      );
+    }
+    if (value is List) {
+      return value.map(_deepConvert).toList();
+    }
+    return value;
   }
 
   @override
