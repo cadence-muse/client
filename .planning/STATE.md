@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: bands
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-08-15T17:34:08.147Z"
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-08-15T17:57:19.809Z"
 last_activity: 2026-08-15
 last_activity_desc: Phase 02 execution — 02-03 (create/join band) complete
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 8
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-14)
 ## Current Position
 
 Phase: 02 (bands) — EXECUTING
-Plan: 4 of 5
-Status: Executing Phase 02
+Plan: 5 of 5
+Status: Ready to execute
 Last activity: 2026-08-15 — Phase 02 execution resumed (wave continue)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02 P01 | 25min | 2 tasks | 11 files |
 | Phase 02 P02 | 20min | 2 tasks | 9 files |
 | Phase 02 P03 | 35min | 3 tasks | 8 files |
+| Phase 02 P05 | 20min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-02: BandDetailScreen reads bandAsync.valueOrNull (not .value) for the AppBar title — AsyncValue.value rethrows on AsyncError, which crashed the widget on the error path before its own error UI could render
 - [Phase ?]: 02-03: JoinBandDialog resolves the joined band's id client-side by diffing PublicApi.listBands() before/after the join (POST /api/band/join returns no response body per publicapi.yml) — documented API-contract gap, not a client bug; falls back to the refreshed Bands list on any ambiguous diff (0 or 2+ new ids)
 - [Phase ?]: 02-03: Added BandsListData.setBands() public method instead of the plan's literal `notifier.state = AsyncData(...)` instruction — the latter fails flutter analyze (invalid_use_of_protected_member/visible_for_testing); establishes the pattern that AsyncNotifier state must only be set via a method the class itself defines
+- [Phase ?]: 02-05: Tri-state (bool?) ownership gate (owner/resolved-non-owner/unresolved) computed inside profileDataProvider's .when(data:) branch — both Delete (owner-only) and Leave (non-owner-only) stay hidden while unresolved, avoiding the owner-gating TOCTOU race RESEARCH.md Pitfall 2 describes
+- [Phase ?]: 02-05: Remove-member success invalidates bandDetailDataProvider(bandId) only (acting owner stays on detail screen); Leave/Delete success invalidates bandsListDataProvider and double-pops back to the list (D-15 vs. RESEARCH.md Pitfall 5)
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-15T14:01:47Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-08-15T17:57:19.799Z
+Stopped at: Completed 02-05-PLAN.md
 Resume file: None

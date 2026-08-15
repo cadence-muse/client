@@ -18,11 +18,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **BAND-02**: User can create a new band
 - [x] **BAND-03**: User can view band detail (name, members, invite code)
 - [ ] **BAND-04**: User can update a band's name
-- [ ] **BAND-05**: Band owner can delete a band
+- [x] **BAND-05**: Band owner can delete a band
 - [ ] **BAND-06**: User can join a band via invite code
 - [x] **BAND-07**: User can view and copy the band's invite code to share with others
-- [ ] **BAND-08**: User can leave a band (remove self from member list)
-- [ ] **BAND-09**: Band owner can remove another member from the band
+- [x] **BAND-08**: User can leave a band (remove self from member list)
+- [x] **BAND-09**: Band owner can remove another member from the band
 
 ### Tracks
 
@@ -103,11 +103,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BAND-02 | Phase 2 | Pending |
 | BAND-03 | Phase 2 | Complete |
 | BAND-04 | Phase 2 | Pending |
-| BAND-05 | Phase 2 | Pending |
+| BAND-05 | Phase 2 | Complete |
 | BAND-06 | Phase 2 | Pending |
 | BAND-07 | Phase 2 | Complete |
-| BAND-08 | Phase 2 | Pending |
-| BAND-09 | Phase 2 | Pending |
+| BAND-08 | Phase 2 | Complete |
+| BAND-09 | Phase 2 | Complete |
 | TRACK-01 | Phase 3 | Pending |
 | TRACK-02 | Phase 3 | Pending |
 | TRACK-03 | Phase 3 | Pending |
