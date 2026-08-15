@@ -495,4 +495,185 @@ void main() {
       expect(find.text('Bands list root'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'owner sees a "Remove" icon on other members\' rows but never on their '
+    'own row; non-owner never sees it (remove-member)',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final ownerApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(members: members),
+      );
+
+      await tester.pumpWidget(wrap(ownerApiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.person_remove), findsOneWidget);
+
+      final memberCacheService = CacheService.inMemory();
+      await memberCacheService.writeBandDetail('b1', band(members: members));
+      final memberApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: () => band(members: members),
+      );
+
+      await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.person_remove), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'confirming Remove calls removeMember with that member\'s id, '
+    'invalidates the band detail, and the removed member disappears from '
+    'the members list without leaving the detail screen (remove-member)',
+    (tester) async {
+      var members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+
+      final removeRequests = <http.Request>[];
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(members: members),
+        onMutate: (request) async {
+          removeRequests.add(request);
+          members = members.where((m) => m['id'] != 'u2').toList();
+          return http.Response('', 204);
+        },
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('member'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await tester.pumpAndSettle();
+
+      expect(removeRequests, hasLength(1));
+      expect(
+        removeRequests.single.url.path,
+        '/api/band/b1/remove-member/u2',
+      );
+      expect(find.byType(BandDetailScreen), findsOneWidget);
+      expect(find.text('member'), findsNothing);
+      expect(find.text('owner'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a Delete failure surfaces an inline error and re-enables the Delete '
+    'button (remove-member error backstop)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'The Band'));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(name: 'The Band'),
+        onMutate: (request) async => http.Response(
+          jsonEncode({'code': 'server_error', 'message': 'Delete failed'}),
+          500,
+        ),
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'The Band');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete failed'), findsOneWidget);
+      final deleteButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Delete'),
+      );
+      expect(deleteButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a Leave failure surfaces an inline error and re-enables the Leave '
+    'button (remove-member error backstop)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+        onMutate: (request) async => http.Response(
+          jsonEncode({'code': 'server_error', 'message': 'Leave failed'}),
+          500,
+        ),
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Leave'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leave failed'), findsOneWidget);
+      final leaveButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Leave'),
+      );
+      expect(leaveButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a Remove failure surfaces an inline error and re-enables the Remove '
+    'button (remove-member error backstop)',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(members: members),
+        onMutate: (request) async => http.Response(
+          jsonEncode({'code': 'server_error', 'message': 'Remove failed'}),
+          500,
+        ),
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Remove failed'), findsOneWidget);
+      final removeButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Remove'),
+      );
+      expect(removeButton.onPressed, isNotNull);
+    },
+  );
 }

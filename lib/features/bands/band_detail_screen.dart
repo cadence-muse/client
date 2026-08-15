@@ -7,6 +7,7 @@ import '../../providers/profile_provider.dart';
 import 'band_avatar.dart';
 import 'confirm_delete_band_dialog.dart';
 import 'confirm_leave_band_dialog.dart';
+import 'confirm_remove_member_dialog.dart';
 import 'edit_band_screen.dart';
 
 class BandDetailScreen extends ConsumerWidget {
@@ -114,9 +115,38 @@ class BandDetailScreen extends ConsumerWidget {
             child: Text('No members'),
           )
         else
-          ...members.map(
-            (member) => ListTile(title: Text(member['username'] as String)),
-          ),
+          ...members.map((member) {
+            final memberUserId = member['id'] as String?;
+            final memberUsername = member['username'] as String;
+            // Owner-only, and never shown on the owner's own row — that's
+            // what "Delete"/"Leave" are for (D-02, D-08 edge probe:
+            // adjacency — targets member['id'], never a username match).
+            final showRemove =
+                isOwner == true &&
+                memberUserId != null &&
+                memberUserId != ownerId;
+            return ListTile(
+              title: Text(memberUsername),
+              trailing: showRemove
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.person_remove,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      tooltip: 'Remove',
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => ConfirmRemoveMemberDialog(
+                          bandId: bandId,
+                          memberUserId: memberUserId,
+                          memberUsername: memberUsername,
+                          bandName: name,
+                        ),
+                      ),
+                    )
+                  : null,
+            );
+          }),
         const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
