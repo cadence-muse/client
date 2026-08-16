@@ -78,13 +78,19 @@ class _InMemoryStore implements _KeyValueStore {
 /// [initialize] does NOT call `Hive.initFlutter()` itself — that stays the
 /// caller's job (see `lib/main.dart`).
 class CacheService {
-  CacheService._(this._profileStore, this._homepageStore, this._bandsStore);
+  CacheService._(
+    this._profileStore,
+    this._homepageStore,
+    this._bandsStore,
+    this._tracksStore,
+  );
 
   /// Test double backed by plain in-memory `Map`s, with no Hive/file I/O.
   /// Used via `cacheServiceProvider.overrideWithValue(CacheService.inMemory())`
   /// in widget tests.
   @visibleForTesting
   factory CacheService.inMemory() => CacheService._(
+    _InMemoryStore(),
     _InMemoryStore(),
     _InMemoryStore(),
     _InMemoryStore(),
@@ -95,15 +101,18 @@ class CacheService {
   final _KeyValueStore _profileStore;
   final _KeyValueStore _homepageStore;
   final _KeyValueStore _bandsStore;
+  final _KeyValueStore _tracksStore;
 
   static Future<void> initialize() async {
     final profileBox = await Hive.openBox<Map>('profileBox');
     final homepageBox = await Hive.openBox<Map>('homepageBox');
     final bandsBox = await Hive.openBox<Map>('bandsBox');
+    final tracksBox = await Hive.openBox<Map>('tracksBox');
     _instance = CacheService._(
       _HiveStore(profileBox),
       _HiveStore(homepageBox),
       _HiveStore(bandsBox),
+      _HiveStore(tracksBox),
     );
   }
 
@@ -191,10 +200,62 @@ class CacheService {
 
   static String _bandDetailKey(String bandId) => 'band_$bandId';
 
+  Future<List<Map<String, dynamic>>?> readBandTracks(String bandId) async {
+    try {
+      final cached = _tracksStore.get(_bandTracksKey(bandId));
+      if (cached == null) return null;
+      return (cached['items'] as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeBandTracks(
+    String bandId,
+    List<Map<String, dynamic>> data,
+  ) async {
+    try {
+      await _tracksStore.put(_bandTracksKey(bandId), {'items': data});
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  static String _bandTracksKey(String bandId) => 'band_$bandId';
+
+  Future<Map<String, dynamic>?> readBandTrackDetail(
+    String bandId,
+    String trackId,
+  ) async {
+    try {
+      return _tracksStore.get(_trackDetailKey(bandId, trackId));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeBandTrackDetail(
+    String bandId,
+    String trackId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      await _tracksStore.put(_trackDetailKey(bandId, trackId), data);
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  static String _trackDetailKey(String bandId, String trackId) =>
+      'detail_${bandId}_$trackId';
+
   Future<void> clearAll() async {
     await _profileStore.clear();
     await _homepageStore.clear();
     await _bandsStore.clear();
+    await _tracksStore.clear();
   }
 }
 

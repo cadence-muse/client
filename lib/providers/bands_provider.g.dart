@@ -6,7 +6,7 @@ part of 'bands_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$bandsListDataHash() => r'7691081a36b77d61ae5258d5dcce63d62b9cb21a';
+String _$bandsListDataHash() => r'33e481a0c5b26d56c258c6173d8fdda050a743f8';
 
 /// Cache-first `GET /api/band/list` data.
 ///
@@ -38,7 +38,7 @@ final bandsListDataProvider =
     );
 
 typedef _$BandsListData = AutoDisposeAsyncNotifier<List<Map<String, dynamic>>>;
-String _$bandDetailDataHash() => r'7e1c667c9c447ddc163ec49dae7ab5c635c1c551';
+String _$bandDetailDataHash() => r'581172ac7cae05a2d58c2b3adeacd8889a33f644';
 
 /// Copied from Dart SDK
 class _SystemHash {

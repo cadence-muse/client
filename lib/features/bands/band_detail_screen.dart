@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../tracks/track_list_screen.dart';
 import 'band_avatar.dart';
 import 'confirm_delete_band_dialog.dart';
 import 'confirm_leave_band_dialog.dart';
@@ -170,6 +171,17 @@ class BandDetailScreen extends ConsumerWidget {
                 child: const Text('Copy'),
               ),
             ],
+          ),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.music_note),
+          title: const Text('Tracks'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TrackListScreen(bandId: bandId),
+            ),
           ),
         ),
         if (isOwner == true) ...[

@@ -101,4 +101,50 @@ class PublicApi {
   }) async {
     await _client.send('DELETE', '/api/band/$bandId/remove-member/$userId');
   }
+
+  /// Returns a band's tracks (`TrackListItem` — id/title/artist +
+  /// optional durationSeconds).
+  Future<List<Map<String, dynamic>>> listBandTracks(String bandId) async {
+    final response = await _client.send('GET', '/api/band/$bandId/track/list');
+    return (response!['items'] as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Returns full track detail (`BandTrack` — id, title, artist,
+  /// durationSeconds, tempo, key, notes).
+  Future<Map<String, dynamic>> getBandTrack(
+    String bandId,
+    String trackId,
+  ) async {
+    final response = await _client.send(
+      'GET',
+      '/api/band/$bandId/track/$trackId',
+    );
+    return response!;
+  }
+
+  /// Creates a new track in a band. Returns the raw
+  /// `CreateBandTrackResponseBody` map (`{id}`).
+  Future<Map<String, dynamic>> createBandTrack({
+    required String bandId,
+    required String title,
+    required String artist,
+    int? durationSeconds,
+    int? tempo,
+    String? key,
+    String? notes,
+  }) async {
+    final response = await _client.send(
+      'POST',
+      '/api/band/$bandId/track',
+      body: {
+        'title': title,
+        'artist': artist,
+        if (durationSeconds != null) 'durationSeconds': durationSeconds,
+        if (tempo != null) 'tempo': tempo,
+        if (key != null) 'key': key,
+        if (notes != null) 'notes': notes,
+      },
+    );
+    return response!;
+  }
 }

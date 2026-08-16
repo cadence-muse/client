@@ -65,6 +65,8 @@ class _FakeCacheService implements CacheService {
   final Map<String, dynamic> _homepage = {};
   List<Map<String, dynamic>>? _bands;
   final Map<String, Map<String, dynamic>> _bandDetails = {};
+  final Map<String, List<Map<String, dynamic>>> _bandTracks = {};
+  final Map<String, Map<String, dynamic>> _trackDetails = {};
   int clearAllCallCount = 0;
   bool get clearAllCalled => clearAllCallCount > 0;
 
@@ -117,12 +119,48 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
+  Future<List<Map<String, dynamic>>?> readBandTracks(String bandId) async =>
+      _bandTracks.containsKey(bandId)
+          ? List<Map<String, dynamic>>.from(_bandTracks[bandId]!)
+          : null;
+
+  @override
+  Future<void> writeBandTracks(
+    String bandId,
+    List<Map<String, dynamic>> data,
+  ) async {
+    _bandTracks[bandId] = List<Map<String, dynamic>>.from(data);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> readBandTrackDetail(
+    String bandId,
+    String trackId,
+  ) async {
+    final key = '${bandId}_$trackId';
+    return _trackDetails.containsKey(key)
+        ? Map<String, dynamic>.from(_trackDetails[key]!)
+        : null;
+  }
+
+  @override
+  Future<void> writeBandTrackDetail(
+    String bandId,
+    String trackId,
+    Map<String, dynamic> data,
+  ) async {
+    _trackDetails['${bandId}_$trackId'] = Map<String, dynamic>.from(data);
+  }
+
+  @override
   Future<void> clearAll() async {
     clearAllCallCount++;
     _profile.clear();
     _homepage.clear();
     _bands = null;
     _bandDetails.clear();
+    _bandTracks.clear();
+    _trackDetails.clear();
   }
 }
 
