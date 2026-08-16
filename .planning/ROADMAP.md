@@ -122,7 +122,7 @@ Plans:
 **Goal**: Band members can build and manage setlists for gigs, including track ordering and running duration.
 **Mode:** mvp
 **Depends on**: Phase 3
-**Requirements**: SETL-01, SETL-02, SETL-03, SETL-04, SETL-05, SETL-06, SETL-07, SETL-08, SETL-09
+**Requirements**: SETL-01, SETL-02, SETL-03, SETL-04, SETL-05, SETL-06, SETL-07, SETL-08, SETL-09, SETL-10
 **Success Criteria** (what must be TRUE):
 
   1. User can view the list of setlists in a band, each showing track count and total duration.
@@ -130,6 +130,7 @@ Plans:
   3. User can view setlist detail (ordered tracks, running duration) and edit the setlist's info.
   4. User can add tracks to a setlist, remove them, and reorder them via drag-and-drop.
   5. User can delete a setlist, and the displayed running duration is always server-computed (no client-side math).
+  6. User can view all setlists across every band they belong to on a global Setlists tab, optionally filtered to one band.
 
 **Plans**: TBD
 **UI hint**: yes

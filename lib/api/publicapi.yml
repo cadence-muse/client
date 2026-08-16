@@ -327,6 +327,24 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /api/setlist/list:
+    get:
+      operationId: ListUserSetlists
+      summary: List all setlists across bands the current user belongs to, optionally filtered by band
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandIdFilter'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListUserSetlistsResponseBody'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /api/band/{bandId}/setlist/list:
     get:
       operationId: ListBandSetlists
@@ -437,6 +455,27 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AddSetlistTrackRequestBody'
+      responses:
+        '204':
+          description: Success
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/band/{bandId}/setlist/{setlistId}/tracks:
+    post:
+      operationId: AddSetlistTracks
+      summary: Add multiple tracks to a setlist
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandId'
+        - $ref: '#/components/parameters/SetlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSetlistTracksRequestBody'
       responses:
         '204':
           description: Success
@@ -881,6 +920,44 @@ components:
         - tracksCount
         - durationSeconds
 
+    ListUserSetlistsResponseBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSetlistListItem'
+      required:
+        - items
+
+    UserSetlistListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        tracksCount:
+          type: integer
+        durationSeconds:
+          type: integer
+        eventDate:
+          type: string
+          format: date
+        bandId:
+          type: string
+          format: uuid
+        bandName:
+          type: string
+      required:
+        - id
+        - name
+        - tracksCount
+        - durationSeconds
+        - bandId
+        - bandName
+
     CreateBandSetlistsRequestBody:
       type: object
       properties:
@@ -975,6 +1052,18 @@ components:
           format: uuid
       required:
         - trackId
+
+    AddSetlistTracksRequestBody:
+      type: object
+      properties:
+        trackIds:
+          type: array
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
+      required:
+        - trackIds
 
     ReorderSetlistTracksRequestBody:
       type: object

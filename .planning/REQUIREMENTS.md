@@ -44,6 +44,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SETL-07**: User can remove a track from a setlist
 - [ ] **SETL-08**: User can reorder tracks within a setlist via drag-and-drop
 - [ ] **SETL-09**: User sees a setlist's total running duration (server-computed, no client math)
+- [ ] **SETL-10**: User can view all setlists across every band they belong to on a global Setlists tab, optionally filtered by band
 
 ### Offline & State
 
@@ -74,8 +75,10 @@ Fields the client needs but the current `publicapi.yml` didn't expose. Added dir
 | `id` (uuid) | `UserProfile` (`GET /api/me` response) | Client has no way to learn its own user ID otherwise. Needed to identify "you" in a band's member list and to call `DELETE /api/band/{bandId}/remove-member/{userId}` with your own ID for self-leave. | BAND-08 |
 | `ownerId` (uuid) | `Band` (`GET /api/band/{bandId}` response) | `BandMember` has no role/owner flag. Client can't conditionally show "Delete band" or "Remove member" actions (owner-only per API description) without knowing who the owner is. | BAND-03, BAND-05, BAND-09 |
 | `GET /api/track/list` (new endpoint) | `ListUserTracksResponseBody` (`items: UserTrackListItem[]`), optional `bandId` query filter | No existing endpoint returns tracks across all of a user's bands — `GET /api/band/{bandId}/track/list` is per-band only. The global Tracks tab (Phase 3, D-navigation) needs a cross-band view with each item's `bandId`/`bandName` for display/filtering. Added directly to `lib/api/publicapi.yml` as the contract to implement server-side. | TRACK-06 |
+| `POST /api/band/{bandId}/setlist/{setlistId}/tracks` (new endpoint) | `AddSetlistTracksRequestBody` (`trackIds: string[]`, max 100) | The existing `POST .../track` only adds one track at a time; the setlist detail screen's add-tracks picker needs to add a multi-select batch in one call rather than looping N single-track POSTs. Added directly to `lib/api/publicapi.yml` as the contract to implement server-side; client is built directly against it, no fallback (backend considered ready per Phase 4 discussion). | SETL-06 |
+| `GET /api/setlist/list` (new endpoint) | `ListUserSetlistsResponseBody` (`items: UserSetlistListItem[]`), optional `bandId` query filter | Mirrors `GET /api/track/list` (TRACK-06) — no existing endpoint returns setlists across all of a user's bands. The new global Setlists tab (Phase 4, SETL-10) needs a cross-band view with each item's `bandId`/`bandName`. Added directly to `lib/api/publicapi.yml` as the contract to implement server-side. | SETL-10 |
 
-**Until backend ships these:** BAND-08 (self-leave) can be built by asking the user to identify themselves by username-match against the member list — fragile if usernames aren't unique — flag as a known limitation. BAND-05/BAND-09 owner-only UI gating can't be done client-side at all until `ownerId` exists; those actions will call the API and surface whatever `403 permission_denied` comes back instead of hiding the button proactively. TRACK-06 (global Tracks tab) can't be built at all until `GET /api/track/list` exists — no client-side workaround (would require fetching every band's track list and merging, which defeats the purpose and doesn't give band-level filtering without N calls); block the Songs-tab work until this ships, or fall back to per-band-only tracks (drop the global tab) if the backend isn't ready when Phase 3 starts.
+**Until backend ships these:** BAND-08 (self-leave) can be built by asking the user to identify themselves by username-match against the member list — fragile if usernames aren't unique — flag as a known limitation. BAND-05/BAND-09 owner-only UI gating can't be done client-side at all until `ownerId` exists; those actions will call the API and surface whatever `403 permission_denied` comes back instead of hiding the button proactively. TRACK-06 (global Tracks tab) can't be built at all until `GET /api/track/list` exists — no client-side workaround (would require fetching every band's track list and merging, which defeats the purpose and doesn't give band-level filtering without N calls); block the Songs-tab work until this ships, or fall back to per-band-only tracks (drop the global tab) if the backend isn't ready when Phase 3 starts. SETL-06/SETL-10's new endpoints are built directly against the contract with no fallback — backend considered ready, per Phase 4 discussion (same posture as Phase 2's D-01 for `ownerId`/`id`).
 
 ## Out of Scope
 
@@ -125,6 +128,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETL-07 | Phase 4 | Pending |
 | SETL-08 | Phase 4 | Pending |
 | SETL-09 | Phase 4 | Pending |
+| SETL-10 | Phase 4 | Pending |
 | OFFL-02 | Phase 5 | Pending |
 | OFFL-03 | Phase 5 | Pending |
 | OFFL-04 | Phase 5 | Pending |
@@ -132,10 +136,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 
-- v1 requirements: 32 total
-- Mapped to phases: 32
+- v1 requirements: 33 total
+- Mapped to phases: 33
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-14*
-*Last updated: 2026-08-16 — added TRACK-06 (global Tracks tab) during Phase 3 discuss-phase*
+*Last updated: 2026-08-16 — added SETL-10 (global Setlists tab) during Phase 4 discuss-phase*

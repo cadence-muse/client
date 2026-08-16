@@ -27,6 +27,7 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - [ ] User (owner) can remove a band member; any member can remove themselves
 - [ ] User can list, create, view, update, and delete setlists within a band
 - [ ] User can add/remove tracks on a setlist and reorder them
+- [ ] User can view all setlists across every band they belong to via a global filterable Setlists tab
 - [ ] All GET-able band/track/setlist/profile data is cached locally on Android/iOS and remains viewable when offline (read-only; mutations require connectivity)
 
 ### Out of Scope
@@ -64,6 +65,7 @@ A band member can open the app without signal — at a venue, in a basement, on 
 | Extend `publicapi.yml` with `UserProfile.id` and `Band.ownerId` rather than fake it client-side | Client genuinely cannot self-identify or gate owner-only UI without these; username-matching or hiding-nothing were the only workarounds and both are fragile/wrong | — Pending (needs backend implementation) |
 | Extend `publicapi.yml` with `GET /api/track/list` (cross-band, `bandId`-filterable) for TRACK-06 | No existing endpoint returns tracks across all of a user's bands; per-band-only would require N calls and defeats the global tab's purpose | ✓ Good — Phase 3 |
 | Track/setlist mutation endpoints must always send all editable fields on update (not just changed ones) | Server's partial-update semantics treat an omitted field as "keep" and an explicit `null` as "clear" — conditional-send silently failed to clear optional fields (03-04 CR-02 gap) | ✓ Good — Phase 3, applies to any future PUT/PATCH with optional clearable fields |
+| Extend `publicapi.yml` with `POST .../setlist/{setlistId}/tracks` (bulk add) and `GET /api/setlist/list` (cross-band, `bandId`-filterable) for SETL-06/SETL-10 | No bulk-add endpoint existed (only single-track add); no endpoint returned setlists across all of a user's bands, mirroring Phase 3's TRACK-06 gap | — Pending (backend implementation) |
 
 ## Evolution
 
