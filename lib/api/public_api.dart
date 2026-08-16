@@ -153,11 +153,22 @@ class PublicApi {
   /// updated `BandTrack` back — callers merge their own submitted values into
   /// any local cache/state instead of trusting an echoed response (see
   /// `edit_track_screen.dart`, mirrors `updateBand`).
+  ///
+  /// [title]/[artist] are required — `EditTrackScreen` is this method's only
+  /// caller and always has both from its form. [durationSeconds]/[tempo]/
+  /// [key]/[notes] are always sent (CR-02 fix), including an explicit `null`
+  /// when the caller wants to clear a previously-set value: per
+  /// `UpdateBandTrackRequestBody`'s `nullable: true` schema, the server's
+  /// merge/partial-update semantics treat an explicit JSON `null` as "clear
+  /// this field," distinct from omitting the key entirely (which the old
+  /// conditional-guard behavior did, silently preventing users from ever
+  /// clearing a field). Contrast with [createBandTrack], which is
+  /// intentionally unchanged — there is no "old value" to clear on create.
   Future<void> updateBandTrack({
     required String bandId,
     required String trackId,
-    String? title,
-    String? artist,
+    required String title,
+    required String artist,
     int? durationSeconds,
     int? tempo,
     String? key,
@@ -167,12 +178,12 @@ class PublicApi {
       'PUT',
       '/api/band/$bandId/track/$trackId',
       body: {
-        if (title != null) 'title': title,
-        if (artist != null) 'artist': artist,
-        if (durationSeconds != null) 'durationSeconds': durationSeconds,
-        if (tempo != null) 'tempo': tempo,
-        if (key != null) 'key': key,
-        if (notes != null) 'notes': notes,
+        'title': title,
+        'artist': artist,
+        'durationSeconds': durationSeconds,
+        'tempo': tempo,
+        'key': key,
+        'notes': notes,
       },
     );
   }

@@ -172,6 +172,40 @@ void main() {
   );
 
   testWidgets(
+    'CR-02: clearing optional fields sends explicit null instead of '
+    'omitting them',
+    (tester) async {
+      String? requestBody;
+      final apiClient = buildApiClient((request) async {
+        requestBody = request.body;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditTrackScreen(tester);
+      // TextFormFields in order: Title(0), Artist(1), Duration(2),
+      // Tempo(3), Notes(4). Key is left unchanged ('C') via the dropdown.
+      await tester.enterText(find.byType(TextFormField).at(2), '');
+      await tester.enterText(find.byType(TextFormField).at(3), '');
+      await tester.enterText(find.byType(TextFormField).at(4), '');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(
+        requestBody,
+        jsonEncode({
+          'title': 'Old Title',
+          'artist': 'Old Artist',
+          'durationSeconds': null,
+          'tempo': null,
+          'key': 'C',
+          'notes': null,
+        }),
+      );
+    },
+  );
+
+  testWidgets(
     'empty title and artist are rejected without an API call',
     (tester) async {
       var callCount = 0;
