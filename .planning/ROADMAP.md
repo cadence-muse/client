@@ -91,13 +91,14 @@ Plans:
 **Goal**: Band members can maintain their band's song catalog.
 **Mode:** mvp
 **Depends on**: Phase 2
-**Requirements**: TRACK-01, TRACK-02, TRACK-03, TRACK-04, TRACK-05
+**Requirements**: TRACK-01, TRACK-02, TRACK-03, TRACK-04, TRACK-05, TRACK-06
 **Success Criteria** (what must be TRUE):
 
   1. User can view the list of tracks in a band.
   2. User can add a new track to a band (title and artist required; duration, tempo, key, notes optional).
   3. User can view a track's detail page.
   4. User can edit a track's info and delete a track from the band.
+  5. User can view all tracks across every band they belong to on a global Tracks tab, optionally filtered to one band.
 
 **Plans**: TBD
 **UI hint**: yes

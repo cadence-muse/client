@@ -31,6 +31,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **TRACK-03**: User can view track detail
 - [ ] **TRACK-04**: User can edit a track's info
 - [ ] **TRACK-05**: User can delete a track from a band
+- [ ] **TRACK-06**: User can view all tracks across every band they belong to, filterable by band, via a global Tracks tab
 
 ### Setlists
 
@@ -72,8 +73,9 @@ Fields the client needs but the current `publicapi.yml` didn't expose. Added dir
 |-------|--------|------------|--------|
 | `id` (uuid) | `UserProfile` (`GET /api/me` response) | Client has no way to learn its own user ID otherwise. Needed to identify "you" in a band's member list and to call `DELETE /api/band/{bandId}/remove-member/{userId}` with your own ID for self-leave. | BAND-08 |
 | `ownerId` (uuid) | `Band` (`GET /api/band/{bandId}` response) | `BandMember` has no role/owner flag. Client can't conditionally show "Delete band" or "Remove member" actions (owner-only per API description) without knowing who the owner is. | BAND-03, BAND-05, BAND-09 |
+| `GET /api/track/list` (new endpoint) | `ListUserTracksResponseBody` (`items: UserTrackListItem[]`), optional `bandId` query filter | No existing endpoint returns tracks across all of a user's bands — `GET /api/band/{bandId}/track/list` is per-band only. The global Tracks tab (Phase 3, D-navigation) needs a cross-band view with each item's `bandId`/`bandName` for display/filtering. Added directly to `lib/api/publicapi.yml` as the contract to implement server-side. | TRACK-06 |
 
-**Until backend ships these:** BAND-08 (self-leave) can be built by asking the user to identify themselves by username-match against the member list — fragile if usernames aren't unique — flag as a known limitation. BAND-05/BAND-09 owner-only UI gating can't be done client-side at all until `ownerId` exists; those actions will call the API and surface whatever `403 permission_denied` comes back instead of hiding the button proactively.
+**Until backend ships these:** BAND-08 (self-leave) can be built by asking the user to identify themselves by username-match against the member list — fragile if usernames aren't unique — flag as a known limitation. BAND-05/BAND-09 owner-only UI gating can't be done client-side at all until `ownerId` exists; those actions will call the API and surface whatever `403 permission_denied` comes back instead of hiding the button proactively. TRACK-06 (global Tracks tab) can't be built at all until `GET /api/track/list` exists — no client-side workaround (would require fetching every band's track list and merging, which defeats the purpose and doesn't give band-level filtering without N calls); block the Songs-tab work until this ships, or fall back to per-band-only tracks (drop the global tab) if the backend isn't ready when Phase 3 starts.
 
 ## Out of Scope
 
@@ -113,6 +115,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRACK-03 | Phase 3 | Pending |
 | TRACK-04 | Phase 3 | Pending |
 | TRACK-05 | Phase 3 | Pending |
+| TRACK-06 | Phase 3 | Pending |
 | SETL-01 | Phase 4 | Pending |
 | SETL-02 | Phase 4 | Pending |
 | SETL-03 | Phase 4 | Pending |
@@ -129,10 +132,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 
-- v1 requirements: 31 total
-- Mapped to phases: 31
+- v1 requirements: 32 total
+- Mapped to phases: 32
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-14*
-*Last updated: 2026-08-14 after roadmap creation (5 phases, full coverage)*
+*Last updated: 2026-08-16 — added TRACK-06 (global Tracks tab) during Phase 3 discuss-phase*

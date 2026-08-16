@@ -309,6 +309,24 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /api/track/list:
+    get:
+      operationId: ListUserTracks
+      summary: List all tracks across bands the current user belongs to, optionally filtered by band
+      security:
+        - sessionAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/BandIdFilter'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListUserTracksResponseBody'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /api/band/{bandId}/setlist/list:
     get:
       operationId: ListBandSetlists
@@ -499,6 +517,14 @@ components:
       name: trackId
       in: path
       required: true
+      schema:
+        type: string
+        format: uuid
+
+    BandIdFilter:
+      name: bandId
+      in: query
+      required: false
       schema:
         type: string
         format: uuid
@@ -789,6 +815,40 @@ components:
         notes:
           type: string
           nullable: true
+
+    ListUserTracksResponseBody:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTrackListItem'
+      required:
+        - items
+
+    UserTrackListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        artist:
+          type: string
+        durationSeconds:
+          type: integer
+        bandId:
+          type: string
+          format: uuid
+        bandName:
+          type: string
+      required:
+        - id
+        - title
+        - artist
+        - bandId
+        - bandName
 
     ListBandSetlistsResponseBody:
       type: object
