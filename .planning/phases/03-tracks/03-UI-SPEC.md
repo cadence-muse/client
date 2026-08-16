@@ -34,10 +34,9 @@ Established in Phase 1-2, consistent 4px increments (Flutter convention):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Internal widget padding (rarely user-facing) |
-| sm | 8px | Tight spacing within sections (e.g., SizedBox between stacked elements) |
-| md | 12px | Compact list item padding or margins |
-| lg | 16px | Default element spacing, list item horizontal padding |
-| xl | 24px | Section padding, AppBar spacing, major gaps |
+| sm | 8px | Tight spacing within sections (e.g., SizedBox between stacked elements), compact padding |
+| lg | 16px | Default element spacing, list item horizontal padding, form field gaps |
+| xl | 24px | Section padding, AppBar spacing, major gaps, detail screen field gaps |
 | 2xl | 32px | Layout margins (uncommon in Phase 3) |
 | 3xl | 48px | Page-level breaks (uncommon in Phase 3) |
 
@@ -52,11 +51,9 @@ Follows Flutter Material 3 defaults (ThemeData.light/dark via ColorScheme.fromSe
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Body | 14px | 400 (regular) | 1.43 | Track list item descriptions, member lists, dialog body text |
-| Label | 14px | 500 (medium) | 1.43 | Section headings (textTheme.labelLarge), form labels |
-| Heading | 28px | 600 (semibold) | 1.18 | Screen titles, band/track detail headers (textTheme.headlineMedium) |
-| Display | 32px | 700 (bold) | 1.14 | Rarely used in Phase 3; reserved for future emphasis |
+| Heading | 28px | 600 (semibold) | 1.18 | Screen titles, band/track detail headers (textTheme.headlineMedium), section labels |
 
-**Rationale:** Material 3 theme provides these via `TextTheme`; Phase 1-2 established the headlineMedium for major headings and labelLarge for section labels. Phase 3 extends with consistent body (14px) and label (14px) usage.
+**Rationale:** Phase 3 standardizes on 2 weights: 400 (regular) for body text and 600 (semibold) for headings and labels. This aligns with Material 3 defaults (labelLarge and headlineMedium) established in Phase 1-2 and reduces cognitive load on implementation. Medium (500) and bold (700) weights not used in Phase 3 scope.
 
 ---
 
@@ -86,8 +83,8 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 | **TrackListScreen (per-band) title** | `'Tracks'` (in AppBar) |
 | **GlobalTracksScreen (cross-band) title** | `'Tracks'` (in AppBar, bottom nav) |
 | **Primary CTA — add track** | `'Add track'` (FloatingActionButton label, tooltip) |
-| **Primary CTA — form submit** | `'Save'` (FilledButton on AddTrackScreen and EditTrackScreen) |
-| **Secondary CTA — form cancel** | `'Cancel'` (via AppBar back or TextButton) |
+| **Primary CTA — form submit** | `'Save track'` (FilledButton on AddTrackScreen and EditTrackScreen) |
+| **Secondary CTA — form cancel** | Implicit via AppBar back button (no explicit "Cancel" button; back navigation discards unsaved changes) |
 | **Empty state (no tracks in band)** | **Heading:** `'No tracks yet'` **Body:** `'Create a track or ask a bandmate to add one.'` **CTA:** `'Add track'` (ElevatedButton, mirrors Phase 2 no-bands pattern) |
 | **Empty state (global Tracks tab, no tracks at all)** | **Heading:** `'No tracks'` **Body:** `'Create tracks in a band to see them here.'` **CTA:** `'View bands'` (optional, navigates to Bands tab) |
 | **Error state (track load failure)** | **Heading:** `"Couldn't load tracks"` **Body:** `'Please check your connection and try again.'` **CTA:** `'Retry'` (ElevatedButton, mirrors Phase 2 error pattern) |
@@ -111,6 +108,8 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 - `Scaffold` with `AppBar(title: 'Tracks')`
 - `FloatingActionButton` with `Icons.add` (tap → navigate to AddTrackScreen)
 - `ListView.separated` with track list rows, or empty state, or error state
+
+**Focal Point:** FloatingActionButton is the primary interaction target for "Add track" action. Positioned bottom-right, always accessible via scroll.
 
 **Track List Row (ListTile):**
 - **Leading:** Optional avatar/icon (no track cover image in Phase 3; consider plain icon like `Icons.music_note`)
@@ -138,12 +137,16 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
   - Tempo (body, 14px, if present)
   - Key (body, 14px, if present — e.g., "C major")
   - Notes (body, 14px, multiline, if present)
-- If owner-editable: Edit button in AppBar (IconButton, `Icons.edit`)
+- If owner-editable: Edit button in AppBar (IconButton, `Icons.edit` with tooltip `'Edit track'`)
 - If owner-editable: Delete ListTile at bottom (owner-gated, error-color text + icon, same pattern as Phase 2 band detail)
+
+**Focal Point:** Edit IconButton in AppBar (when owner-editable); Delete ListTile at bottom.
+
+**Accessibility:** Edit icon has tooltip label `'Edit track'` for screen reader and hover contexts.
 
 **Spacing:**
 - 24px top padding after AppBar
-- 12px between most fields
+- 16px between most fields
 - 24px before Delete section
 - 16px padding for Divider and ListTile sections
 
@@ -162,7 +165,9 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
   5. **Key field** (DropdownButtonFormField, optional, 24 values: C, Cm, C#, C#m, ... B, Bm)
   6. **Notes field** (TextFormField, optional, multiline)
   7. **Error message** (if any API call fails)
-  8. **Submit button** (FilledButton, label: `'Save'`)
+  8. **Submit button** (FilledButton, label: `'Save track'`)
+
+**Focal Point:** Title field is the primary input (autofocus or top-of-form); "Save track" button is call-to-action at bottom.
 
 **Form Fields:**
 - **TextFormField spec:**
@@ -233,6 +238,8 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 - Position: left side, before title (or inline with title)
 - Style: secondary background (surface color) with text, ~8px padding, rounded corners
 - Prevents user from forgetting which band owns each track in flat global list
+
+**Focal Point:** Filter dropdown is the primary control for navigation; track list is the main content area.
 
 **Spacing:**
 - Filter dropdown: 16px padding from top (below AppBar)
