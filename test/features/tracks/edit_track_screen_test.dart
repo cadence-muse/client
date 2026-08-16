@@ -293,6 +293,28 @@ void main() {
   );
 
   testWidgets(
+    'WR-02: non-numeric Tempo input is rejected without an API call',
+    (tester) async {
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditTrackScreen(tester);
+      // TextFormFields in order: Title(0), Artist(1), Duration(2),
+      // Tempo(3), Notes(4).
+      await tester.enterText(find.byType(TextFormField).at(3), 'abc');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pump();
+
+      expect(callCount, 0);
+      expect(find.text('Enter a whole number'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'an updateBandTrack() failure renders an inline error and re-enables '
     'the Save button',
     (tester) async {

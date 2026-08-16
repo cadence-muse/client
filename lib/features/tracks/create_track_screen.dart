@@ -37,6 +37,16 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
     super.dispose();
   }
 
+  /// WR-02: rejects non-empty, non-whole-number input on the Duration/Tempo
+  /// fields instead of silently discarding it (int.tryParse returning null
+  /// was previously treated the same as a genuinely blank field). An empty
+  /// field remains valid — Duration/Tempo stay optional.
+  String? _wholeNumberValidator(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    return int.tryParse(text) == null ? 'Enter a whole number' : null;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -128,6 +138,7 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
                     labelText: 'Duration (seconds)',
                     border: OutlineInputBorder(),
                   ),
+                  validator: _wholeNumberValidator,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
@@ -137,6 +148,7 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
                     labelText: 'Tempo (BPM)',
                     border: OutlineInputBorder(),
                   ),
+                  validator: _wholeNumberValidator,
                 ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(

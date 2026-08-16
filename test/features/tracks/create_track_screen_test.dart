@@ -172,6 +172,27 @@ void main() {
   );
 
   testWidgets(
+    'WR-02: non-numeric Duration input is rejected without an API call',
+    (tester) async {
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response(jsonEncode({'id': 't1'}), 201);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openCreateTrackScreen(tester);
+      await enterTitleAndArtist(tester);
+      await tester.enterText(find.byType(TextFormField).at(2), 'abc');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save track'));
+      await tester.pump();
+
+      expect(callCount, 0);
+      expect(find.text('Enter a whole number'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'a createBandTrack() failure renders an inline error and re-enables the '
     'Save track button',
     (tester) async {
