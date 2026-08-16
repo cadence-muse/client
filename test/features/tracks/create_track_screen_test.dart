@@ -5,6 +5,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/create_track_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/tracks_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -86,6 +87,67 @@ void main() {
       );
       expect(find.text('My Song added!'), findsOneWidget);
       expect(find.byType(CreateTrackScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'CR-03: creating a track invalidates the global Tracks tab so it '
+    'refetches',
+    (tester) async {
+      var trackListCallCount = 0;
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/track') {
+          return http.Response(jsonEncode({'id': 't1'}), 201);
+        }
+        if (request.url.path == '/api/track/list') {
+          trackListCallCount++;
+        }
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeUserTracks(null, []);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(apiClient),
+            cacheServiceProvider.overrideWithValue(cacheService),
+          ],
+          child: MaterialApp(
+            home: Consumer(
+              builder: (context, ref, _) {
+                // Watching userTracksListDataProvider here (as the real
+                // global Tracks tab would) is what makes
+                // ref.exists(userTracksListDataProvider) true inside the
+                // mutation flow below.
+                ref.watch(userTracksListDataProvider);
+                return Scaffold(
+                  body: Center(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const CreateTrackScreen(bandId: 'b1'),
+                        ),
+                      ),
+                      child: const Text('Open'),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final callCountBeforeMutation = trackListCallCount;
+
+      await openCreateTrackScreen(tester);
+      await enterTitleAndArtist(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Save track'));
+      await tester.pumpAndSettle();
+
+      expect(trackListCallCount, greaterThan(callCountBeforeMutation));
     },
   );
 

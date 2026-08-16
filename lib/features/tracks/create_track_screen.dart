@@ -62,6 +62,15 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
             notes: notes.isEmpty ? null : notes,
           );
       ref.invalidate(trackListDataProvider(widget.bandId));
+      // CR-03: also invalidate the global cross-band Tracks tab so a newly
+      // created track is reflected there without a manual filter change.
+      // Guarded with ref.exists() — the global tab may not have been
+      // visited yet in this session, and reading .notifier / invalidating a
+      // never-instantiated provider would trigger an unwanted network fetch
+      // as a side effect.
+      if (ref.exists(userTracksListDataProvider)) {
+        ref.invalidate(userTracksListDataProvider);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,

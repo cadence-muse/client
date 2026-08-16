@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/confirm_delete_track_dialog.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/tracks_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -109,6 +110,80 @@ void main() {
       expect(requestPath, '/api/band/b1/track/t1');
       expect(find.text('Detail'), findsNothing);
       expect(find.widgetWithText(ElevatedButton, 'Open detail'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'CR-03: deleting a track invalidates the global Tracks tab so it '
+    'refetches',
+    (tester) async {
+      var trackListCallCount = 0;
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'DELETE') {
+          return http.Response('', 204);
+        }
+        if (request.url.path == '/api/track/list') {
+          trackListCallCount++;
+        }
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeUserTracks(null, []);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(apiClient),
+            cacheServiceProvider.overrideWithValue(cacheService),
+          ],
+          child: MaterialApp(
+            home: Consumer(
+              builder: (context, ref, _) {
+                // Watching userTracksListDataProvider here (as the real
+                // global Tracks tab would) is what makes
+                // ref.exists(userTracksListDataProvider) true inside the
+                // mutation flow below.
+                ref.watch(userTracksListDataProvider);
+                return Scaffold(
+                  body: Center(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (detailContext) => Scaffold(
+                            appBar: AppBar(title: const Text('Detail')),
+                            body: Center(
+                              child: ElevatedButton(
+                                onPressed: () => showDialog<void>(
+                                  context: detailContext,
+                                  builder: (_) => const ConfirmDeleteTrackDialog(
+                                    bandId: 'b1',
+                                    trackId: 't1',
+                                    trackTitle: 'My Song',
+                                  ),
+                                ),
+                                child: const Text('Open dialog'),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      child: const Text('Open detail'),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final callCountBeforeMutation = trackListCallCount;
+
+      await openDialog(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(trackListCallCount, greaterThan(callCountBeforeMutation));
     },
   );
 
