@@ -100,12 +100,12 @@ Plans:
   4. User can edit a track's info and delete a track from the band.
   5. User can view all tracks across every band they belong to on a global Tracks tab, optionally filtered to one band.
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Per-band track list + add + detail (tracer): API + cache + provider + screens (TRACK-01, TRACK-02, TRACK-03)
+- [x] 03-01-PLAN.md — Per-band track list + add + detail (tracer): API + cache + provider + screens (TRACK-01, TRACK-02, TRACK-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -159,6 +159,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation, Profile & Home | 3/3 | Complete    | 2026-08-15 |
 | 2. Bands | 5/5 | In Progress|  |
-| 3. Tracks | 0/3 | Planned | - |
+| 3. Tracks | 1/3 | In Progress | - |
 | 4. Setlists | 0/TBD | Not started | - |
 | 5. Offline Trust & Connectivity UX | 0/TBD | Not started | - |
