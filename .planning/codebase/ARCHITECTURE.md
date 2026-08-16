@@ -1,7 +1,7 @@
-<!-- refreshed: 2026-08-13 -->
+<!-- refreshed: 2026-08-16 -->
 # Architecture
 
-**Analysis Date:** 2026-08-13
+**Analysis Date:** 2026-08-16
 
 ## System Overview
 
@@ -240,6 +240,129 @@
 - LoginScreen catches ApiException, inspects statusCode/code, shows user-friendly message
 - 403 responses trigger automatic signOut() in ApiClient before throwing
 
+## CI/CD Pipeline
+
+**Overview:**
+GitHub Actions enforces quality gates on every push/PR and automates release builds for tag-triggered events. Two workflows manage code validation and release distribution across platforms.
+
+### Validate Workflow (`.github/workflows/validate.yml`)
+
+**Trigger:** Push to `main` branch or pull requests to `main`
+
+**Purpose:** Enforce code quality and correctness before merge
+
+**Steps:**
+1. **Checkout** (`actions/checkout@v6`) — Clone repo at commit
+2. **Setup Flutter SDK** (`subosito/flutter-action@v2`)
+   - Channel: `stable`
+   - Version: `3.44.x`
+   - Caching enabled for build artifacts
+3. **Install dependencies** (`flutter pub get`) — Restore pubspec.lock dependencies
+4. **Unit tests** (`flutter test`)
+   - Runs all test files in `test/` directory
+   - Blocks merge on test failure
+5. **Static analysis** (`flutter analyze`)
+   - Runs Dart analyzer with `analysis_options.yaml` rules
+   - Includes `package:flutter_lints/flutter.yaml` ruleset
+   - Enforces naming conventions, error handling patterns, unused code detection
+
+**Architectural gates encoded:**
+- Requires passing tests before any code reaches main
+- Lint rules enforce naming (PascalCase classes, camelCase functions, snake_case files)
+- Prevents unintentional introduction of circular imports, unused imports, missing null safety
+- **Failure behavior:** CI fails; PR cannot merge until fixed
+
+### Release Workflow (`.github/workflows/release.yml`)
+
+**Trigger:** Git tag matching pattern `v*.*.*` (semantic versioning)
+
+**Purpose:** Build and publish release artifacts across platforms (Docker, Android APK)
+
+**Permissions:**
+- `contents: write` — Create GitHub releases
+- `packages: write` — Push Docker images to GHCR (GitHub Container Registry)
+
+**Job 1: Docker Release (`deploy-docker`)**
+
+Runs on: `ubuntu-latest`
+
+**Steps:**
+1. **Checkout** at tag commit
+2. **Setup Flutter SDK** (same as validate)
+3. **GHCR login** (`docker/login-action@v3`)
+   - Registry: `ghcr.io`
+   - Auth: `GITHUB_TOKEN` secret
+4. **Extract metadata** (`docker/metadata-action@v5`)
+   - Tags: Semver version + `latest`
+   - Labels: Applied to Docker image
+5. **Setup buildx** (`docker/setup-buildx-action@v3`) — Multi-platform builder
+6. **Install dependencies** (`flutter pub get`)
+7. **Build web** (`flutter build web`)
+   - Target: Web static files
+   - Dart define: `API_BASE_URL=` (empty; expects env override at runtime)
+   - Artifacts: `build/web/` directory
+8. **Build and push Docker image** (`docker/build-push-action@v6`)
+   - Context: Repository root (uses `Dockerfile`)
+   - Push: `true` (to GHCR)
+   - Tags: Semver + latest
+   - Cache: GitHub Actions cache (speed up rebuilds)
+
+**Result:** Docker image available at `ghcr.io/[owner]/cadence-client:v[version]` and `:latest`
+
+**Job 2: Android Release (`release-apk`)**
+
+Runs on: `ubuntu-latest`
+
+**Steps:**
+1. **Checkout** at tag commit
+2. **Setup Flutter SDK** (same as validate)
+3. **Setup Java** (`actions/setup-java@v4`)
+   - Distribution: Zulu (OpenJDK)
+   - Version: `17` (required for Android build tools)
+4. **Install dependencies** (`flutter pub get`)
+5. **Build APK** (`flutter build apk --release`)
+   - Mode: Release (optimization enabled)
+   - Dart define: `API_BASE_URL=https://cadence.app` (hardcoded production URL)
+   - Output: `build/app/outputs/flutter-apk/app-release.apk`
+6. **Calculate hash** (`sha256sum`)
+   - Generates: `app-release.apk.sha256.txt`
+   - Provides integrity verification for users
+7. **Create GitHub release** (`gh release create`)
+   - Attaches APK and hash file
+   - Auto-generated release notes from commits
+   - Title: `Release v[version]`
+
+**Result:** GitHub release with downloadable APK and SHA256 hash for Android users
+
+### Architecture Encoded in Pipelines
+
+**Platform matrix:**
+- **Validation:** Single `ubuntu-latest` matrix (all tests run in Linux environment)
+- **Docker release:** Web artifact built on Linux, pushed to GHCR
+- **APK release:** Android build on Linux with Java 17 toolchain
+- **iOS:** Not automated (requires macOS runner, likely planned for future)
+
+**Configuration management:**
+- Web build uses empty `API_BASE_URL` (backend expects URL to be passed at runtime or set in Docker)
+- APK build uses hardcoded `API_BASE_URL=https://cadence.app`
+- Enables different API targets per platform (web flexible, mobile locked to production)
+
+**Build dependencies locked:**
+- Flutter version pinned to `3.44.x` (stable channel)
+- Dart 3.12.2+ implicitly enforced by Flutter
+- Java 17 required for Android
+- These constraints ensure reproducible builds across CI and developer machines
+
+**Gate ordering:**
+- Validate workflow must pass before merge to main
+- Release workflow only triggers on tagged commits (which are typically from main)
+- Implies: Only validated code can be released (tag-based release requires prior main commit)
+
+**Secrets and permissions:**
+- `GITHUB_TOKEN` injected automatically for GHCR login and release creation
+- No explicit credential files needed (uses OIDC token)
+- APK password/keystore assumed to exist on runner (likely pre-configured in repo secrets)
+
 ---
 
-*Architecture analysis: 2026-08-13*
+*Architecture analysis: 2026-08-16*
