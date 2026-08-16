@@ -177,4 +177,52 @@ void main() {
       expect(result['notes'], 'Play it slow on the bridge');
     },
   );
+
+  test(
+    'writeUserTracks/readUserTracks round-trip both a null filter '
+    '(user_tracks_all key) and a specific bandIdFilter (user_tracks_{id} '
+    'key), without colliding with each other or with band-scoped tracksBox '
+    'entries',
+    () async {
+      final cache = CacheService.instance;
+      await cache.writeBandTracks('b1', [
+        {'id': 't1', 'title': 'Band-Scoped Track', 'artist': 'Artist'},
+      ]);
+      await cache.writeUserTracks(null, [
+        {
+          'id': 't1',
+          'title': 'All Track',
+          'artist': 'Artist',
+          'bandId': 'b1',
+          'bandName': 'The Testers',
+        },
+        {
+          'id': 't2',
+          'title': 'Another Track',
+          'artist': 'Artist',
+          'bandId': 'b2',
+          'bandName': 'The Others',
+        },
+      ]);
+      await cache.writeUserTracks('b1', [
+        {
+          'id': 't1',
+          'title': 'All Track',
+          'artist': 'Artist',
+          'bandId': 'b1',
+          'bandName': 'The Testers',
+        },
+      ]);
+
+      final allTracks = await cache.readUserTracks(null);
+      final filteredTracks = await cache.readUserTracks('b1');
+      final bandScopedTracks = await cache.readBandTracks('b1');
+
+      expect(allTracks, hasLength(2));
+      expect(filteredTracks, hasLength(1));
+      expect(filteredTracks![0]['title'], 'All Track');
+      expect(bandScopedTracks, hasLength(1));
+      expect(bandScopedTracks![0]['title'], 'Band-Scoped Track');
+    },
+  );
 }
