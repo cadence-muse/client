@@ -110,9 +110,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BAND-07 | Phase 2 | Gaps Found |
 | BAND-08 | Phase 2 | Gaps Found |
 | BAND-09 | Phase 2 | Gaps Found |
-| TRACK-01 | Phase 3 | Gaps Found |
+| TRACK-01 | Phase 3 | Complete |
 | TRACK-02 | Phase 3 | Complete |
-| TRACK-03 | Phase 3 | Gaps Found |
+| TRACK-03 | Phase 3 | Complete |
 | TRACK-04 | Phase 3 | Complete |
 | TRACK-05 | Phase 3 | Complete |
 | TRACK-06 | Phase 3 | Complete |
