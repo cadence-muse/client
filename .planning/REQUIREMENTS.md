@@ -26,9 +26,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Tracks
 
-- [ ] **TRACK-01**: User can view list of tracks in a band
+- [x] **TRACK-01**: User can view list of tracks in a band
 - [x] **TRACK-02**: User can add a track to a band (title, artist required; duration, tempo, key, notes optional)
-- [ ] **TRACK-03**: User can view track detail
+- [x] **TRACK-03**: User can view track detail
 - [x] **TRACK-04**: User can edit a track's info
 - [x] **TRACK-05**: User can delete a track from a band
 - [x] **TRACK-06**: User can view all tracks across every band they belong to, filterable by band, via a global Tracks tab

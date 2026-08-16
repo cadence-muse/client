@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation, Profile & Home** - Riverpod migration and cache-store infrastructure, proven end-to-end on the profile and homepage screens (completed 2026-08-15)
 - [ ] **Phase 2: Bands** - Full band management — create, view, edit, delete, join via invite code, and membership
-- [ ] **Phase 3: Tracks** - Song catalog CRUD within a band
+- [x] **Phase 3: Tracks** - Song catalog CRUD within a band (completed 2026-08-16)
 - [ ] **Phase 4: Setlists** - Setlist CRUD, track add/remove/reorder, and running duration
 - [ ] **Phase 5: Offline Trust & Connectivity UX** - Staleness indicators, offline banner, and mutation blocking verified consistently across every screen
 
@@ -159,6 +159,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation, Profile & Home | 3/3 | Complete    | 2026-08-15 |
 | 2. Bands | 5/5 | In Progress|  |
-| 3. Tracks | 3/3 | In Progress|  |
+| 3. Tracks | 4/4 | Complete    | 2026-08-16 |
 | 4. Setlists | 0/TBD | Not started | - |
 | 5. Offline Trust & Connectivity UX | 0/TBD | Not started | - |

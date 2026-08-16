@@ -2,35 +2,35 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 03
-current_phase_name: tracks
-status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-08-16T12:44:59.978Z"
+current_phase: 4
+current_phase_name: Setlists
+status: planning
+stopped_at: Phase 03 complete, ready to plan Phase 4
+last_updated: "2026-08-16T13:11:41.601Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 03 execution — 03-01 (per-band track catalog end-to-end) complete
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-14)
+See: .planning/PROJECT.md (updated 2026-08-16)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 03 — tracks
+**Current focus:** Phase 4 — Setlists
 
 ## Current Position
 
-Phase: 03 (tracks) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 03
-Last activity: 2026-08-16 — Phase 03 execution resumed (wave continue)
+Phase: 4 — Setlists
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-16 — Phase 03 complete, transitioned to Phase 4
 
 Progress: [██████████] 100%
 
@@ -38,7 +38,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 4
+- Total plans completed: 7
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -47,6 +47,7 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3 | - | - |
+| 03 | 4 | - | - |
 
 **Recent Trend:**
 
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-01: TrackListData/TrackDetailData keep the _version WR-02 guard field-for-field per bands_provider.dart, even though no local-mutation method exists yet to bump it in this plan (edit/delete land in Plans 02/03) — left non-final to match the mirrored shape those later plans will extend
 - [Phase ?]: 03-02: Edit and Delete are built without any ownership gate — TRACK-04/TRACK-05 carry no owner qualifier and 03-RESEARCH.md's Access Control section confirms server-side band-membership-only enforcement, superseding 03-UI-SPEC.md's inapplicable owner-gated citation
 - [Phase ?]: 03-03: Added SelectedBandIdFilter.setFilter(bandId) as a public method instead of direct notifier.state assignment — matches BandsListData.setBands() precedent from 02-03 to keep flutter analyze clean
+- [Phase 3]: 03-04 (gap closure): `updateBandTrack` now always sends all 6 editable fields (title/artist required, non-nullable) instead of omitting nulls — server treats an omitted field as "keep" and an explicit `null` as "clear"; applies to any future PUT/PATCH with optional clearable fields (e.g. setlist mutations)
+- [Phase 3]: 03-04: New `SelectedTabIndex` Riverpod notifier (`navigation_provider.dart`) lets a screen switch `RootScaffold`'s bottom-nav tab without a direct reference to its state — reusable pattern for any future cross-tab navigation
+- [Phase 3]: Team confirmed backend strictly validates/enforces the musical key format — NF-01 (unrecognized key values) is unreachable in practice via UAT, no client-side workaround needed
 
 ### Pending Todos
 
@@ -117,6 +121,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-16T08:28:11.838Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-08-16
+Stopped at: Phase 03 complete, ready to plan Phase 4
 Resume file: None

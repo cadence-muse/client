@@ -18,13 +18,13 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - ✓ App shell exists: bottom nav (Home/Songs/Bands/Profile), light/dark theme — existing
 - ✓ User can view their profile (`GET /api/me`) and homepage summary (`GET /api/homepage`) — Phase 1
 - ✓ App migrates off constructor-injected ChangeNotifier/prop-drilling to Riverpod, with a working local cache layer (proven end-to-end on profile/homepage) — Phase 1
+- ✓ User can list, create, view, update, and delete tracks within a band, plus view them cross-band via a global filterable Tracks tab — Phase 3
 
 ### Active
 
 - [ ] User can list, create, view, update, and delete bands they belong to
 - [ ] User can join a band via invite code
 - [ ] User (owner) can remove a band member; any member can remove themselves
-- [ ] User can list, create, view, update, and delete tracks within a band
 - [ ] User can list, create, view, update, and delete setlists within a band
 - [ ] User can add/remove tracks on a setlist and reorder them
 - [ ] All GET-able band/track/setlist/profile data is cached locally on Android/iOS and remains viewable when offline (read-only; mutations require connectivity)
@@ -62,6 +62,8 @@ A band member can open the app without signal — at a venue, in a basement, on 
 | Persist login token across restarts | Already implemented via flutter_secure_storage; confirmed as desired behavior going forward | ✓ Good |
 | Introduce Provider or Riverpod for state management | Band/track/setlist screens need shared state across tabs; current ChangeNotifier+DI prop-drilling was already flagged as an anti-pattern in the codebase map | ✓ Good — Phase 1 |
 | Extend `publicapi.yml` with `UserProfile.id` and `Band.ownerId` rather than fake it client-side | Client genuinely cannot self-identify or gate owner-only UI without these; username-matching or hiding-nothing were the only workarounds and both are fragile/wrong | — Pending (needs backend implementation) |
+| Extend `publicapi.yml` with `GET /api/track/list` (cross-band, `bandId`-filterable) for TRACK-06 | No existing endpoint returns tracks across all of a user's bands; per-band-only would require N calls and defeats the global tab's purpose | ✓ Good — Phase 3 |
+| Track/setlist mutation endpoints must always send all editable fields on update (not just changed ones) | Server's partial-update semantics treat an omitted field as "keep" and an explicit `null` as "clear" — conditional-send silently failed to clear optional fields (03-04 CR-02 gap) | ✓ Good — Phase 3, applies to any future PUT/PATCH with optional clearable fields |
 
 ## Evolution
 
@@ -81,4 +83,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-15 — Phase 1 complete*
+*Last updated: 2026-08-16 — Phase 3 complete*

@@ -1,7 +1,7 @@
 ---
 phase: 03-tracks
 verified: 2026-08-16T15:30:00Z
-status: human_needed
+status: passed
 score: 5/5 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -9,22 +9,29 @@ re_verification:
   previous_status: gaps_found
   previous_score: 2/6
   gaps_closed:
+
     - "A band member can edit a track's info (title/artist/duration/tempo/key/notes) and have the changes persist (CR-01 + CR-02)"
     - "After a successful track mutation, changes made from the per-band detail/list screens are visible in the global cross-band Tracks tab (CR-03)"
     - "The global Tracks tab shows affordances for navigation that work when activated (WR-01)"
   gaps_remaining: []
   regressions:
+
     - "NF-01 (new, warning-level): the CR-01 guard + CR-02 always-send-all-fields fix interact so that opening EditTrackScreen on a track whose `key` is outside the 24-value musicalKeys list and saving ANY change silently clears that key (null is now explicitly sent). Strictly better than the pre-fix crash, but it is silent data loss on the same edge case CR-01 was raised for."
+
 human_verification:
+
   - test: "Against the real backend, edit a track that has Duration=200 and Notes set, clear both fields, save, then navigate away and back (and force-refresh the global Tracks tab)."
     expected: "Duration shows '—' and Notes is gone — the server honored the explicit JSON `null` as 'clear this field', not as 'no change'."
     why_human: "The CR-02 fix is proven only at the request-body level (widget test asserts the exact PUT JSON contains explicit nulls). Whether the server's merge semantics actually treat JSON `null` as a clear is an external-service contract inferred from `nullable: true` in publicapi.yml — it cannot be verified from this repo. If the server instead rejects or ignores nulls, CR-02 is not actually closed."
+
   - test: "Decide on NF-01: with a track whose key is a value outside lib/features/tracks/track_formatting.dart's 24-entry musicalKeys list (e.g. 'F#m(maj7)'), open Edit, change only the title, and save."
     expected: "Team decision — currently the track's key is silently wiped to null. Options: (a) accept (only this client writes keys today, so unreachable in practice), (b) append the unrecognized value as an extra dropdown item so it round-trips, (c) omit `key` from the PUT when the incoming value was unrecognized."
     why_human: "Judgment call on acceptable data loss for an interop edge case; not mechanically decidable. Reachability depends on whether any non-Cadence client will write track keys during this milestone."
 notes:
+
   - "REQUIREMENTS.md's status table (lines 113-118) still lists TRACK-01 and TRACK-03 as 'Gaps Found'. Both were VERIFIED in the prior pass and re-verified here; the stale rows are a leftover of commit 019f08b's blanket revert, not a code gap. Orchestrator should set TRACK-01..TRACK-06 to Complete."
   - "ROADMAP.md marks Phase 3 as 'mode: mvp' but its goal is not in User Story form ('As a ..., I want to ..., so that ...'). Verified against the phase's 5 explicit Success Criteria instead, consistent with the prior pass and with Phases 1-2, which share the same convention. Flagged informationally only."
+
 ---
 
 # Phase 03: Tracks Management Verification Report
