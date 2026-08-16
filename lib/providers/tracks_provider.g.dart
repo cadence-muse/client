@@ -494,7 +494,7 @@ final selectedBandIdFilterProvider =
 
 typedef _$SelectedBandIdFilter = AutoDisposeNotifier<String?>;
 String _$userTracksListDataHash() =>
-    r'f3bef8da08e268b0eae5904d6b2d1e408fc9b6b8';
+    r'a72ffc6d5eb151e0bbd9f6333d1dd176264347ca';
 
 /// Cache-first `GET /api/track/list` data spanning every band the user
 /// belongs to, optionally narrowed by [SelectedBandIdFilter] (mirrors

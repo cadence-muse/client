@@ -62,6 +62,7 @@ void main() {
     expect(await cache.readProfile(), isNull);
     expect(await cache.readHomepage(), isNull);
     expect(await cache.readBandTracks('b1'), isNull);
+    expect(await cache.readBandSetlists('b1'), isNull);
   });
 
   test(
@@ -223,6 +224,81 @@ void main() {
       expect(filteredTracks![0]['title'], 'All Track');
       expect(bandScopedTracks, hasLength(1));
       expect(bandScopedTracks![0]['title'], 'Band-Scoped Track');
+    },
+  );
+
+  test(
+    'readBandSetlists after a real Hive close+reopen returns a fully typed '
+    'list of maps, with an entry missing the optional eventDate field',
+    () async {
+      var cache = CacheService.instance;
+      await cache.writeBandSetlists('b1', [
+        {
+          'id': 's1',
+          'name': 'Friday Night Show',
+          'tracksCount': 8,
+          'durationSeconds': 2555,
+        },
+      ]);
+
+      await Hive.close();
+      Hive.init(tempDir.path);
+      await CacheService.initialize();
+      cache = CacheService.instance;
+
+      final result = await cache.readBandSetlists('b1');
+
+      expect(result, isNotNull);
+      expect(result![0]['id'], 's1');
+      expect(result[0]['name'], 'Friday Night Show');
+      expect(result[0]['tracksCount'], 8);
+      expect(result[0]['durationSeconds'], 2555);
+      expect(result[0].containsKey('eventDate'), isFalse);
+    },
+  );
+
+  test(
+    'readSetlistDetail after a real Hive close+reopen returns fully typed '
+    'BandSetlist fields including a nested tracks array (CR-01)',
+    () async {
+      var cache = CacheService.instance;
+      await cache.writeSetlistDetail('b1', 's1', {
+        'id': 's1',
+        'name': 'Friday Night Show',
+        'durationSeconds': 2555,
+        'eventLocation': 'The Venue',
+        'eventDate': '2026-09-01',
+        'tracks': [
+          {
+            'trackId': 't1',
+            'position': 0,
+            'title': 'Song One',
+            'artist': 'Artist One',
+            'durationSeconds': 225,
+          },
+          {
+            'trackId': 't2',
+            'position': 1,
+            'title': 'Song Two',
+            'artist': 'Artist Two',
+          },
+        ],
+      });
+
+      await Hive.close();
+      Hive.init(tempDir.path);
+      await CacheService.initialize();
+      cache = CacheService.instance;
+
+      final result = await cache.readSetlistDetail('b1', 's1');
+
+      expect(result, isNotNull);
+      expect(result!['name'], 'Friday Night Show');
+      final tracks = (result['tracks'] as List).cast<Map<String, dynamic>>();
+      expect(tracks, hasLength(2));
+      expect(tracks[0]['title'], 'Song One');
+      expect(tracks[1]['title'], 'Song Two');
+      expect(tracks[1].containsKey('durationSeconds'), isFalse);
     },
   );
 }

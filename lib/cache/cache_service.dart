@@ -83,6 +83,7 @@ class CacheService {
     this._homepageStore,
     this._bandsStore,
     this._tracksStore,
+    this._setlistsStore,
   );
 
   /// Test double backed by plain in-memory `Map`s, with no Hive/file I/O.
@@ -90,6 +91,7 @@ class CacheService {
   /// in widget tests.
   @visibleForTesting
   factory CacheService.inMemory() => CacheService._(
+    _InMemoryStore(),
     _InMemoryStore(),
     _InMemoryStore(),
     _InMemoryStore(),
@@ -102,17 +104,20 @@ class CacheService {
   final _KeyValueStore _homepageStore;
   final _KeyValueStore _bandsStore;
   final _KeyValueStore _tracksStore;
+  final _KeyValueStore _setlistsStore;
 
   static Future<void> initialize() async {
     final profileBox = await Hive.openBox<Map>('profileBox');
     final homepageBox = await Hive.openBox<Map>('homepageBox');
     final bandsBox = await Hive.openBox<Map>('bandsBox');
     final tracksBox = await Hive.openBox<Map>('tracksBox');
+    final setlistsBox = await Hive.openBox<Map>('setlistsBox');
     _instance = CacheService._(
       _HiveStore(profileBox),
       _HiveStore(homepageBox),
       _HiveStore(bandsBox),
       _HiveStore(tracksBox),
+      _HiveStore(setlistsBox),
     );
   }
 
@@ -278,11 +283,63 @@ class CacheService {
   static String _userTracksKey(String? bandIdFilter) =>
       'user_tracks_${bandIdFilter ?? 'all'}';
 
+  Future<List<Map<String, dynamic>>?> readBandSetlists(String bandId) async {
+    try {
+      final cached = _setlistsStore.get(_bandSetlistsKey(bandId));
+      if (cached == null) return null;
+      return (cached['items'] as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeBandSetlists(
+    String bandId,
+    List<Map<String, dynamic>> data,
+  ) async {
+    try {
+      await _setlistsStore.put(_bandSetlistsKey(bandId), {'items': data});
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  static String _bandSetlistsKey(String bandId) => 'band_$bandId';
+
+  Future<Map<String, dynamic>?> readSetlistDetail(
+    String bandId,
+    String setlistId,
+  ) async {
+    try {
+      return _setlistsStore.get(_setlistDetailKey(bandId, setlistId));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeSetlistDetail(
+    String bandId,
+    String setlistId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      await _setlistsStore.put(_setlistDetailKey(bandId, setlistId), data);
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  static String _setlistDetailKey(String bandId, String setlistId) =>
+      'detail_${bandId}_$setlistId';
+
   Future<void> clearAll() async {
     await _profileStore.clear();
     await _homepageStore.clear();
     await _bandsStore.clear();
     await _tracksStore.clear();
+    await _setlistsStore.clear();
   }
 }
 

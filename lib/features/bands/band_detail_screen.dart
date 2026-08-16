@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../setlists/setlist_list_screen.dart';
 import '../tracks/track_list_screen.dart';
 import 'band_avatar.dart';
 import 'confirm_delete_band_dialog.dart';
@@ -181,6 +182,17 @@ class BandDetailScreen extends ConsumerWidget {
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => TrackListScreen(bandId: bandId),
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.playlist_play),
+          title: const Text('Setlists'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SetlistListScreen(bandId: bandId),
             ),
           ),
         ),
