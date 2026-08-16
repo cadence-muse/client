@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/tracks_provider.dart';
+import 'confirm_delete_track_dialog.dart';
+import 'edit_track_screen.dart';
 import 'track_formatting.dart';
 
 class TrackDetailScreen extends ConsumerWidget {
@@ -18,9 +20,28 @@ class TrackDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final trackAsync = ref.watch(trackDetailDataProvider(bandId, trackId));
     final title = trackAsync.valueOrNull?['title'] as String?;
+    final currentTrack = trackAsync.valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(title: Text(title ?? 'Track')),
+      appBar: AppBar(
+        title: Text(title ?? 'Track'),
+        actions: [
+          if (currentTrack != null)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: 'Edit track',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EditTrackScreen(
+                    bandId: bandId,
+                    trackId: trackId,
+                    currentTrack: currentTrack,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       body: trackAsync.when(
         data: (track) => _buildContent(context, track),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -39,6 +60,7 @@ class TrackDetailScreen extends ConsumerWidget {
     final tempo = track['tempo'] as int?;
     final key = track['key'] as String?;
     final notes = track['notes'] as String?;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -65,6 +87,20 @@ class TrackDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Text('Notes: $notes'),
         ],
+        const SizedBox(height: 24),
+        const Divider(height: 1),
+        ListTile(
+          leading: Icon(Icons.delete, color: colorScheme.error),
+          title: Text('Delete', style: TextStyle(color: colorScheme.error)),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) => ConfirmDeleteTrackDialog(
+              bandId: bandId,
+              trackId: trackId,
+              trackTitle: title,
+            ),
+          ),
+        ),
       ],
     );
   }

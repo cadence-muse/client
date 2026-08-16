@@ -6,7 +6,7 @@ part of 'tracks_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$trackListDataHash() => r'091c7e859bc360c7650038b49ff3dd1fca908930';
+String _$trackListDataHash() => r'39a74306a9d91657d519ca958c0de681ba3b1c2c';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -258,7 +258,7 @@ class _TrackListDataProviderElement
   String get bandId => (origin as TrackListDataProvider).bandId;
 }
 
-String _$trackDetailDataHash() => r'9b8c6e15a0957fc78d9d84aea32b93e6e206e295';
+String _$trackDetailDataHash() => r'9cefdbf08a2fc73ccea93d2acffb291ca7ee97c7';
 
 abstract class _$TrackDetailData
     extends BuildlessAutoDisposeAsyncNotifier<Map<String, dynamic>> {

@@ -147,4 +147,40 @@ class PublicApi {
     );
     return response!;
   }
+
+  /// Updates a track's info. `UpdateBandTrack`'s `'200'` response has no
+  /// content schema (see `publicapi.yml`), so the client does not receive the
+  /// updated `BandTrack` back — callers merge their own submitted values into
+  /// any local cache/state instead of trusting an echoed response (see
+  /// `edit_track_screen.dart`, mirrors `updateBand`).
+  Future<void> updateBandTrack({
+    required String bandId,
+    required String trackId,
+    String? title,
+    String? artist,
+    int? durationSeconds,
+    int? tempo,
+    String? key,
+    String? notes,
+  }) async {
+    await _client.send(
+      'PUT',
+      '/api/band/$bandId/track/$trackId',
+      body: {
+        if (title != null) 'title': title,
+        if (artist != null) 'artist': artist,
+        if (durationSeconds != null) 'durationSeconds': durationSeconds,
+        if (tempo != null) 'tempo': tempo,
+        if (key != null) 'key': key,
+        if (notes != null) 'notes': notes,
+      },
+    );
+  }
+
+  /// Deletes a track. Any band member may delete (no owner-only gate — see
+  /// `03-02-PLAN.md`'s objective note); `'204'` no content (mirrors
+  /// `deleteBand`).
+  Future<void> deleteBandTrack(String bandId, String trackId) async {
+    await _client.send('DELETE', '/api/band/$bandId/track/$trackId');
+  }
 }

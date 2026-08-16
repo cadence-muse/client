@@ -86,6 +86,23 @@ class TrackListData extends _$TrackListData {
       // Otherwise silently keep the last good data visible.
     }
   }
+
+  /// Removes [trackId] from the cached list in-place after a successful
+  /// [PublicApi.deleteBandTrack] call, mirroring
+  /// [BandsListData.renameBand]'s direct-state-patch shape but filtering the
+  /// deleted id out instead of patching it. No-ops if there's no data to
+  /// patch (e.g. called while still loading or in an error state).
+  void removeFromList(String trackId) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final filtered = [
+      for (final track in current)
+        if (track['id'] != trackId) track,
+    ];
+    _version++;
+    state = AsyncData(filtered);
+    unawaited(ref.read(cacheServiceProvider).writeBandTracks(bandId, filtered));
+  }
 }
 
 /// Cache-first `GET /api/band/{bandId}/track/{trackId}` data, keyed per
@@ -168,5 +185,22 @@ class TrackDetailData extends _$TrackDetailData {
       }
       // Otherwise silently keep the last good data visible.
     }
+  }
+
+  /// Merges [patch] into the currently cached track-detail map after a
+  /// successful [PublicApi.updateBandTrack] call, without an additional
+  /// network fetch (`UpdateBandTrack`'s `'200'` response has no body to
+  /// refetch-and-trust — see `edit_track_screen.dart`, mirrors
+  /// [BandDetailData.updateName]). No-ops if there's no data to merge into
+  /// (e.g. called while still loading or in an error state).
+  Future<void> updateFields(Map<String, dynamic> patch) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = {...current, ...patch};
+    _version++;
+    state = AsyncData(updated);
+    await ref
+        .read(cacheServiceProvider)
+        .writeBandTrackDetail(bandId, trackId, updated);
   }
 }
