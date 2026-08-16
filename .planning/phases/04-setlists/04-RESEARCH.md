@@ -790,9 +790,9 @@ Future<void> submitEdit(String bandId, String setlistId, String name,
 
 **If this table is empty:** All claims in this research were verified or cited — no user confirmation needed before execution. (This table has 5 items — user should confirm these assumptions.)
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Drag-and-drop library choice**
+1. **Drag-and-drop library choice** — RESOLVED: plan 04-04-PLAN.md uses Flutter SDK's built-in `ReorderableListView`/`ReorderableDragStartListener`, no third-party package added.
    - What we know: Flutter has no built-in reorderable widget; `reorderable_grid_view` and `flutter_reorderable_list` are ecosystem standards
    - What's unclear: Which package works best with setlist detail's read-only + edit-mode toggle pattern? Does the package integrate with existing Riverpod async state?
    - Recommendation: Spike 1-2 hours testing both packages' ListView reordering with Riverpod state; choose before implementation begins to avoid mid-build refactor

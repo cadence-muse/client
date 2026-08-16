@@ -64,7 +64,7 @@ created: 2026-08-16
 - [ ] `test/features/setlists/setlist_detail_screen_test.dart` — read-only vs. Edit mode toggle, drag-and-drop reorder widget, immediate reorder API call on drop, duration display, track add/remove.
 - [ ] `test/features/setlists/setlists_screen_test.dart` — global Setlists tab flat list with band-name badge, filter dropdown, UserSetlistsListData rebuild on filter change.
 - [ ] `test/cache/cache_service_test.dart` — add setlists box tests: writeBandSetlists, readBandSetlists, writeSetlistDetail, readSetlistDetail, writeUserSetlists, readUserSetlists. Follow Phase 1's cache_service_test pattern.
-- [ ] Drag-and-drop package: add chosen package (e.g. `flutter pub add reorderable_grid_view`) — not yet added.
+- [x] Drag-and-drop: resolved without a new package — plan 04-04-PLAN.md uses Flutter SDK's built-in `ReorderableListView`/`ReorderableDragStartListener` (zero new dependencies).
 
 *(Existing flutter_test + riverpod container test infrastructure covers all phase requirements; no new framework setup needed.)*
 
