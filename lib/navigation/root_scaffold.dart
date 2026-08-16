@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/bands/bands_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
-import '../features/songs/songs_screen.dart';
+import '../features/songs/tracks_screen.dart';
 
 class RootScaffold extends StatefulWidget {
   const RootScaffold({super.key});
@@ -19,7 +19,7 @@ class _RootScaffoldState extends State<RootScaffold> {
   Widget build(BuildContext context) {
     final screens = [
       const HomeScreen(),
-      const SongsScreen(),
+      const TracksScreen(),
       const BandsScreen(),
       const ProfileScreen(),
     ];
@@ -39,7 +39,7 @@ class _RootScaffoldState extends State<RootScaffold> {
           NavigationDestination(
             icon: Icon(Icons.music_note_outlined),
             selectedIcon: Icon(Icons.music_note),
-            label: 'Songs',
+            label: 'Tracks',
           ),
           NavigationDestination(
             icon: Icon(Icons.groups_outlined),

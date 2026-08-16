@@ -204,3 +204,98 @@ class TrackDetailData extends _$TrackDetailData {
         .writeBandTrackDetail(bandId, trackId, updated);
   }
 }
+
+/// The band the global Tracks tab's list is currently filtered to; `null`
+/// means "all bands". Plain (non-family) provider — its notifier's `state`
+/// is set directly by `TracksScreen`'s filter dropdown.
+@riverpod
+class SelectedBandIdFilter extends _$SelectedBandIdFilter {
+  @override
+  String? build() => null;
+
+  /// Sets the filter (`null` = all bands). A public method instead of the
+  /// literal `notifier.state = value` instruction — the latter fails
+  /// `flutter analyze` (`invalid_use_of_protected_member`) when called from
+  /// outside the notifier itself, per the same pattern established by
+  /// `BandsListData.setBands()` (02-03).
+  void setFilter(String? bandId) => state = bandId;
+}
+
+/// Cache-first `GET /api/track/list` data spanning every band the user
+/// belongs to, optionally narrowed by [SelectedBandIdFilter] (mirrors
+/// [TrackListData]'s cache-first shape, but non-family — [build] watches
+/// [selectedBandIdFilterProvider] directly, so changing the filter
+/// automatically triggers a full rebuild with the new cache key/fetch).
+@riverpod
+class UserTracksListData extends _$UserTracksListData {
+  Future<void>? _inFlightRefresh;
+
+  /// Monotonic counter bumped by every local-mutation method.
+  /// [_refresh]/[_doRefresh] capture this before their network await and
+  /// discard a fetched result if it changed while the fetch was in flight —
+  /// otherwise a slower background refresh could silently revert a local
+  /// edit that landed first (WR-02).
+  int _version = 0;
+
+  @override
+  Future<List<Map<String, dynamic>>> build() async {
+    final bandIdFilter = ref.watch(selectedBandIdFilterProvider);
+    final cache = ref.watch(cacheServiceProvider);
+    final cached = await cache.readUserTracks(bandIdFilter);
+    if (cached != null) {
+      unawaited(_refresh(bandIdFilter));
+      return cached;
+    }
+    return _fetchAndCache(bandIdFilter);
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchAndCache(
+    String? bandIdFilter,
+  ) async {
+    final tracks = await ref
+        .read(publicApiProvider)
+        .listUserTracks(bandIdFilter: bandIdFilter);
+    await ref.read(cacheServiceProvider).writeUserTracks(bandIdFilter, tracks);
+    return tracks;
+  }
+
+  /// Silent background refresh fired from [build] on a cache hit. Never
+  /// surfaces an error — a failed background refresh just leaves the
+  /// currently-cached data displayed.
+  Future<void> _refresh(String? bandIdFilter) async {
+    final capturedVersion = _version;
+    try {
+      final fresh = await _fetchAndCache(bandIdFilter);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
+    } catch (_) {
+      // Keep showing cached data.
+    }
+  }
+
+  /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
+  /// Deduplicates concurrent calls so tapping refresh twice in quick
+  /// succession triggers exactly one network request.
+  Future<void> refresh() {
+    return _inFlightRefresh ??= _doRefresh().whenComplete(
+      () => _inFlightRefresh = null,
+    );
+  }
+
+  Future<void> _doRefresh() async {
+    final bandIdFilter = ref.read(selectedBandIdFilterProvider);
+    final capturedVersion = _version;
+    try {
+      final fresh = await _fetchAndCache(bandIdFilter);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
+    } catch (e, st) {
+      if (state.value == null) {
+        state = AsyncError(e, st);
+      }
+      // Otherwise silently keep the last good data visible.
+    }
+  }
+}

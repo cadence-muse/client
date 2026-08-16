@@ -33,9 +33,12 @@ class ApiClient {
     String method,
     String path, {
     Map<String, dynamic>? body,
+    Map<String, String>? queryParameters,
     bool requireAuth = true,
   }) async {
-    final uri = Uri.parse('$baseUrl$path');
+    final uri = Uri.parse(
+      '$baseUrl$path',
+    ).replace(queryParameters: queryParameters);
     final headers = <String, String>{};
     if (body != null) headers['Content-Type'] = 'application/json';
 

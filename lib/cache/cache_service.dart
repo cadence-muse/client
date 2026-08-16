@@ -251,6 +251,33 @@ class CacheService {
   static String _trackDetailKey(String bandId, String trackId) =>
       'detail_${bandId}_$trackId';
 
+  Future<List<Map<String, dynamic>>?> readUserTracks(
+    String? bandIdFilter,
+  ) async {
+    try {
+      final cached = _tracksStore.get(_userTracksKey(bandIdFilter));
+      if (cached == null) return null;
+      return (cached['items'] as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeUserTracks(
+    String? bandIdFilter,
+    List<Map<String, dynamic>> data,
+  ) async {
+    try {
+      await _tracksStore.put(_userTracksKey(bandIdFilter), {'items': data});
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  static String _userTracksKey(String? bandIdFilter) =>
+      'user_tracks_${bandIdFilter ?? 'all'}';
+
   Future<void> clearAll() async {
     await _profileStore.clear();
     await _homepageStore.clear();

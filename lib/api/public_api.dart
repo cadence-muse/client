@@ -183,4 +183,18 @@ class PublicApi {
   Future<void> deleteBandTrack(String bandId, String trackId) async {
     await _client.send('DELETE', '/api/band/$bandId/track/$trackId');
   }
+
+  /// Returns tracks across every band the current user belongs to
+  /// (`UserTrackListItem` — id/title/artist/durationSeconds/bandId/bandName),
+  /// optionally narrowed to a single band via [bandIdFilter].
+  Future<List<Map<String, dynamic>>> listUserTracks({
+    String? bandIdFilter,
+  }) async {
+    final response = await _client.send(
+      'GET',
+      '/api/track/list',
+      queryParameters: bandIdFilter == null ? null : {'bandId': bandIdFilter},
+    );
+    return (response!['items'] as List).cast<Map<String, dynamic>>();
+  }
 }

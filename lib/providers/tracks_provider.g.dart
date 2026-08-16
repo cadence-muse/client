@@ -472,5 +472,53 @@ class _TrackDetailDataProviderElement
   String get trackId => (origin as TrackDetailDataProvider).trackId;
 }
 
+String _$selectedBandIdFilterHash() =>
+    r'0289734a68cc96087672605cf5ffa5e9208813a9';
+
+/// The band the global Tracks tab's list is currently filtered to; `null`
+/// means "all bands". Plain (non-family) provider — its notifier's `state`
+/// is set directly by `TracksScreen`'s filter dropdown.
+///
+/// Copied from [SelectedBandIdFilter].
+@ProviderFor(SelectedBandIdFilter)
+final selectedBandIdFilterProvider =
+    AutoDisposeNotifierProvider<SelectedBandIdFilter, String?>.internal(
+      SelectedBandIdFilter.new,
+      name: r'selectedBandIdFilterProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$selectedBandIdFilterHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$SelectedBandIdFilter = AutoDisposeNotifier<String?>;
+String _$userTracksListDataHash() =>
+    r'f3bef8da08e268b0eae5904d6b2d1e408fc9b6b8';
+
+/// Cache-first `GET /api/track/list` data spanning every band the user
+/// belongs to, optionally narrowed by [SelectedBandIdFilter] (mirrors
+/// [TrackListData]'s cache-first shape, but non-family — [build] watches
+/// [selectedBandIdFilterProvider] directly, so changing the filter
+/// automatically triggers a full rebuild with the new cache key/fetch).
+///
+/// Copied from [UserTracksListData].
+@ProviderFor(UserTracksListData)
+final userTracksListDataProvider =
+    AutoDisposeAsyncNotifierProvider<
+      UserTracksListData,
+      List<Map<String, dynamic>>
+    >.internal(
+      UserTracksListData.new,
+      name: r'userTracksListDataProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$userTracksListDataHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$UserTracksListData =
+    AutoDisposeAsyncNotifier<List<Map<String, dynamic>>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
