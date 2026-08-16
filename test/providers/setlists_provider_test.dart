@@ -144,6 +144,78 @@ void main() {
 
       expect(callCount, 1);
     });
+
+    test(
+      'a local removeFromList() mutation is not reverted by a slower '
+      'in-flight background refresh that still includes the removed '
+      'setlist (WR-02)',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeBandSetlists('b1', [
+          {
+            'id': 's1',
+            'name': 'Setlist One',
+            'tracksCount': 1,
+            'durationSeconds': 200,
+          },
+          {
+            'id': 's2',
+            'name': 'Setlist Two',
+            'tracksCount': 2,
+            'durationSeconds': 400,
+          },
+        ]);
+
+        final apiClient = buildApiClient((request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 's1',
+                  'name': 'Setlist One',
+                  'tracksCount': 1,
+                  'durationSeconds': 200,
+                },
+                {
+                  'id': 's2',
+                  'name': 'Setlist Two',
+                  'tracksCount': 2,
+                  'durationSeconds': 400,
+                },
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(setlistListDataProvider('b1'), (_, _) {});
+
+        // build()'s cache hit fires an unawaited background refresh whose
+        // (delayed) response hasn't arrived yet.
+        await container.read(setlistListDataProvider('b1').future);
+
+        container
+            .read(setlistListDataProvider('b1').notifier)
+            .removeFromList('s2');
+
+        // Let the delayed background refresh's response resolve.
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+
+        final finalState = container
+            .read(setlistListDataProvider('b1'))
+            .valueOrNull;
+        expect(finalState, [
+          {
+            'id': 's1',
+            'name': 'Setlist One',
+            'tracksCount': 1,
+            'durationSeconds': 200,
+          },
+        ]);
+      },
+    );
   });
 
   group('SetlistDetailData', () {
@@ -255,5 +327,56 @@ void main() {
 
       expect(callCount, 1);
     });
+
+    test(
+      'a local updateFields() mutation is not clobbered by a slower '
+      'in-flight background refresh (WR-02)',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeSetlistDetail('b1', 's1', {
+          'id': 's1',
+          'name': 'Cached Setlist',
+          'durationSeconds': 200,
+          'tracks': <Map<String, dynamic>>[],
+        });
+
+        final apiClient = buildApiClient((request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          return http.Response(
+            jsonEncode({
+              'id': 's1',
+              'name': 'Cached Setlist',
+              'durationSeconds': 200,
+              'tracks': <Map<String, dynamic>>[],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(setlistDetailDataProvider('b1', 's1'), (_, _) {});
+
+        // build()'s cache hit fires an unawaited background refresh whose
+        // (delayed) response hasn't arrived yet.
+        await container.read(setlistDetailDataProvider('b1', 's1').future);
+
+        container
+            .read(setlistDetailDataProvider('b1', 's1').notifier)
+            .updateFields({'name': 'Locally Renamed Setlist'});
+
+        // Let the delayed background refresh's response resolve.
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+
+        final finalState = container
+            .read(setlistDetailDataProvider('b1', 's1'))
+            .valueOrNull;
+        expect(finalState, {
+          'id': 's1',
+          'name': 'Locally Renamed Setlist',
+          'durationSeconds': 200,
+          'tracks': <Map<String, dynamic>>[],
+        });
+      },
+    );
   });
 }

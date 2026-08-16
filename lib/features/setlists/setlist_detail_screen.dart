@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/setlists_provider.dart';
+import 'confirm_delete_setlist_dialog.dart';
+import 'edit_setlist_screen.dart';
 import 'setlist_formatting.dart';
 
 class SetlistDetailScreen extends ConsumerWidget {
@@ -20,9 +22,28 @@ class SetlistDetailScreen extends ConsumerWidget {
       setlistDetailDataProvider(bandId, setlistId),
     );
     final name = setlistAsync.valueOrNull?['name'] as String?;
+    final currentSetlist = setlistAsync.valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(title: Text(name ?? 'Setlist')),
+      appBar: AppBar(
+        title: Text(name ?? 'Setlist'),
+        actions: [
+          if (currentSetlist != null)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              tooltip: 'Edit setlist',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EditSetlistScreen(
+                    bandId: bandId,
+                    setlistId: setlistId,
+                    currentSetlist: currentSetlist,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
       body: setlistAsync.when(
         data: (setlist) => _buildContent(context, setlist),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -40,6 +61,7 @@ class SetlistDetailScreen extends ConsumerWidget {
     final eventDate = setlist['eventDate'] as String?;
     final durationSeconds = setlist['durationSeconds'] as int;
     final tracks = (setlist['tracks'] as List).cast<Map<String, dynamic>>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -88,6 +110,20 @@ class SetlistDetailScreen extends ConsumerWidget {
               ),
             );
           }),
+        const SizedBox(height: 8),
+        const Divider(height: 1),
+        ListTile(
+          leading: Icon(Icons.delete, color: colorScheme.error),
+          title: Text('Delete', style: TextStyle(color: colorScheme.error)),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) => ConfirmDeleteSetlistDialog(
+              bandId: bandId,
+              setlistId: setlistId,
+              setlistName: name,
+            ),
+          ),
+        ),
       ],
     );
   }

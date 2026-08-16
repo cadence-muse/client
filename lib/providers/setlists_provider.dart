@@ -24,12 +24,11 @@ part 'setlists_provider.g.dart';
 class SetlistListData extends _$SetlistListData {
   Future<void>? _inFlightRefresh;
 
-  /// Monotonic counter bumped by every local-mutation method. No
-  /// local-mutation method exists on this class yet in this plan (add/
-  /// remove/reorder land in Plans 02-04) — kept non-final to match the
-  /// shape those later plans will extend, mirroring [TrackListData]'s
-  /// precedent.
-  // ignore: prefer_final_fields
+  /// Monotonic counter bumped by every local-mutation method.
+  /// [_refresh]/[_doRefresh] capture this before their network await and
+  /// discard a fetched result if it changed while the fetch was in flight —
+  /// otherwise a slower background refresh could silently revert a local
+  /// mutation that landed first (WR-02).
   int _version = 0;
 
   @override
@@ -89,6 +88,25 @@ class SetlistListData extends _$SetlistListData {
       // Otherwise silently keep the last good data visible.
     }
   }
+
+  /// Removes [setlistId] from the cached list in-place after a successful
+  /// [PublicApi.deleteSetlist] call, mirroring
+  /// [TrackListData.removeFromList]'s direct-state-patch shape. No-ops if
+  /// there's no data to patch (e.g. called while still loading or in an
+  /// error state).
+  void removeFromList(String setlistId) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final filtered = [
+      for (final setlist in current)
+        if (setlist['id'] != setlistId) setlist,
+    ];
+    _version++;
+    state = AsyncData(filtered);
+    unawaited(
+      ref.read(cacheServiceProvider).writeBandSetlists(bandId, filtered),
+    );
+  }
 }
 
 /// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
@@ -103,11 +121,11 @@ class SetlistListData extends _$SetlistListData {
 class SetlistDetailData extends _$SetlistDetailData {
   Future<void>? _inFlightRefresh;
 
-  /// Monotonic counter bumped by every local-mutation method. No
-  /// local-mutation method exists on this class yet in this plan — kept
-  /// non-final to match the shape later plans will extend, mirroring
-  /// [TrackDetailData]'s precedent.
-  // ignore: prefer_final_fields
+  /// Monotonic counter bumped by every local-mutation method.
+  /// [_refresh]/[_doRefresh] capture this before their network await and
+  /// discard a fetched result if it changed while the fetch was in flight —
+  /// otherwise a slower background refresh could silently revert a local
+  /// edit that landed first (WR-02).
   int _version = 0;
 
   @override
@@ -171,5 +189,22 @@ class SetlistDetailData extends _$SetlistDetailData {
       }
       // Otherwise silently keep the last good data visible.
     }
+  }
+
+  /// Merges [patch] into the currently cached setlist-detail map after a
+  /// successful [PublicApi.updateSetlist] call, without an additional
+  /// network fetch (`UpdateBandSetlist`'s `'200'` response has no body to
+  /// refetch-and-trust — see `edit_setlist_screen.dart`, mirrors
+  /// [TrackDetailData.updateFields]). No-ops if there's no data to merge
+  /// into (e.g. called while still loading or in an error state).
+  Future<void> updateFields(Map<String, dynamic> patch) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = {...current, ...patch};
+    _version++;
+    state = AsyncData(updated);
+    await ref
+        .read(cacheServiceProvider)
+        .writeSetlistDetail(bandId, setlistId, updated);
   }
 }
