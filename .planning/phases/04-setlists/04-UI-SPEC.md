@@ -97,9 +97,13 @@ Material 3 ColorScheme derived from green seed color.
 | OnPrimary | White/light text on primary | Button text on primary background | colorScheme.onPrimary |
 | OnSurface | Black/dark text on surface | Body text, list item text | colorScheme.onSurface |
 
-**Accent (10%) reserved for:**
+**Accent (tertiary) reserved for:**
+- Icon highlights and focus states
+- Accent text and accent interactive elements
+
+**Error (red) reserved for:**
 - Delete/remove button icons and text
-- Remove-track row icon (red X in edit mode)
+- Remove-track row icon in edit mode
 - Destructive dialog action button text
 
 **All other interactive elements** (add, edit, save, navigation) use primary color.
