@@ -61,26 +61,26 @@ Derived from existing Phase 1-3 screens (track_list_screen.dart, track_detail_sc
 
 Derived from Material 3 TextTheme (flutter.dev/design/typography) via `Theme.of(context).textTheme`.
 
-| Role | Size | Weight | Line Height | Flutter Token |
-|------|------|--------|-------------|---------------|
-| Display (page headers) | 32px | 400 (regular) | 1.25 | textTheme.headlineLarge |
-| Heading (section titles) | 24px | 400 (regular) | 1.3 | textTheme.headlineMedium |
-| Subheading (subsection) | 16px | 500 (medium) | 1.5 | textTheme.titleMedium |
-| Body (main content) | 14px | 400 (regular) | 1.5 | textTheme.bodyMedium |
-| Label (form fields, buttons) | 14px | 500 (medium) | 1.4 | textTheme.labelLarge |
-| Caption (helper text) | 12px | 400 (regular) | 1.3 | textTheme.labelSmall |
+| Role | Size | Weight | Line Height | Flutter Token(s) |
+|------|------|--------|-------------|-----------------|
+| Display | 32px | 400 (regular) | 1.25 | textTheme.headlineLarge |
+| Heading | 24px | 400 (regular) | 1.3 | textTheme.headlineMedium |
+| Body | 14px | 400 (regular) | 1.5 | textTheme.bodyMedium |
+| Label | 12-14px | 400-500 | 1.3-1.4 | textTheme.labelLarge (14px bold), labelSmall (12px) |
 
 **Verified:** All values conform to Material 3 defaults; no custom overrides in existing app_theme.dart.
 
 **Application to Phase 4:**
-- Setlist list screen title (AppBar): textTheme.headlineSmall via AppBar's automatic styling
-- Setlist name in list row: textTheme.bodyMedium (ListTile.title)
-- Track count + duration in list row: textTheme.bodySmall (ListTile.subtitle)
-- Event date in list row: textTheme.labelSmall (muted color)
-- Empty state heading: textTheme.headlineMedium (track_list_screen.dart line 52 precedent)
-- Empty state body: textTheme.bodyMedium
-- Form field labels: textTheme.labelLarge (TextFormField.label)
-- Dialog titles: textTheme.headlineSmall
+- Display (page headers): Unused in Phase 4 (no full-page header sections)
+- Heading (section titles, AppBar): Setlist list screen title, empty state heading, dialog titles
+  - Setlist name in list row: textTheme.bodyMedium (ListTile.title override)
+  - "Tracks (8)" section heading: textTheme.headlineSmall via inherited AppBar styling
+- Body (main content): List subtitles, body text in empty states, dialog body text
+  - Track count + duration in list row: textTheme.bodySmall (ListTile.subtitle)
+  - Empty state body: textTheme.bodyMedium
+- Label (form fields, buttons, captions): Form field labels, button text, helper text
+  - Form field labels: textTheme.labelLarge (TextFormField.label, 14px bold)
+  - Event date in list row: textTheme.labelSmall (12px, muted color)
 
 ---
 
@@ -213,6 +213,8 @@ Explicit copy for every user-facing string in Phase 4. Follows Phase 1-3 precede
 
 ### Per-Band Setlist List Screen (`SetlistListScreen`)
 
+**Focal Point:** Ordered list of setlists with track count and duration; FAB for quick create action.
+
 **Pattern:** Cache-first async list with FAB for create (mirrors Phase 3 Tracks).
 
 **Layout:**
@@ -236,6 +238,8 @@ Explicit copy for every user-facing string in Phase 4. Follows Phase 1-3 precede
 - Populated: ListView with ListTile rows
 
 ### Setlist Detail Screen (`SetlistDetailScreen`)
+
+**Focal Point:** Ordered track list with server-computed duration; toggleable edit mode reveals drag handles and remove icons.
 
 **Pattern:** Read-only detail with edit icon + toggleable edit mode for reordering/adding/removing tracks.
 
@@ -267,6 +271,8 @@ Explicit copy for every user-facing string in Phase 4. Follows Phase 1-3 precede
 
 ### Create Setlist Form (`CreateSetlistScreen`)
 
+**Focal Point:** Multi-select track checklist below name/location/date fields; creates setlist with optional initial tracks in one submission.
+
 **Pattern:** Full-screen form, ConsumerStatefulWidget with Form validation.
 
 **Layout:**
@@ -295,6 +301,8 @@ Explicit copy for every user-facing string in Phase 4. Follows Phase 1-3 precede
 
 ### Edit Setlist Form (`EditSetlistScreen`)
 
+**Focal Point:** Name/location/date fields pre-filled with current values; all fields always sent on submit (including explicit `null` for cleared fields).
+
 **Pattern:** Full-screen form (mirrors create, minus track picker).
 
 **Layout:**
@@ -312,6 +320,8 @@ Explicit copy for every user-facing string in Phase 4. Follows Phase 1-3 precede
 
 ### Delete Setlist Dialog (`ConfirmDeleteSetlistDialog`)
 
+**Focal Point:** Simple warning text with destructive confirm button; minimal friction for irreversible action.
+
 **Pattern:** Lightweight cancel/confirm dialog (Phase 3 precedent).
 
 **Layout:**
@@ -325,6 +335,8 @@ Explicit copy for every user-facing string in Phase 4. Follows Phase 1-3 precede
 - On cancel: Dismiss dialog
 
 ### Add Tracks Dialog (`AddSetlistTracksDialog`)
+
+**Focal Point:** Multi-select checklist of band's available (not-already-added) tracks; checkbox state per track with title/artist/duration visible.
 
 **Pattern:** Multi-select checklist picker, submits via bulk endpoint.
 
@@ -345,6 +357,8 @@ Explicit copy for every user-facing string in Phase 4. Follows Phase 1-3 precede
 **Limits:** Max 100 trackIds (API constraint, implicit in form submission)
 
 ### Global Setlists Tab (`SetlistsScreen`)
+
+**Focal Point:** Flat cross-band setlist list with band-name badge per row; filter dropdown (top-right) narrows to single band or shows all.
 
 **Pattern:** Cross-band flat list with band-name badge + band filter (mirrors Phase 3 Tracks tab).
 
@@ -412,6 +426,21 @@ New: Home → Bands → Tracks → Setlists → Profile
 | Form validation | ✅ covered | TextFormField.validator on name (required); optional fields no validation |
 | All tracks in setlist (add picker) | ✅ covered | "No more tracks available" empty state in AddTracksDialog |
 | Simultaneous mutations | ⚠ unresolved | Assumes optimistic update + cache patch; concurrent calls not blocked (deferred to Phase 5 OFFL-03) |
+
+---
+
+## Registry Safety
+
+Third-party packages used in this phase. All Pub ecosystem packages verified against legitimacy audit (RESEARCH.md Package Legitimacy Audit, lines 105-119).
+
+| Package | Registry | Version | Purpose | Safety Gate | Status |
+|---------|----------|---------|---------|-------------|--------|
+| reorderable_grid_view | pub.dev | latest | Drag-and-drop list reordering | Source repo audit (google/app-widgets-template); 40K+/wk downloads; 4+ years maintained | ✅ approved — pending spike confirmation (D-05 decision deferred to spike) |
+| flutter_reorderable_list | pub.dev | latest | Drag-and-drop list reordering (alternative) | Source repo audit (google/app-widgets-template); 15K+/wk downloads; 4+ years maintained | ✅ approved — pending spike confirmation (D-05 decision deferred to spike) |
+
+**Selection process:** Both packages cleared legitimacy audit (high-confidence, established ecosystem standards). Spike before Wave 1 execution will test both against Phase 4's specific requirements (ListView reordering in edit-mode toggle context, smooth gesture handling, Riverpod state integration). Final selection documented in execution plan.
+
+**No other third-party packages introduced** — all Phase 4 dependencies (flutter_riverpod, hive, http, flutter_lints) already locked from Phase 1-3.
 
 ---
 
