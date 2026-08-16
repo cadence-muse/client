@@ -448,6 +448,61 @@ Third-party packages used in this phase. All Pub ecosystem packages verified aga
 
 ---
 
+## UI Considerations
+
+State/edge-case coverage per screen element, from the post-verification UI-consideration probe. Empty/error/copy strings live in **Copywriting Contract** above — rows below reference them rather than restating.
+
+### SetlistListScreen
+- **Empty/loading/error/populated:** covered — see State coverage (line 238-242).
+- **Missing date (partial):** covered — "No date set" placeholder, Edge Cases table.
+- **Long setlist name:** covered — `TextOverflow.ellipsis`, Edge Cases table.
+- **List overflow:** `{ statement: "ListView.separated scrolls natively; no fixed-height container", verification: backstop }`
+- **Track-count pluralization:** "8 tracks" / "1 track" — proper pluralization (e.g. via `Intl.plural` or manual `count == 1 ? 'track' : 'tracks'`).
+
+### SetlistDetailScreen
+- **Empty tracks/loading/error/populated:** covered — see State coverage (line 270-274).
+- **Missing location/date (partial):** covered — header shows fields "(if set)" conditionally.
+- **List overflow:** `{ statement: "ListView scrolls natively; no fixed-height container", verification: backstop }`
+- **"Tracks ({count})" pluralization:** same rule as list screen — "Tracks (1)" reads fine numerically (parenthesized count, no noun to conjugate), no change needed.
+- **Duration at 0 tracks:** `{ statement: "Duration: 0m 0s (server-computed, same field/format as populated state)", verification: backstop }`
+
+### CreateSetlistScreen
+- **Error:** covered — snackbar "Failed to create setlist. Try again." (Copywriting Contract).
+- **Optional fields blank (partial):** covered — no validation on Location/Date.
+- **Band has zero tracks (empty checklist):** ⚠ resolved — show "No tracks in this band yet" message, checklist section stays visible (matches AddTracksDialog empty-state precedent).
+- **Submit in flight (loading):** ⚠ resolved — "Create" button disables and shows inline spinner in place of label during the API call (Phase 1-3 create_track_screen.dart pattern).
+- **Long track title/artist in checklist:** `{ statement: "TextOverflow.ellipsis on CheckboxListTile title/subtitle, same pattern as setlist name truncation", verification: backstop }`
+
+### EditSetlistScreen
+- **Error:** covered — snackbar "Failed to save setlist. Try again." (Copywriting Contract).
+- **Cleared fields (partial):** covered — always sends all fields incl. explicit `null` for cleared optional fields (line 321).
+- **Submit in flight (loading):** ⚠ resolved — "Save" button disables and shows inline spinner during the API call (same pattern as Create).
+- **Long pre-filled values:** `{ statement: "Standard TextFormField wrapping/scrolling, no custom truncation needed", verification: backstop }`
+
+### ConfirmDeleteSetlistDialog
+- **Error:** covered — snackbar "{Operation} failed. Try again." e.g. "Delete failed" (Error & Status Messages table, line 210).
+- **Submit in flight (loading):** ⚠ resolved — "Delete" button disables and shows inline spinner during the API call (same pattern as Create/Save).
+- Static confirmation content — empty/populated/overflow/zero-one-many/long-text categories do not apply.
+
+### AddSetlistTracksDialog
+- **Empty (no tracks left to add):** covered — "No more tracks available" (Copywriting Contract).
+- **Error:** covered — snackbar "Failed to add tracks. Try again." (Copywriting Contract).
+- **Populated:** covered — ListView of CheckboxListTile (line 349-352).
+- **Submit in flight (loading):** ⚠ resolved — "Add" button disables and shows inline spinner during the API call (same pattern as Create/Save/Delete).
+- **Long track title/artist:** `{ statement: "TextOverflow.ellipsis on CheckboxListTile title/subtitle", verification: backstop }`
+
+### GlobalSetlistsTab (SetlistsScreen)
+- **Empty/loading/error/populated:** covered — see State coverage (line 386-390).
+- **Long band name:** covered — `TextOverflow.ellipsis` on subtitle, Edge Cases table.
+- **List overflow:** `{ statement: "ListView.separated scrolls natively", verification: backstop }`
+- **Track-count pluralization:** same rule as SetlistListScreen — proper pluralization.
+
+### Drag-and-drop reordering (edit mode)
+- **Reorder failure recovery:** ⚠ unresolved — planner must treat as assumption. Spec assumes revert-on-error + snackbar (Phase 3 delete pattern); needs product confirmation before Wave 1 (RESEARCH.md Open Questions #2, Edge Cases table).
+- **Simultaneous mutations:** ⚠ unresolved — planner must treat as assumption. Concurrent reorder/add/remove calls not blocked; deferred to Phase 5 (OFFL-03), Edge Cases table.
+
+---
+
 ## Assumptions to Confirm
 
 1. **Drag-and-drop package:** RESEARCH.md recommends `reorderable_grid_view` or `flutter_reorderable_list`, but exact choice deferred to spike. Phase 1 execution must finalize selection.
