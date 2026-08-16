@@ -117,6 +117,49 @@ void main() {
 
       expect(callCount, 1);
     });
+
+    test(
+      'a local removeFromList() mutation is not reverted by a slower '
+      'in-flight background refresh that still includes the removed track '
+      '(WR-02)',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeBandTracks('b1', [
+          {'id': 't1', 'title': 'Track One', 'artist': 'Artist'},
+          {'id': 't2', 'title': 'Track Two', 'artist': 'Artist'},
+        ]);
+
+        final apiClient = buildApiClient((request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist'},
+                {'id': 't2', 'title': 'Track Two', 'artist': 'Artist'},
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(trackListDataProvider('b1'), (_, _) {});
+
+        // build()'s cache hit fires an unawaited background refresh whose
+        // (delayed) response hasn't arrived yet.
+        await container.read(trackListDataProvider('b1').future);
+
+        container.read(trackListDataProvider('b1').notifier).removeFromList('t2');
+
+        // Let the delayed background refresh's response resolve.
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+
+        final finalState = container.read(trackListDataProvider('b1')).valueOrNull;
+        expect(finalState, [
+          {'id': 't1', 'title': 'Track One', 'artist': 'Artist'},
+        ]);
+      },
+    );
   });
 
   group('TrackDetailData', () {
@@ -209,5 +252,53 @@ void main() {
 
       expect(callCount, 1);
     });
+
+    test(
+      'a local updateFields() mutation is not clobbered by a slower '
+      'in-flight background refresh (WR-02)',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeBandTrackDetail('b1', 't1', {
+          'id': 't1',
+          'title': 'Cached Track',
+          'artist': 'Cached Artist',
+        });
+
+        final apiClient = buildApiClient((request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          return http.Response(
+            jsonEncode({
+              'id': 't1',
+              'title': 'Cached Track',
+              'artist': 'Cached Artist',
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(trackDetailDataProvider('b1', 't1'), (_, _) {});
+
+        // build()'s cache hit fires an unawaited background refresh whose
+        // (delayed) response hasn't arrived yet.
+        await container.read(trackDetailDataProvider('b1', 't1').future);
+
+        container
+            .read(trackDetailDataProvider('b1', 't1').notifier)
+            .updateFields({'title': 'Locally Renamed Track'});
+
+        // Let the delayed background refresh's response resolve.
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+
+        final finalState = container
+            .read(trackDetailDataProvider('b1', 't1'))
+            .valueOrNull;
+        expect(finalState, {
+          'id': 't1',
+          'title': 'Locally Renamed Track',
+          'artist': 'Cached Artist',
+        });
+      },
+    );
   });
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
+import 'package:cadence/features/tracks/edit_track_screen.dart';
 import 'package:cadence/features/tracks/track_detail_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -107,6 +108,71 @@ void main() {
       expect(find.text('Tempo: 120 BPM'), findsOneWidget);
       expect(find.text('Key: C'), findsOneWidget);
       expect(find.text('Notes: Some notes'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the Edit IconButton is absent while trackAsync is loading',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        return http.Response(
+          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.edit), findsNothing);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'tapping Edit pushes EditTrackScreen with the currently-loaded track '
+    'map passed as currentTrack',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 't1',
+            'title': 'Full Track',
+            'artist': 'Full Artist',
+            'durationSeconds': 225,
+            'tempo': 120,
+            'key': 'C',
+            'notes': 'Some notes',
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.edit));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditTrackScreen), findsOneWidget);
+      final editScreen = tester.widget<EditTrackScreen>(
+        find.byType(EditTrackScreen),
+      );
+      expect(editScreen.bandId, 'b1');
+      expect(editScreen.trackId, 't1');
+      expect(editScreen.currentTrack, {
+        'id': 't1',
+        'title': 'Full Track',
+        'artist': 'Full Artist',
+        'durationSeconds': 225,
+        'tempo': 120,
+        'key': 'C',
+        'notes': 'Some notes',
+      });
     },
   );
 }
