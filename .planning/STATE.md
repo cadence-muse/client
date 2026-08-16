@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 4
 current_phase_name: Setlists
 status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-08-16T13:38:45.527Z"
+stopped_at: Phase 04 UI-SPEC approved
+last_updated: "2026-08-16T18:22:22.516Z"
 last_activity: 2026-08-16
 last_activity_desc: Phase 03 execution — 03-01 (per-band track catalog end-to-end) complete
 progress:
@@ -121,6 +121,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-16T13:38:45.516Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-setlists/04-CONTEXT.md
+Last session: 2026-08-16T18:22:22.497Z
+Stopped at: Phase 04 UI-SPEC approved
+Resume file: .planning/phases/04-setlists/04-UI-SPEC.md
