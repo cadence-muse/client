@@ -29,8 +29,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **TRACK-01**: User can view list of tracks in a band
 - [x] **TRACK-02**: User can add a track to a band (title, artist required; duration, tempo, key, notes optional)
 - [x] **TRACK-03**: User can view track detail
-- [ ] **TRACK-04**: User can edit a track's info
-- [ ] **TRACK-05**: User can delete a track from a band
+- [x] **TRACK-04**: User can edit a track's info
+- [x] **TRACK-05**: User can delete a track from a band
 - [ ] **TRACK-06**: User can view all tracks across every band they belong to, filterable by band, via a global Tracks tab
 
 ### Setlists
@@ -113,8 +113,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRACK-01 | Phase 3 | Complete |
 | TRACK-02 | Phase 3 | Complete |
 | TRACK-03 | Phase 3 | Complete |
-| TRACK-04 | Phase 3 | Pending |
-| TRACK-05 | Phase 3 | Pending |
+| TRACK-04 | Phase 3 | Complete |
+| TRACK-05 | Phase 3 | Complete |
 | TRACK-06 | Phase 3 | Pending |
 | SETL-01 | Phase 4 | Pending |
 | SETL-02 | Phase 4 | Pending |
