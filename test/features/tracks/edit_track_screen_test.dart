@@ -5,6 +5,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/edit_track_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/tracks_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,7 +34,11 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {CacheService? cacheService}) {
+  Widget wrap(
+    ApiClient apiClient, {
+    CacheService? cacheService,
+    Map<String, dynamic>? trackOverride,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
@@ -48,10 +53,10 @@ void main() {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const EditTrackScreen(
+                    builder: (_) => EditTrackScreen(
                       bandId: 'b1',
                       trackId: 't1',
-                      currentTrack: currentTrack,
+                      currentTrack: trackOverride ?? currentTrack,
                     ),
                   ),
                 ),
@@ -87,6 +92,31 @@ void main() {
     expect(fields, ['Old Title', 'Old Artist', '200', '120', 'Old notes']);
     expect(find.text('C'), findsOneWidget);
   });
+
+  testWidgets(
+    'CR-01: a track whose key is not in musicalKeys builds without '
+    'throwing and leaves the key dropdown unselected',
+    (tester) async {
+      final trackWithUnknownKey = {
+        ...currentTrack,
+        'key': 'F#m(maj7)',
+      };
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, trackOverride: trackWithUnknownKey),
+      );
+      await openEditTrackScreen(tester);
+
+      expect(tester.takeException(), isNull);
+      final dropdown = tester.widget<DropdownButtonFormField<String>>(
+        find.byType(DropdownButtonFormField<String>),
+      );
+      expect(dropdown.initialValue, isNull);
+    },
+  );
 
   testWidgets('Save button is disabled while submitting', (tester) async {
     final apiClient = buildApiClient((request) async {
@@ -143,6 +173,104 @@ void main() {
   );
 
   testWidgets(
+    'CR-02: clearing optional fields sends explicit null instead of '
+    'omitting them',
+    (tester) async {
+      String? requestBody;
+      final apiClient = buildApiClient((request) async {
+        requestBody = request.body;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditTrackScreen(tester);
+      // TextFormFields in order: Title(0), Artist(1), Duration(2),
+      // Tempo(3), Notes(4). Key is left unchanged ('C') via the dropdown.
+      await tester.enterText(find.byType(TextFormField).at(2), '');
+      await tester.enterText(find.byType(TextFormField).at(3), '');
+      await tester.enterText(find.byType(TextFormField).at(4), '');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(
+        requestBody,
+        jsonEncode({
+          'title': 'Old Title',
+          'artist': 'Old Artist',
+          'durationSeconds': null,
+          'tempo': null,
+          'key': 'C',
+          'notes': null,
+        }),
+      );
+    },
+  );
+
+  testWidgets(
+    'CR-03: editing a track invalidates the global Tracks tab so it '
+    'refetches',
+    (tester) async {
+      var trackListCallCount = 0;
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'PUT') {
+          return http.Response('', 200);
+        }
+        if (request.url.path == '/api/track/list') {
+          trackListCallCount++;
+        }
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeUserTracks(null, []);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(apiClient),
+            cacheServiceProvider.overrideWithValue(cacheService),
+          ],
+          child: MaterialApp(
+            home: Consumer(
+              builder: (context, ref, _) {
+                // Watching userTracksListDataProvider here (as the real
+                // global Tracks tab would) is what makes
+                // ref.exists(userTracksListDataProvider) true inside the
+                // mutation flow below.
+                ref.watch(userTracksListDataProvider);
+                return Scaffold(
+                  body: Center(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const EditTrackScreen(
+                            bandId: 'b1',
+                            trackId: 't1',
+                            currentTrack: currentTrack,
+                          ),
+                        ),
+                      ),
+                      child: const Text('Open'),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final callCountBeforeMutation = trackListCallCount;
+
+      await openEditTrackScreen(tester);
+      await tester.enterText(find.byType(TextFormField).at(0), 'New Title');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(trackListCallCount, greaterThan(callCountBeforeMutation));
+    },
+  );
+
+  testWidgets(
     'empty title and artist are rejected without an API call',
     (tester) async {
       var callCount = 0;
@@ -161,6 +289,28 @@ void main() {
       expect(callCount, 0);
       expect(find.text('Enter a track title'), findsOneWidget);
       expect(find.text('Enter an artist name'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'WR-02: non-numeric Tempo input is rejected without an API call',
+    (tester) async {
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditTrackScreen(tester);
+      // TextFormFields in order: Title(0), Artist(1), Duration(2),
+      // Tempo(3), Notes(4).
+      await tester.enterText(find.byType(TextFormField).at(3), 'abc');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pump();
+
+      expect(callCount, 0);
+      expect(find.text('Enter a whole number'), findsOneWidget);
     },
   );
 

@@ -43,7 +43,16 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
     text: widget.currentTrack['notes'] as String?,
   );
 
-  late String? _selectedKey = widget.currentTrack['key'] as String?;
+  // CR-01 fix: only pre-select the track's `key` value if it's one of the
+  // client's 24-entry `musicalKeys` list — the API's `key` field is an
+  // unconstrained string (no server-side enum, see track_formatting.dart),
+  // so a track edited/created via another client could carry a value
+  // outside that list. Passing such a value as DropdownButtonFormField's
+  // `initialValue` would trigger an assertion failure since Flutter
+  // requires `value` to be null or exactly match a supplied item.
+  late String? _selectedKey = musicalKeys.contains(widget.currentTrack['key'])
+      ? widget.currentTrack['key'] as String?
+      : null;
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -55,6 +64,16 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
     _tempoController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  /// WR-02: rejects non-empty, non-whole-number input on the Duration/Tempo
+  /// fields instead of silently discarding it (int.tryParse returning null
+  /// was previously treated the same as a genuinely blank field). An empty
+  /// field remains valid — Duration/Tempo stay optional.
+  String? _wholeNumberValidator(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    return int.tryParse(text) == null ? 'Enter a whole number' : null;
   }
 
   Future<void> _submit() async {
@@ -98,10 +117,10 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
             .updateFields({
               'title': title,
               'artist': artist,
-              if (durationSeconds != null) 'durationSeconds': durationSeconds,
-              if (tempo != null) 'tempo': tempo,
-              if (key != null) 'key': key,
-              if (notes != null) 'notes': notes,
+              'durationSeconds': durationSeconds,
+              'tempo': tempo,
+              'key': key,
+              'notes': notes,
             });
       }
       // List rows show title/artist/duration, which may have changed;
@@ -109,6 +128,15 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
       // than merge.
       if (ref.exists(trackListDataProvider(widget.bandId))) {
         ref.invalidate(trackListDataProvider(widget.bandId));
+      }
+      // CR-03: also invalidate the global cross-band Tracks tab so an edit
+      // made from a band's screens is reflected there without a manual
+      // filter change. Guarded with ref.exists() — the global tab may not
+      // have been visited yet in this session, and reading .notifier /
+      // invalidating a never-instantiated provider would trigger an
+      // unwanted network fetch as a side effect.
+      if (ref.exists(userTracksListDataProvider)) {
+        ref.invalidate(userTracksListDataProvider);
       }
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -164,6 +192,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                     labelText: 'Duration (seconds)',
                     border: OutlineInputBorder(),
                   ),
+                  validator: _wholeNumberValidator,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
@@ -173,6 +202,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                     labelText: 'Tempo (BPM)',
                     border: OutlineInputBorder(),
                   ),
+                  validator: _wholeNumberValidator,
                 ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
