@@ -43,7 +43,16 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
     text: widget.currentTrack['notes'] as String?,
   );
 
-  late String? _selectedKey = widget.currentTrack['key'] as String?;
+  // CR-01 fix: only pre-select the track's `key` value if it's one of the
+  // client's 24-entry `musicalKeys` list — the API's `key` field is an
+  // unconstrained string (no server-side enum, see track_formatting.dart),
+  // so a track edited/created via another client could carry a value
+  // outside that list. Passing such a value as DropdownButtonFormField's
+  // `initialValue` would trigger an assertion failure since Flutter
+  // requires `value` to be null or exactly match a supplied item.
+  late String? _selectedKey = musicalKeys.contains(widget.currentTrack['key'])
+      ? widget.currentTrack['key'] as String?
+      : null;
   bool _isSubmitting = false;
   String? _errorMessage;
 

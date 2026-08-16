@@ -33,7 +33,11 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {CacheService? cacheService}) {
+  Widget wrap(
+    ApiClient apiClient, {
+    CacheService? cacheService,
+    Map<String, dynamic>? trackOverride,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
@@ -48,10 +52,10 @@ void main() {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => const EditTrackScreen(
+                    builder: (_) => EditTrackScreen(
                       bandId: 'b1',
                       trackId: 't1',
-                      currentTrack: currentTrack,
+                      currentTrack: trackOverride ?? currentTrack,
                     ),
                   ),
                 ),
@@ -87,6 +91,31 @@ void main() {
     expect(fields, ['Old Title', 'Old Artist', '200', '120', 'Old notes']);
     expect(find.text('C'), findsOneWidget);
   });
+
+  testWidgets(
+    'CR-01: a track whose key is not in musicalKeys builds without '
+    'throwing and leaves the key dropdown unselected',
+    (tester) async {
+      final trackWithUnknownKey = {
+        ...currentTrack,
+        'key': 'F#m(maj7)',
+      };
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, trackOverride: trackWithUnknownKey),
+      );
+      await openEditTrackScreen(tester);
+
+      expect(tester.takeException(), isNull);
+      final dropdown = tester.widget<DropdownButtonFormField<String>>(
+        find.byType(DropdownButtonFormField<String>),
+      );
+      expect(dropdown.initialValue, isNull);
+    },
+  );
 
   testWidgets('Save button is disabled while submitting', (tester) async {
     final apiClient = buildApiClient((request) async {
