@@ -61,6 +61,7 @@ void main() {
 
     expect(await cache.readProfile(), isNull);
     expect(await cache.readHomepage(), isNull);
+    expect(await cache.readBandTracks('b1'), isNull);
   });
 
   test(
@@ -120,6 +121,60 @@ void main() {
       expect(result, isNotNull);
       expect(result![0]['name'], 'The Testers');
       expect(result[1]['name'], 'The Others');
+    },
+  );
+
+  test(
+    'readBandTracks after a real Hive close+reopen returns a fully typed '
+    'list of maps, with an entry missing all optional fields (CR-01)',
+    () async {
+      var cache = CacheService.instance;
+      await cache.writeBandTracks('b1', [
+        {'id': 't1', 'title': 'Song One', 'artist': 'Artist One'},
+      ]);
+
+      await Hive.close();
+      Hive.init(tempDir.path);
+      await CacheService.initialize();
+      cache = CacheService.instance;
+
+      final result = await cache.readBandTracks('b1');
+
+      expect(result, isNotNull);
+      expect(result![0]['id'], 't1');
+      expect(result[0]['title'], 'Song One');
+      expect(result[0]['artist'], 'Artist One');
+      expect(result[0].containsKey('durationSeconds'), isFalse);
+    },
+  );
+
+  test(
+    'readBandTrackDetail after a real Hive close+reopen returns fully typed '
+    'BandTrack fields including tempo/key/notes (CR-01)',
+    () async {
+      var cache = CacheService.instance;
+      await cache.writeBandTrackDetail('b1', 't1', {
+        'id': 't1',
+        'title': 'Song One',
+        'artist': 'Artist One',
+        'durationSeconds': 225,
+        'tempo': 120,
+        'key': 'C',
+        'notes': 'Play it slow on the bridge',
+      });
+
+      await Hive.close();
+      Hive.init(tempDir.path);
+      await CacheService.initialize();
+      cache = CacheService.instance;
+
+      final result = await cache.readBandTrackDetail('b1', 't1');
+
+      expect(result, isNotNull);
+      expect(result!['title'], 'Song One');
+      expect(result['tempo'], 120);
+      expect(result['key'], 'C');
+      expect(result['notes'], 'Play it slow on the bridge');
     },
   );
 }
