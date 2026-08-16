@@ -208,4 +208,49 @@ class PublicApi {
     );
     return (response!['items'] as List).cast<Map<String, dynamic>>();
   }
+
+  /// Returns a band's setlists (`SetlistListItem` — id/name/tracksCount/
+  /// durationSeconds + optional eventDate).
+  Future<List<Map<String, dynamic>>> listBandSetlists(String bandId) async {
+    final response = await _client.send(
+      'GET',
+      '/api/band/$bandId/setlist/list',
+    );
+    return (response!['items'] as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Returns full setlist detail (`BandSetlist` — id, name, durationSeconds,
+  /// tracks + optional eventLocation/eventDate).
+  Future<Map<String, dynamic>> getSetlist(
+    String bandId,
+    String setlistId,
+  ) async {
+    final response = await _client.send(
+      'GET',
+      '/api/band/$bandId/setlist/$setlistId',
+    );
+    return response!;
+  }
+
+  /// Creates a new setlist in a band, optionally seeded with initial tracks.
+  /// Returns the raw `CreateBandSetlistsResponseBody` map (`{id}`).
+  Future<Map<String, dynamic>> createSetlist({
+    required String bandId,
+    required String name,
+    String? eventLocation,
+    String? eventDate,
+    List<String>? trackIds,
+  }) async {
+    final response = await _client.send(
+      'POST',
+      '/api/band/$bandId/setlist',
+      body: {
+        'name': name,
+        'eventLocation': ?eventLocation,
+        'eventDate': ?eventDate,
+        'trackIds': ?trackIds,
+      },
+    );
+    return response!;
+  }
 }
