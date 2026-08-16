@@ -139,10 +139,10 @@ class PublicApi {
       body: {
         'title': title,
         'artist': artist,
-        if (durationSeconds != null) 'durationSeconds': durationSeconds,
-        if (tempo != null) 'tempo': tempo,
-        if (key != null) 'key': key,
-        if (notes != null) 'notes': notes,
+        'durationSeconds': ?durationSeconds,
+        'tempo': ?tempo,
+        'key': ?key,
+        'notes': ?notes,
       },
     );
     return response!;

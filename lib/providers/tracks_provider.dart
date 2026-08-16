@@ -235,7 +235,7 @@ class UserTracksListData extends _$UserTracksListData {
   /// discard a fetched result if it changed while the fetch was in flight —
   /// otherwise a slower background refresh could silently revert a local
   /// edit that landed first (WR-02).
-  int _version = 0;
+  final int _version = 0;
 
   @override
   Future<List<Map<String, dynamic>>> build() async {
