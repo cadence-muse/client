@@ -1,7 +1,7 @@
 ---
 phase: 3
 slug: tracks
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-16
@@ -144,6 +144,8 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 
 **Accessibility:** Edit icon has tooltip label `'Edit track'` for screen reader and hover contexts.
 
+**Loading/Error (detail fetch):** Same pattern as TrackListScreen — `CircularProgressIndicator` centered while loading; on failure, centered error state with `"Couldn't load tracks"` heading, `'Please check your connection and try again.'` body, and `'Retry'` CTA.
+
 **Spacing:**
 - 24px top padding after AppBar
 - 16px between most fields
@@ -198,6 +200,8 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 - Submit button label: `'Save'` (same)
 - On success: pop back to TrackDetailScreen (not BandDetailScreen)
 
+**Prefetch error (loading current values):** Same pattern as TrackListScreen — form does not render until prefetch succeeds; on failure, centered error state with `"Couldn't load tracks"` heading, `'Please check your connection and try again.'` body, and `'Retry'` CTA in place of the form.
+
 ---
 
 ### TrackDetailScreen — Delete Action
@@ -212,7 +216,7 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 
 **ConfirmDeleteTrackDialog (lightweight, non-type-to-confirm):**
 - `AlertDialog` with:
-  - `title: Text('Delete {trackTitle}?')`
+  - `title: Text('Delete {trackTitle}?', maxLines: 2, overflow: TextOverflow.ellipsis)`
   - `content: Column(mainAxisSize: MainAxisSize.min, ...) { Text('This action cannot be undone.'), if error: error text }`
   - `actions: [TextButton(Cancel), FilledButton(Delete, error color)]`
 - On confirm: API DELETE, then 2x pop (dialog → detail → list)
@@ -224,7 +228,8 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 
 **Structure:**
 - `Scaffold` with `AppBar(title: 'Tracks')`
-- Filter controls (below AppBar or in body header):
+- **Zero-bands case (new user, no bands yet):** Filter dropdown is NOT rendered (nothing to filter by). Screen shows the standard empty state directly: `'No tracks'` heading, `'Create tracks in a band to see them here.'` body, `'View bands'` CTA (navigates to Bands tab to create/join one). This is a normal, expected state — not an error.
+- Filter controls (below AppBar or in body header, only when user has ≥1 band):
   - **Filter dropdown:** Label shows current filter (e.g., `'All bands'` or `'{Selected Band Name}'`)
   - **Dropdown options:** All bands (empty/null filter) + each user's band (bandId, bandName)
   - Selecting a band filters list via `bandId` query param to new `GET /api/track/list` endpoint
@@ -255,19 +260,31 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 | Category | Element(s) | Status | Resolution |
 |----------|------------|--------|-----------|
 | **empty** | TrackListScreen list (no tracks in band) | ✅ covered | Empty state renders `'No tracks yet'` heading + `'Create a track or...'` body + `'Add track'` CTA (center-aligned, matches Phase 2 no-bands pattern) |
-| **empty** | GlobalTracksScreen list (no tracks across all bands) | ✅ covered | Empty state renders `'No tracks'` heading + `'Create tracks in a band...'` body (no CTA button; "View bands" optional) |
+| **empty** | GlobalTracksScreen list (no tracks across all bands, including the zero-bands case) | ✅ covered | Empty state renders `'No tracks'` heading + `'Create tracks in a band...'` body + `'View bands'` CTA. Zero-bands is a normal state for a newly registered user, not an error. |
+| **empty** | TrackDetailScreen / AddTrackScreen / EditTrackScreen | dismissed | Not applicable — detail is always opened with an existing track; forms' initial blank state is the intended default, not an edge case. |
 | **loading** | TrackListScreen / GlobalTracksScreen list fetch | ✅ covered | CircularProgressIndicator centered (matches Phase 1-2 pattern) |
+| **loading** | TrackDetailScreen detail fetch | ✅ covered | Same pattern as list fetch — CircularProgressIndicator centered while loading. |
 | **loading** | Add/Edit form submission | ✅ covered | Spinner replaces FilledButton text; button disabled during POST/PUT (matches Phase 2 form pattern) |
+| **loading** | ConfirmDeleteTrackDialog delete action | ✅ covered | Spinner replaces dialog button text during DELETE request. |
 | **error** | Track list fetch failure | ✅ covered | Center-aligned error state with `"Couldn't load tracks"` heading + `'Please check your connection...'` body + `'Retry'` CTA (matches Phase 2 error pattern) |
+| **error** | TrackDetailScreen detail fetch failure | ✅ covered | Same pattern as list fetch failure — `"Couldn't load tracks"` heading, retry CTA, in place of the detail content. |
+| **error** | EditTrackScreen prefetch failure (loading current values) | ✅ covered | Form does not render until prefetch succeeds; on failure, same error-state pattern in place of the form, with `'Retry'` CTA. |
 | **error** | Form submission failure (API error) | ✅ covered | Error message displayed in form below TextField, in error color; form fields remain interactive for retry |
 | **error** | Delete action failure | ✅ covered | Error message displayed in ConfirmDeleteTrackDialog content, in error color; dialog buttons remain interactive |
 | **long-text** | Track title in list row | ✅ covered | `maxLines: 1, overflow: TextOverflow.ellipsis` |
 | **long-text** | Artist name in list row | ✅ covered | `maxLines: 1, overflow: TextOverflow.ellipsis` |
 | **long-text** | Track title in detail screen | ✅ covered | `maxLines: 1, overflow: TextOverflow.ellipsis` (same as Phase 2 band title pattern) |
+| **long-text** | Track title in GlobalTracksScreen row + band badge | ✅ covered | Inherits the same row truncation pattern as per-band TrackListScreen (same row style, reused). |
+| **long-text** | Track title in ConfirmDeleteTrackDialog title (`'Delete {trackTitle}?'`) | ✅ covered | `maxLines: 2, overflow: TextOverflow.ellipsis` on the dialog title. |
 | **long-text** | Notes field (optional, multiline) | ✅ covered | TextFormField with `maxLines: null` (grows to fit content, or scrolls in form) |
-| **overflow** | Track list with many items | ✅ covered | ListView handles scrolling; no pagination or lazy-loading in Phase 3 scope (cache-first loading from `lib/cache/cache_service.dart` per Phase 1-2 pattern) |
-| **zero-one-many** | Band dropdown in GlobalTracksScreen filter | 🧪 backstop | "All bands" label shown when no filter active; dropdown shows 1 entry (just "All bands") if user has 0 bands (should be rare/impossible at this point, but not explicitly designed for). Planner assumes user always has ≥1 band when viewing global Tracks tab (navigation gating via bottom nav may prevent access until a band exists). |
-| **partial** | GlobalTracksScreen with some bands having no tracks | ✅ covered | Flat list shows only tracks from bands with content; filter dropdown lists all user's bands; selecting a band with no tracks shows empty state `'No tracks in {band name}'` or generic `'No tracks'` (re-uses same empty copy as overall empty state). |
+| **overflow** | Track list with many items (per-band and global) | ✅ covered | ListView handles scrolling; no pagination or lazy-loading in Phase 3 scope (cache-first loading from `lib/cache/cache_service.dart` per Phase 1-2 pattern) |
+| **overflow** | AddTrackScreen / EditTrackScreen form on small screens | ✅ covered | `SingleChildScrollView` wraps the form; scrolls as needed. |
+| **overflow** | TrackDetailScreen fixed field set / ConfirmDeleteTrackDialog content | dismissed | Fixed short field set and short confirmation text; no container-overflow concern beyond the long-text handling already covered above. |
+| **populated** | TrackListScreen / TrackDetailScreen happy path | dismissed | Directly specified by the Track List Row and Component Specifications sections; not an edge case requiring separate resolution. |
+| **partial** | TrackListScreen row / AddTrackScreen / EditTrackScreen | dismissed | List row only ever surfaces title/artist/duration (none optional); form fields are independently required/optional by validation, already specified — no additional partial-data scenario. |
+| **partial** | GlobalTracksScreen with some bands having no tracks | ✅ covered | Flat list shows only tracks from bands with content; filter dropdown lists all user's bands; selecting a band with no tracks shows the same empty-state copy. |
+| **zero-one-many** | Filter dropdown in GlobalTracksScreen | ✅ covered | Explicit design: dropdown is NOT rendered when the user has 0 bands (screen shows the empty state directly instead). With ≥1 band, dropdown always has ≥1 entry (`'All bands'` + one per band). |
+| **zero-one-many** | TrackListScreen row rendering | dismissed | List just renders 0..n rows via the existing empty/populated states; no singular/plural copy variance needed beyond the empty-state copy already covered. |
 
 ---
 
@@ -284,11 +301,11 @@ Phase 3 screens and dialogs use consistent, action-oriented copy following Phase
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: FLAG (non-blocking — "Retry" CTA recommended as "Retry load")
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved (revision 1; 1 non-blocking recommendation)
