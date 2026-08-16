@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
+import 'package:cadence/features/setlists/confirm_delete_setlist_dialog.dart';
+import 'package:cadence/features/setlists/edit_setlist_screen.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -178,6 +180,87 @@ void main() {
 
       expect(find.text('No tracks in this setlist'), findsOneWidget);
       expect(find.text('Duration: 0m 0s'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the edit IconButton is absent while still loading and present once '
+    'loaded',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.edit), findsNothing);
+
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.edit), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping the edit IconButton opens EditSetlistScreen',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.edit));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(EditSetlistScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping the Delete ListTile opens ConfirmDeleteSetlistDialog',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ListTile, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ConfirmDeleteSetlistDialog), findsOneWidget);
     },
   );
 }
