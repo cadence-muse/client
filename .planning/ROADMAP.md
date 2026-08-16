@@ -100,7 +100,7 @@ Plans:
   4. User can edit a track's info and delete a track from the band.
   5. User can view all tracks across every band they belong to on a global Tracks tab, optionally filtered to one band.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -113,7 +113,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion — shares public_api.dart/cache_service.dart/tracks_provider.dart)*
 
-- [ ] 03-03-PLAN.md — Global cross-band Tracks tab, filterable by band (TRACK-06)
+- [x] 03-03-PLAN.md — Global cross-band Tracks tab, filterable by band (TRACK-06)
 
 **UI hint**: yes
 
@@ -159,6 +159,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation, Profile & Home | 3/3 | Complete    | 2026-08-15 |
 | 2. Bands | 5/5 | In Progress|  |
-| 3. Tracks | 2/3 | In Progress|  |
+| 3. Tracks | 3/3 | In Progress|  |
 | 4. Setlists | 0/TBD | Not started | - |
 | 5. Offline Trust & Connectivity UX | 0/TBD | Not started | - |
