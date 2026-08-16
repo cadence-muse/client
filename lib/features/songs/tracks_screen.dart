@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../providers/tracks_provider.dart';
 import '../tracks/track_detail_screen.dart';
 import '../tracks/track_formatting.dart';
@@ -20,7 +21,7 @@ class TracksScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Tracks')),
       body: bands.isEmpty
-          ? _buildEmptyState(context, showViewBandsButton: true)
+          ? _buildEmptyState(context, ref, showViewBandsButton: true)
           : Column(
               children: [
                 _buildFilterDropdown(context, ref, bands),
@@ -62,7 +63,7 @@ class TracksScreen extends ConsumerWidget {
     final tracksAsync = ref.watch(userTracksListDataProvider);
 
     return tracksAsync.when(
-      data: (tracks) => _buildContent(context, tracks),
+      data: (tracks) => _buildContent(context, ref, tracks),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => _buildError(
         context,
@@ -73,10 +74,11 @@ class TracksScreen extends ConsumerWidget {
 
   Widget _buildContent(
     BuildContext context,
+    WidgetRef ref,
     List<Map<String, dynamic>> tracks,
   ) {
     if (tracks.isEmpty) {
-      return _buildEmptyState(context, showViewBandsButton: false);
+      return _buildEmptyState(context, ref, showViewBandsButton: false);
     }
 
     return ListView.separated(
@@ -110,7 +112,8 @@ class TracksScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(
-    BuildContext context, {
+    BuildContext context,
+    WidgetRef ref, {
     required bool showViewBandsButton,
   }) {
     return Center(
@@ -132,7 +135,11 @@ class TracksScreen extends ConsumerWidget {
             if (showViewBandsButton) ...[
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {},
+                // WR-01: switch to the Bands tab (index 2 per
+                // root_scaffold.dart's destination order) instead of
+                // being a no-op.
+                onPressed: () =>
+                    ref.read(selectedTabIndexProvider.notifier).setIndex(2),
                 child: const Text('View bands'),
               ),
             ],

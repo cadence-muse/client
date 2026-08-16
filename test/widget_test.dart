@@ -5,6 +5,7 @@ import 'package:cadence/api/token_storage.dart';
 import 'package:cadence/app.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -117,4 +118,65 @@ void main() {
 
     expect(find.text('B.A.T.H.'), findsOneWidget);
   });
+
+  testWidgets(
+    'WR-01: tapping "View bands" on the empty Tracks tab switches to the '
+    'Bands tab',
+    (WidgetTester tester) async {
+      FlutterSecureStoragePlatform.instance = _FakeSecureStorage();
+      await TokenStorage().write('test-token');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            cacheServiceProvider.overrideWithValue(CacheService.inMemory()),
+            apiClientProvider.overrideWithValue(
+              ApiClient(
+                baseUrl: 'http://localhost',
+                getToken: () => 'test-token',
+                onUnauthorized: () async {},
+                httpClient: MockClient((request) async {
+                  switch (request.url.path) {
+                    case '/api/band/list':
+                      // Zero bands, so TracksScreen renders its zero-bands
+                      // empty state directly (no /api/track/list call
+                      // needed).
+                      return http.Response(
+                        jsonEncode({'items': <dynamic>[]}),
+                        200,
+                      );
+                    case '/api/homepage':
+                      return http.Response(
+                        jsonEncode({'username': 'testuser', 'bandsCount': 0}),
+                        200,
+                      );
+                    default:
+                      return http.Response(
+                        jsonEncode({'id': 'u1', 'username': 'testuser'}),
+                        200,
+                      );
+                  }
+                }),
+              ),
+            ),
+          ],
+          child: const CadenceApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Tracks'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No tracks'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'View bands'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        2,
+      );
+    },
+  );
 }

@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/bands/bands_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/songs/tracks_screen.dart';
+import '../providers/navigation_provider.dart';
 
-class RootScaffold extends StatefulWidget {
+class RootScaffold extends ConsumerWidget {
   const RootScaffold({super.key});
 
   @override
-  State<RootScaffold> createState() => _RootScaffoldState();
-}
-
-class _RootScaffoldState extends State<RootScaffold> {
-  int _selectedIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedIndex = ref.watch(selectedTabIndexProvider);
     final screens = [
       const HomeScreen(),
       const TracksScreen(),
@@ -25,11 +21,11 @@ class _RootScaffoldState extends State<RootScaffold> {
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: screens),
+      body: IndexedStack(index: selectedIndex, children: screens),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
+        selectedIndex: selectedIndex,
         onDestinationSelected: (index) =>
-            setState(() => _selectedIndex = index),
+            ref.read(selectedTabIndexProvider.notifier).setIndex(index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
