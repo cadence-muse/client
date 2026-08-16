@@ -253,4 +253,42 @@ class PublicApi {
     );
     return response!;
   }
+
+  /// Updates a setlist's info. `UpdateBandSetlist`'s `'200'` response has no
+  /// content schema (see `publicapi.yml`), so the client does not receive
+  /// the updated `BandSetlist` back — callers merge their own submitted
+  /// values into any local cache/state instead of trusting an echoed
+  /// response (see `edit_setlist_screen.dart`, mirrors `updateBandTrack`).
+  ///
+  /// [name] is required — `EditSetlistScreen` is this method's only caller
+  /// and always has it from its form. [eventLocation]/[eventDate] are always
+  /// sent (mirrors `updateBandTrack`'s CR-02 fix), including an explicit
+  /// `null` when the caller wants to clear a previously-set value: per
+  /// `UpdateBandSetlistRequestBody`'s `nullable: true` schema, the server's
+  /// merge/partial-update semantics treat an explicit JSON `null` as "clear
+  /// this field," distinct from omitting the key entirely.
+  Future<void> updateSetlist({
+    required String bandId,
+    required String setlistId,
+    required String name,
+    String? eventLocation,
+    String? eventDate,
+  }) async {
+    await _client.send(
+      'PUT',
+      '/api/band/$bandId/setlist/$setlistId',
+      body: {
+        'name': name,
+        'eventLocation': eventLocation,
+        'eventDate': eventDate,
+      },
+    );
+  }
+
+  /// Deletes a setlist. Any band member may delete (no owner-only gate —
+  /// see `04-02-PLAN.md`'s objective note); `'204'` no content (mirrors
+  /// `deleteBandTrack`).
+  Future<void> deleteSetlist(String bandId, String setlistId) async {
+    await _client.send('DELETE', '/api/band/$bandId/setlist/$setlistId');
+  }
 }
