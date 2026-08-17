@@ -32,6 +32,12 @@ class AddSetlistTracksDialog extends ConsumerStatefulWidget {
 
 class _AddSetlistTracksDialogState
     extends ConsumerState<AddSetlistTracksDialog> {
+  // AddSetlistTracksRequestBody caps `trackIds` at 100 (publicapi.yml) —
+  // guard selection client-side against the *remaining* slots left in the
+  // setlist rather than a flat 100, since [currentTrackIds] already occupies
+  // some of the cap (WR-03).
+  static const int _maxSetlistTracks = 100;
+
   final Set<String> _selectedTrackIds = {};
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -96,12 +102,21 @@ class _AddSetlistTracksDialogState
                 if (!widget.currentTrackIds.contains(track['id'] as String))
                   track,
             ];
+            final remainingSlots =
+                _maxSetlistTracks - widget.currentTrackIds.length;
 
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (availableTracks.isEmpty)
+                if (remainingSlots <= 0)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'This setlist already has the maximum of 100 tracks.',
+                    ),
+                  )
+                else if (availableTracks.isEmpty)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text('No more tracks available'),
@@ -114,6 +129,11 @@ class _AddSetlistTracksDialogState
                       itemBuilder: (context, index) {
                         final track = availableTracks[index];
                         final trackId = track['id'] as String;
+                        final isSelected = _selectedTrackIds.contains(
+                          trackId,
+                        );
+                        final atCap =
+                            _selectedTrackIds.length >= remainingSlots;
                         return CheckboxListTile(
                           title: Text(
                             track['title'] as String,
@@ -125,18 +145,30 @@ class _AddSetlistTracksDialogState
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          value: _selectedTrackIds.contains(trackId),
-                          onChanged: (checked) => setState(() {
-                            if (checked == true) {
-                              _selectedTrackIds.add(trackId);
-                            } else {
-                              _selectedTrackIds.remove(trackId);
-                            }
-                          }),
+                          value: isSelected,
+                          onChanged: (!isSelected && atCap)
+                              ? null
+                              : (checked) => setState(() {
+                                  if (checked == true) {
+                                    _selectedTrackIds.add(trackId);
+                                  } else {
+                                    _selectedTrackIds.remove(trackId);
+                                  }
+                                }),
                         );
                       },
                     ),
                   ),
+                if (remainingSlots > 0 &&
+                    _selectedTrackIds.length >= remainingSlots) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Setlists can have at most 100 tracks — '
+                    '$remainingSlots slot'
+                    '${remainingSlots == 1 ? '' : 's'} remaining.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 16),
                   Text(

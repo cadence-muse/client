@@ -23,6 +23,10 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
   final _locationController = TextEditingController();
   final _dateController = TextEditingController();
 
+  // CreateBandSetlistsRequestBody caps `trackIds` at 100 (publicapi.yml) —
+  // guard selection client-side against that flat cap (WR-03).
+  static const int _maxSetlistTracks = 100;
+
   final Set<String> _selectedTrackIds = {};
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -145,6 +149,8 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                         child: Text('No tracks in this band yet'),
                       );
                     }
+                    final atCap =
+                        _selectedTrackIds.length >= _maxSetlistTracks;
                     return Column(
                       children: [
                         for (final track in tracks)
@@ -162,14 +168,29 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                             value: _selectedTrackIds.contains(
                               track['id'] as String,
                             ),
-                            onChanged: (checked) => setState(() {
-                              final trackId = track['id'] as String;
-                              if (checked == true) {
-                                _selectedTrackIds.add(trackId);
-                              } else {
-                                _selectedTrackIds.remove(trackId);
-                              }
-                            }),
+                            onChanged:
+                                (!_selectedTrackIds.contains(
+                                      track['id'] as String,
+                                    ) &&
+                                    atCap)
+                                ? null
+                                : (checked) => setState(() {
+                                    final trackId = track['id'] as String;
+                                    if (checked == true) {
+                                      _selectedTrackIds.add(trackId);
+                                    } else {
+                                      _selectedTrackIds.remove(trackId);
+                                    }
+                                  }),
+                          ),
+                        if (atCap)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'Setlists can have at most $_maxSetlistTracks '
+                              'tracks.',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
                           ),
                       ],
                     );

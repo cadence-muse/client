@@ -25,6 +25,13 @@ class SetlistDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
+  // ReorderSetlistTracksRequestBody caps `trackIds` at 100 (publicapi.yml).
+  // [_handleReorder] always submits the *entire* current track list (see its
+  // doc comment), so a setlist that has grown past this cap would otherwise
+  // have every reorder deterministically fail with a misleading "Refreshing
+  // ..." message (WR-03) — guard client-side before the doomed network call.
+  static const int _maxSetlistTracks = 100;
+
   bool _editMode = false;
 
   Future<void> _removeTrack(String trackId) async {
@@ -103,6 +110,19 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     final trackIds = [
       for (final track in reordered) track['trackId'] as String,
     ];
+
+    if (trackIds.length > _maxSetlistTracks) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Can't reorder — this setlist has more than "
+            '$_maxSetlistTracks tracks.',
+          ),
+        ),
+      );
+      return;
+    }
 
     try {
       await ref
