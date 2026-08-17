@@ -64,6 +64,77 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     }
   }
 
+  /// Handles a drop from the edit-mode `ReorderableListView` (D-14, D-15).
+  /// Submits the reorder immediately on drop — no batching, no "Save order"
+  /// action. Builds the new order via `removeAt`/`insert` on the *complete*
+  /// existing tracks list (never a filtered/partial reconstruction), so the
+  /// submitted `trackIds` always contains every track currently in the
+  /// setlist (must_haves.prohibitions).
+  ///
+  /// Wired to `onReorderItem`, not the plan's originally-cited `onReorder` —
+  /// this project's installed Flutter 3.44.9 SDK deprecates `onReorder` in
+  /// favor of `onReorderItem` (identical `ReorderCallback` signature, but
+  /// `newIndex` already accounts for the removed item at `oldIndex`, so no
+  /// manual `newIndex > oldIndex ? newIndex - 1 : newIndex` adjustment is
+  /// needed/correct here — doing so would double-adjust and place the
+  /// dropped track one slot short). `ReorderableListView` asserts exactly
+  /// one of `onReorder`/`onReorderItem` may be supplied.
+  ///
+  /// On success, patches local state via `SetlistDetailData.reorderTracks`
+  /// (no refetch — reorder doesn't change `durationSeconds`/track count).
+  /// On failure, the on-screen order was never mutated (it's driven by
+  /// provider state, only touched after a successful response), so there's
+  /// nothing to visually revert — shows the failure snackbar and resyncs
+  /// with server truth via `refresh()`.
+  Future<void> _handleReorder(int oldIndex, int newIndex) async {
+    final current = ref.read(
+      setlistDetailDataProvider(widget.bandId, widget.setlistId),
+    );
+    final tracks = (current.valueOrNull?['tracks'] as List?)
+        ?.cast<Map<String, dynamic>>();
+    if (tracks == null) return;
+
+    final reordered = List<Map<String, dynamic>>.of(tracks)
+      ..removeAt(oldIndex)
+      ..insert(newIndex, tracks[oldIndex]);
+    final trackIds = [
+      for (final track in reordered) track['trackId'] as String,
+    ];
+
+    try {
+      await ref
+          .read(publicApiProvider)
+          .reorderSetlistTracks(
+            bandId: widget.bandId,
+            setlistId: widget.setlistId,
+            trackIds: trackIds,
+          );
+      await ref
+          .read(
+            setlistDetailDataProvider(
+              widget.bandId,
+              widget.setlistId,
+            ).notifier,
+          )
+          .reorderTracks(trackIds);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to reorder tracks. Refreshing...'),
+        ),
+      );
+      await ref
+          .read(
+            setlistDetailDataProvider(
+              widget.bandId,
+              widget.setlistId,
+            ).notifier,
+          )
+          .refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final setlistAsync = ref.watch(
@@ -113,88 +184,140 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     final tracks = (setlist['tracks'] as List).cast<Map<String, dynamic>>();
     final colorScheme = Theme.of(context).colorScheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(24),
+    // Header info / Edit-Done toggle / delete tile stay outside the
+    // reorderable region as plain Column children — the Expanded child
+    // below only swaps between a plain ListView (read-only) and a
+    // ReorderableListView (edit mode), avoiding mixed-scroll-physics
+    // complications from nesting the whole screen in one scrollable.
+    return Column(
       children: [
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        if (eventLocation != null) ...[
-          const SizedBox(height: 16),
-          Text(eventLocation),
-        ],
-        if (eventDate != null) ...[
-          const SizedBox(height: 16),
-          Text(formatEventDate(eventDate)),
-        ],
-        const SizedBox(height: 16),
-        Text('Duration: ${durationSeconds.asMinutesAndSeconds}'),
-        const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: () => setState(() => _editMode = !_editMode),
-            child: Text(_editMode ? 'Done' : 'Edit'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Divider(height: 1),
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-          child: Text(
-            'Tracks (${tracks.length})',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-        ),
-        if (tracks.isEmpty)
-          const Text('No tracks in this setlist')
-        else
-          ...tracks.map((track) {
-            final trackId = track['trackId'] as String;
-            final title = track['title'] as String;
-            final artist = track['artist'] as String;
-            final trackDurationSeconds = track['durationSeconds'] as int?;
-            final durationText =
-                trackDurationSeconds?.asMinutesAndSeconds ?? '—';
-            return ListTile(
-              title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text(
-                '$artist • $durationText',
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
-              trailing: _editMode
-                  ? IconButton(
-                      icon: Icon(
-                        Icons.remove_circle_outline,
-                        color: colorScheme.error,
-                      ),
-                      tooltip: 'Remove',
-                      onPressed: () => _removeTrack(trackId),
-                    )
-                  : null,
-            );
-          }),
-        if (_editMode) ...[
-          const SizedBox(height: 8),
-          ElevatedButton(
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => AddSetlistTracksDialog(
-                bandId: widget.bandId,
-                setlistId: widget.setlistId,
-                currentTrackIds: {
-                  for (final track in tracks) track['trackId'] as String,
-                },
+              if (eventLocation != null) ...[
+                const SizedBox(height: 16),
+                Text(eventLocation),
+              ],
+              if (eventDate != null) ...[
+                const SizedBox(height: 16),
+                Text(formatEventDate(eventDate)),
+              ],
+              const SizedBox(height: 16),
+              Text('Duration: ${durationSeconds.asMinutesAndSeconds}'),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => setState(() => _editMode = !_editMode),
+                  child: Text(_editMode ? 'Done' : 'Edit'),
+                ),
               ),
-            ),
-            child: const Text('Add tracks'),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+                child: Text(
+                  'Tracks (${tracks.length})',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+            ],
           ),
-        ],
-        const SizedBox(height: 8),
+        ),
+        Expanded(
+          child: tracks.isEmpty
+              ? const Center(child: Text('No tracks in this setlist'))
+              : _editMode
+              ? ReorderableListView.builder(
+                  buildDefaultDragHandles: false,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  itemCount: tracks.length,
+                  itemBuilder: (context, index) {
+                    final track = tracks[index];
+                    final trackId = track['trackId'] as String;
+                    final title = track['title'] as String;
+                    final artist = track['artist'] as String;
+                    final trackDurationSeconds =
+                        track['durationSeconds'] as int?;
+                    final durationText =
+                        trackDurationSeconds?.asMinutesAndSeconds ?? '—';
+                    return ListTile(
+                      key: ValueKey(trackId),
+                      leading: ReorderableDragStartListener(
+                        index: index,
+                        child: const Icon(Icons.drag_handle),
+                      ),
+                      title: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '$artist • $durationText',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(
+                          Icons.remove_circle_outline,
+                          color: colorScheme.error,
+                        ),
+                        tooltip: 'Remove',
+                        onPressed: () => _removeTrack(trackId),
+                      ),
+                    );
+                  },
+                  onReorderItem: _handleReorder,
+                )
+              : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  children: tracks.map((track) {
+                    final title = track['title'] as String;
+                    final artist = track['artist'] as String;
+                    final trackDurationSeconds =
+                        track['durationSeconds'] as int?;
+                    final durationText =
+                        trackDurationSeconds?.asMinutesAndSeconds ?? '—';
+                    return ListTile(
+                      title: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '$artist • $durationText',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ),
+        if (_editMode)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: ElevatedButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => AddSetlistTracksDialog(
+                  bandId: widget.bandId,
+                  setlistId: widget.setlistId,
+                  currentTrackIds: {
+                    for (final track in tracks) track['trackId'] as String,
+                  },
+                ),
+              ),
+              child: const Text('Add tracks'),
+            ),
+          ),
         const Divider(height: 1),
         ListTile(
           leading: Icon(Icons.delete, color: colorScheme.error),

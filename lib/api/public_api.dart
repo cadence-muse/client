@@ -319,4 +319,20 @@ class PublicApi {
       '/api/band/$bandId/setlist/$setlistId/track/$trackId',
     );
   }
+
+  /// Reorders a setlist's tracks (D-14). [trackIds] is a full-replace list
+  /// of every track currently in the setlist, in the new order — not a
+  /// partial diff (`ReorderSetlistTracksRequestBody`, max 100). `'204'` no
+  /// content.
+  Future<void> reorderSetlistTracks({
+    required String bandId,
+    required String setlistId,
+    required List<String> trackIds,
+  }) async {
+    await _client.send(
+      'PUT',
+      '/api/band/$bandId/setlist/$setlistId/tracks/reorder',
+      body: {'trackIds': trackIds},
+    );
+  }
 }
