@@ -144,6 +144,10 @@ None - no external service configuration required.
 - `04-VALIDATION.md`'s SETL-08 automated row is closed and green; the real-gesture check remains an explicit manual-only UAT item (drag a track, confirm order updates and PUT fires)
 - Plan 05 (global cross-band Setlists tab) has no blockers from this plan
 
+## Self-Check: PASSED
+
+All modified/created files verified present on disk; all task and metadata commit hashes verified present in `git log`.
+
 ---
 *Phase: 04-setlists*
 *Completed: 2026-08-17*
