@@ -216,6 +216,63 @@ void main() {
         ]);
       },
     );
+
+    test(
+      'on a cache hit, setlistListSyncedAtProvider resolves to the '
+      "pre-seeded cache's syncedAt before the background refresh settles, "
+      'then updates to a later value once the background refresh completes',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeBandSetlists('b1', [
+          {
+            'id': 's1',
+            'name': 'Cached Setlist',
+            'tracksCount': 3,
+            'durationSeconds': 600,
+          },
+        ]);
+        final seededSyncedAt = await cacheService.readBandSetlistsSyncedAt(
+          'b1',
+        );
+
+        final apiClient = buildApiClient((request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 's1',
+                  'name': 'Fresh Setlist',
+                  'tracksCount': 3,
+                  'durationSeconds': 600,
+                },
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(setlistListDataProvider('b1'), (_, _) {});
+        container.listen(setlistListSyncedAtProvider('b1'), (_, _) {});
+
+        await container.read(setlistListDataProvider('b1').future);
+
+        expect(
+          container.read(setlistListSyncedAtProvider('b1')),
+          seededSyncedAt,
+        );
+
+        // Drain the background refresh fired from build()'s cache hit.
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        final refreshedSyncedAt = container.read(
+          setlistListSyncedAtProvider('b1'),
+        );
+        expect(refreshedSyncedAt, isNotNull);
+        expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+      },
+    );
   });
 
   group('SetlistDetailData', () {
@@ -548,6 +605,61 @@ void main() {
         expect(callCount, 0);
       },
     );
+
+    test(
+      'on a cache hit, setlistDetailSyncedAtProvider resolves to the '
+      "pre-seeded cache's syncedAt before the background refresh settles, "
+      'then updates to a later value once the background refresh completes',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeSetlistDetail('b1', 's1', {
+          'id': 's1',
+          'name': 'Cached Setlist',
+          'durationSeconds': 600,
+          'tracks': <Map<String, dynamic>>[],
+        });
+        final seededSyncedAt = await cacheService.readSetlistDetailSyncedAt(
+          'b1',
+          's1',
+        );
+
+        final apiClient = buildApiClient((request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          return http.Response(
+            jsonEncode({
+              'id': 's1',
+              'name': 'Fresh Setlist',
+              'durationSeconds': 600,
+              'tracks': <Map<String, dynamic>>[],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(setlistDetailDataProvider('b1', 's1'), (_, _) {});
+        container.listen(
+          setlistDetailSyncedAtProvider('b1', 's1'),
+          (_, _) {},
+        );
+
+        await container.read(setlistDetailDataProvider('b1', 's1').future);
+
+        expect(
+          container.read(setlistDetailSyncedAtProvider('b1', 's1')),
+          seededSyncedAt,
+        );
+
+        // Drain the background refresh fired from build()'s cache hit.
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        final refreshedSyncedAt = container.read(
+          setlistDetailSyncedAtProvider('b1', 's1'),
+        );
+        expect(refreshedSyncedAt, isNotNull);
+        expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+      },
+    );
   });
 
   group('UserSetlistsListData', () {
@@ -666,6 +778,62 @@ void main() {
 
       expect(callCount, 1);
     });
+
+    test(
+      'on a cache hit, userSetlistsSyncedAtProvider resolves to the '
+      "pre-seeded cache's syncedAt before the background refresh settles, "
+      'then updates to a later value once the background refresh completes',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeUserSetlists(null, [
+          {
+            'id': 's1',
+            'name': 'Cached Setlist',
+            'tracksCount': 3,
+            'durationSeconds': 600,
+            'bandId': 'b1',
+            'bandName': 'Band One',
+          },
+        ]);
+        final seededSyncedAt = await cacheService.readUserSetlistsSyncedAt(
+          null,
+        );
+
+        final apiClient = buildApiClient((request) async {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 's1',
+                  'name': 'Fresh Setlist',
+                  'tracksCount': 3,
+                  'durationSeconds': 600,
+                  'bandId': 'b1',
+                  'bandName': 'Band One',
+                },
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(userSetlistsListDataProvider, (_, _) {});
+        container.listen(userSetlistsSyncedAtProvider, (_, _) {});
+
+        await container.read(userSetlistsListDataProvider.future);
+
+        expect(container.read(userSetlistsSyncedAtProvider), seededSyncedAt);
+
+        // Drain the background refresh fired from build()'s cache hit.
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        final refreshedSyncedAt = container.read(userSetlistsSyncedAtProvider);
+        expect(refreshedSyncedAt, isNotNull);
+        expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+      },
+    );
 
     test(
       'changing selectedSetlistBandIdFilterProvider triggers a rebuild whose '

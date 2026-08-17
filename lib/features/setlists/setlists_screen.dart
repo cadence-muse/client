@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import '../../providers/setlists_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import 'setlist_detail_screen.dart';
 import 'setlist_formatting.dart';
 
@@ -17,6 +18,7 @@ class SetlistsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bands = ref.watch(bandsListDataProvider).valueOrNull ?? const [];
+    final syncedAt = ref.watch(userSetlistsSyncedAtProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Setlists')),
@@ -28,7 +30,7 @@ class SetlistsScreen extends ConsumerWidget {
           : Column(
               children: [
                 _buildFilterDropdown(context, ref, bands),
-                Expanded(child: _buildSetlistsBody(context, ref)),
+                Expanded(child: _buildSetlistsBody(context, ref, syncedAt)),
               ],
             ),
     );
@@ -63,11 +65,20 @@ class SetlistsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSetlistsBody(BuildContext context, WidgetRef ref) {
+  Widget _buildSetlistsBody(
+    BuildContext context,
+    WidgetRef ref,
+    DateTime? syncedAt,
+  ) {
     final setlistsAsync = ref.watch(userSetlistsListDataProvider);
 
     return setlistsAsync.when(
-      data: (setlists) => _buildContent(context, setlists),
+      data: (setlists) => Column(
+        children: [
+          SyncStatusBadge(syncedAt: syncedAt),
+          Expanded(child: _buildContent(context, setlists)),
+        ],
+      ),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => _buildError(
         context,
