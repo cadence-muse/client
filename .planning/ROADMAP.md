@@ -170,7 +170,7 @@ Plans:
   3. A global offline-mode banner appears whenever the device has no connectivity, regardless of which screen the user is on.
   4. Create/update/delete actions are visibly disabled or blocked while offline instead of silently failing.
 
-**Plans**: 1/5 plans executed
+**Plans**: 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -179,9 +179,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 05-02-PLAN.md — Bands: staleness badges + connectivity-gated mutation controls (create/join/edit/delete/leave/remove-member)
-- [ ] 05-03-PLAN.md — Tracks: staleness badges + connectivity-gated mutation controls (add/edit/delete)
-- [ ] 05-04-PLAN.md — Setlists: staleness badges + connectivity-gated mutation controls (create/edit/delete/add-tracks/remove-track/reorder)
+- [x] 05-02-PLAN.md — Bands: staleness badges + connectivity-gated mutation controls (create/join/edit/delete/leave/remove-member)
+- [x] 05-03-PLAN.md — Tracks: staleness badges + connectivity-gated mutation controls (add/edit/delete)
+- [x] 05-04-PLAN.md — Setlists: staleness badges + connectivity-gated mutation controls (create/edit/delete/add-tracks/remove-track/reorder)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -200,4 +200,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Bands | 5/5 | In Progress|  |
 | 3. Tracks | 4/4 | Complete    | 2026-08-16 |
 | 4. Setlists | 5/5 | Complete    | 2026-08-17 |
-| 5. Offline Trust & Connectivity UX | 1/5 | In Progress|  |
+| 5. Offline Trust & Connectivity UX | 4/5 | In Progress|  |
