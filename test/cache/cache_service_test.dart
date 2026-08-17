@@ -301,4 +301,70 @@ void main() {
       expect(tracks[1].containsKey('durationSeconds'), isFalse);
     },
   );
+
+  test(
+    'writeUserSetlists/readUserSetlists round-trip both a null filter '
+    '(user_setlists_all key) and a specific bandIdFilter '
+    '(user_setlists_{id} key), without colliding with each other or with '
+    'band-scoped setlistsBox entries (band_{id}/detail_{bandId}_{setlistId} '
+    'keys)',
+    () async {
+      final cache = CacheService.instance;
+      await cache.writeBandSetlists('b1', [
+        {
+          'id': 's1',
+          'name': 'Band-Scoped Setlist',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+        },
+      ]);
+      await cache.writeSetlistDetail('b1', 's1', {
+        'id': 's1',
+        'name': 'Band-Scoped Setlist',
+        'durationSeconds': 200,
+        'tracks': <Map<String, dynamic>>[],
+      });
+      await cache.writeUserSetlists(null, [
+        {
+          'id': 's1',
+          'name': 'All Setlist',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+          'bandId': 'b1',
+          'bandName': 'The Testers',
+        },
+        {
+          'id': 's2',
+          'name': 'Another Setlist',
+          'tracksCount': 2,
+          'durationSeconds': 400,
+          'bandId': 'b2',
+          'bandName': 'The Others',
+        },
+      ]);
+      await cache.writeUserSetlists('b1', [
+        {
+          'id': 's1',
+          'name': 'All Setlist',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+          'bandId': 'b1',
+          'bandName': 'The Testers',
+        },
+      ]);
+
+      final allSetlists = await cache.readUserSetlists(null);
+      final filteredSetlists = await cache.readUserSetlists('b1');
+      final bandScopedSetlists = await cache.readBandSetlists('b1');
+      final bandScopedDetail = await cache.readSetlistDetail('b1', 's1');
+
+      expect(allSetlists, hasLength(2));
+      expect(filteredSetlists, hasLength(1));
+      expect(filteredSetlists![0]['name'], 'All Setlist');
+      expect(bandScopedSetlists, hasLength(1));
+      expect(bandScopedSetlists![0]['name'], 'Band-Scoped Setlist');
+      expect(bandScopedDetail, isNotNull);
+      expect(bandScopedDetail!['name'], 'Band-Scoped Setlist');
+    },
+  );
 }
