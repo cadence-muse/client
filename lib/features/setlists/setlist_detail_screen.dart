@@ -34,7 +34,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
 
   bool _editMode = false;
 
+  // Tracks currently mid-removal — guards the remove IconButton against a
+  // fast double-tap firing two overlapping DELETE requests for the same
+  // track (WR-04), consistent with the `_isSubmitting` pattern used
+  // elsewhere in this feature (create/edit/delete/add-tracks all disable
+  // their trigger while a request is in flight).
+  final Set<String> _removingTrackIds = {};
+
   Future<void> _removeTrack(String trackId) async {
+    if (_removingTrackIds.contains(trackId)) return;
+    setState(() => _removingTrackIds.add(trackId));
     try {
       await ref
           .read(publicApiProvider)
@@ -71,6 +80,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to remove track. Try again.')),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _removingTrackIds.remove(trackId));
+      }
     }
   }
 
@@ -291,14 +304,25 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: IconButton(
-                        icon: Icon(
-                          Icons.remove_circle_outline,
-                          color: colorScheme.error,
-                        ),
-                        tooltip: 'Remove',
-                        onPressed: () => _removeTrack(trackId),
-                      ),
+                      trailing: _removingTrackIds.contains(trackId)
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: Padding(
+                                padding: EdgeInsets.all(8),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : IconButton(
+                              icon: Icon(
+                                Icons.remove_circle_outline,
+                                color: colorScheme.error,
+                              ),
+                              tooltip: 'Remove',
+                              onPressed: () => _removeTrack(trackId),
+                            ),
                     );
                   },
                   onReorderItem: _handleReorder,
