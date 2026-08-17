@@ -1,0 +1,278 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:cadence/api/api_client.dart';
+import 'package:cadence/cache/cache_service.dart';
+import 'package:cadence/features/setlists/add_setlist_tracks_dialog.dart';
+import 'package:cadence/providers/auth_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+
+void main() {
+  ApiClient buildApiClient(
+    Future<http.Response> Function(http.Request) handler,
+  ) {
+    return ApiClient(
+      baseUrl: 'http://localhost',
+      getToken: () => 'test-token',
+      onUnauthorized: () async {},
+      httpClient: MockClient(handler),
+    );
+  }
+
+  Widget wrap(ApiClient apiClient, {required Set<String> currentTrackIds}) {
+    return ProviderScope(
+      overrides: [
+        apiClientProvider.overrideWithValue(apiClient),
+        cacheServiceProvider.overrideWithValue(CacheService.inMemory()),
+      ],
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => AddSetlistTracksDialog(
+                    bandId: 'b1',
+                    setlistId: 's1',
+                    currentTrackIds: currentTrackIds,
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> openDialog(WidgetTester tester) async {
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Open'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('excludes already-in-setlist tracks from the checklist', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/band/b1/track/list') {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              {'id': 't2', 'title': 'Track Two', 'artist': 'Artist Two'},
+              {'id': 't3', 'title': 'Track Three', 'artist': 'Artist Three'},
+            ],
+          }),
+          200,
+        );
+      }
+      return http.Response('', 204);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, currentTrackIds: {'t1'}));
+    await openDialog(tester);
+
+    expect(find.byType(CheckboxListTile), findsNWidgets(2));
+    expect(find.text('Track One'), findsNothing);
+    expect(find.text('Track Two'), findsOneWidget);
+    expect(find.text('Track Three'), findsOneWidget);
+  });
+
+  testWidgets(
+    'shows "No more tracks available" when every band track is already in '
+    'the setlist',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {'t1'}));
+      await openDialog(tester);
+
+      expect(find.text('No more tracks available'), findsOneWidget);
+      expect(find.byType(CheckboxListTile), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'submitting with 2 tracks checked calls addSetlistTracks once with '
+    'exactly those trackIds',
+    (tester) async {
+      String? addRequestBody;
+      var addCallCount = 0;
+
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+                {'id': 't2', 'title': 'Track Two', 'artist': 'Artist Two'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks') {
+          addCallCount++;
+          addRequestBody = request.body;
+          return http.Response('', 204);
+        }
+        // GET /api/band/b1/setlist/s1 — the post-add detail refresh().
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'S',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+      await tester.tap(find.text('Track One'));
+      await tester.tap(find.text('Track Two'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(addCallCount, 1);
+      final decoded = jsonDecode(addRequestBody!) as Map<String, dynamic>;
+      expect(decoded['trackIds'], ['t1', 't2']);
+    },
+  );
+
+  testWidgets(
+    'an addSetlistTracks() ApiException failure renders an inline error and '
+    'keeps the dialog open',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks') {
+          return http.Response(
+            jsonEncode({'code': 'bad_request', 'message': 'Too many tracks'}),
+            400,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+      await tester.tap(find.text('Track One'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Too many tracks'), findsOneWidget);
+      expect(find.byType(AlertDialog), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a non-ApiException failure shows the generic fallback message',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks') {
+          throw const SocketException('Network is unreachable');
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+      await tester.tap(find.text('Track One'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Failed to add tracks. Try again.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the Add button disables and shows a spinner while the request is in '
+    'flight',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks') {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          return http.Response('', 204);
+        }
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'S',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+      await tester.tap(find.text('Track One'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pump();
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    },
+  );
+}
