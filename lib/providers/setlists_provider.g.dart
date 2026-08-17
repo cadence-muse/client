@@ -6,7 +6,7 @@ part of 'setlists_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$setlistListDataHash() => r'adf8d9a4ba46ee5ac937fef4b03c5a24dc0ba127';
+String _$setlistListDataHash() => r'2136f4e8e2eb6f0a06f0c54f8405e3f50b8cb63a';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -258,7 +258,7 @@ class _SetlistListDataProviderElement
   String get bandId => (origin as SetlistListDataProvider).bandId;
 }
 
-String _$setlistDetailDataHash() => r'c781a991100d93a4602f6da51d6b40ebaf30d59a';
+String _$setlistDetailDataHash() => r'f4168b75c44eec9721b17594a5838e04ca65c22f';
 
 abstract class _$SetlistDetailData
     extends BuildlessAutoDisposeAsyncNotifier<Map<String, dynamic>> {
@@ -475,5 +475,62 @@ class _SetlistDetailDataProviderElement
   String get setlistId => (origin as SetlistDetailDataProvider).setlistId;
 }
 
+String _$selectedSetlistBandIdFilterHash() =>
+    r'fdc163c6ec512b866d766b097d7857cd62bb306c';
+
+/// The band the global Setlists tab's list is currently filtered to; `null`
+/// means "all bands". Plain (non-family) provider — its notifier's `state`
+/// is set directly by `SetlistsScreen`'s filter dropdown.
+///
+/// Named `SelectedSetlistBandIdFilter`, not `SelectedBandIdFilter` — the
+/// latter is already defined in `tracks_provider.dart`, and
+/// `add_setlist_tracks_dialog.dart` imports both provider files. A same-named
+/// top-level identifier in both would be a Dart ambiguous-import compile
+/// error, so this provider is distinctly named despite being functionally
+/// identical to Track's filter (see `04-05-PLAN.md`'s naming-deviation
+/// note).
+///
+/// Copied from [SelectedSetlistBandIdFilter].
+@ProviderFor(SelectedSetlistBandIdFilter)
+final selectedSetlistBandIdFilterProvider =
+    AutoDisposeNotifierProvider<SelectedSetlistBandIdFilter, String?>.internal(
+      SelectedSetlistBandIdFilter.new,
+      name: r'selectedSetlistBandIdFilterProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$selectedSetlistBandIdFilterHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$SelectedSetlistBandIdFilter = AutoDisposeNotifier<String?>;
+String _$userSetlistsListDataHash() =>
+    r'38b0ea9b96923a9cdd0910dd66b848f01ceea3e2';
+
+/// Cache-first `GET /api/setlist/list` data spanning every band the user
+/// belongs to, optionally narrowed by [SelectedSetlistBandIdFilter] (mirrors
+/// [UserTracksListData]'s cache-first shape, but non-family — [build]
+/// watches [selectedSetlistBandIdFilterProvider] directly, so changing the
+/// filter automatically triggers a full rebuild with the new cache
+/// key/fetch).
+///
+/// Copied from [UserSetlistsListData].
+@ProviderFor(UserSetlistsListData)
+final userSetlistsListDataProvider =
+    AutoDisposeAsyncNotifierProvider<
+      UserSetlistsListData,
+      List<Map<String, dynamic>>
+    >.internal(
+      UserSetlistsListData.new,
+      name: r'userSetlistsListDataProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$userSetlistsListDataHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$UserSetlistsListData =
+    AutoDisposeAsyncNotifier<List<Map<String, dynamic>>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

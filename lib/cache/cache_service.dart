@@ -334,6 +334,35 @@ class CacheService {
   static String _setlistDetailKey(String bandId, String setlistId) =>
       'detail_${bandId}_$setlistId';
 
+  Future<List<Map<String, dynamic>>?> readUserSetlists(
+    String? bandIdFilter,
+  ) async {
+    try {
+      final cached = _setlistsStore.get(_userSetlistsKey(bandIdFilter));
+      if (cached == null) return null;
+      return (cached['items'] as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> writeUserSetlists(
+    String? bandIdFilter,
+    List<Map<String, dynamic>> data,
+  ) async {
+    try {
+      await _setlistsStore.put(_userSetlistsKey(bandIdFilter), {
+        'items': data,
+      });
+    } catch (_) {
+      // Non-critical cache write failure; swallow and keep serving the
+      // in-memory/network data instead.
+    }
+  }
+
+  static String _userSetlistsKey(String? bandIdFilter) =>
+      'user_setlists_${bandIdFilter ?? 'all'}';
+
   Future<void> clearAll() async {
     await _profileStore.clear();
     await _homepageStore.clear();
