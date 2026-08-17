@@ -35,15 +35,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Setlists
 
-- [ ] **SETL-01**: User can view list of setlists in a band (with track count and total duration)
-- [ ] **SETL-02**: User can create a setlist (name required; event location, event date, and initial tracks optional)
-- [ ] **SETL-03**: User can view setlist detail (ordered tracks, running duration)
-- [ ] **SETL-04**: User can edit setlist info (name, event location, event date)
-- [ ] **SETL-05**: User can delete a setlist
-- [ ] **SETL-06**: User can add a track to a setlist
-- [ ] **SETL-07**: User can remove a track from a setlist
+- [x] **SETL-01**: User can view list of setlists in a band (with track count and total duration)
+- [x] **SETL-02**: User can create a setlist (name required; event location, event date, and initial tracks optional)
+- [x] **SETL-03**: User can view setlist detail (ordered tracks, running duration)
+- [x] **SETL-04**: User can edit setlist info (name, event location, event date)
+- [x] **SETL-05**: User can delete a setlist
+- [x] **SETL-06**: User can add a track to a setlist
+- [x] **SETL-07**: User can remove a track from a setlist
 - [x] **SETL-08**: User can reorder tracks within a setlist via drag-and-drop
-- [ ] **SETL-09**: User sees a setlist's total running duration (server-computed, no client math)
+- [x] **SETL-09**: User sees a setlist's total running duration (server-computed, no client math)
 - [x] **SETL-10**: User can view all setlists across every band they belong to on a global Setlists tab, optionally filtered by band
 
 ### Offline & State
@@ -119,15 +119,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRACK-04 | Phase 3 | Complete |
 | TRACK-05 | Phase 3 | Complete |
 | TRACK-06 | Phase 3 | Complete |
-| SETL-01 | Phase 4 | Pending |
-| SETL-02 | Phase 4 | Pending |
-| SETL-03 | Phase 4 | Pending |
-| SETL-04 | Phase 4 | Pending |
-| SETL-05 | Phase 4 | Pending |
-| SETL-06 | Phase 4 | Pending |
-| SETL-07 | Phase 4 | Pending |
+| SETL-01 | Phase 4 | Complete |
+| SETL-02 | Phase 4 | Complete |
+| SETL-03 | Phase 4 | Complete |
+| SETL-04 | Phase 4 | Complete |
+| SETL-05 | Phase 4 | Complete |
+| SETL-06 | Phase 4 | Complete |
+| SETL-07 | Phase 4 | Complete |
 | SETL-08 | Phase 4 | Complete |
-| SETL-09 | Phase 4 | Pending |
+| SETL-09 | Phase 4 | Complete |
 | SETL-10 | Phase 4 | Complete |
 | OFFL-02 | Phase 5 | Pending |
 | OFFL-03 | Phase 5 | Pending |
