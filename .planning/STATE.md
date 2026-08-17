@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 5
 current_phase_name: Offline Trust & Connectivity UX
 status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-08-17T08:02:47.351Z"
+stopped_at: Phase 05 UI-SPEC approved
+last_updated: "2026-08-17T08:12:16.245Z"
 last_activity: 2026-08-17
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
@@ -122,6 +122,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-17T08:02:47.336Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-offline-trust-connectivity-ux/05-CONTEXT.md
+Last session: 2026-08-17T08:12:16.233Z
+Stopped at: Phase 05 UI-SPEC approved
+Resume file: /home/bulat.khafizov/projects/personal/cadence/cadence-client/.planning/phases/05-offline-trust-connectivity-ux/05-UI-SPEC.md
