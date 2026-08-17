@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/confirm_delete_track_dialog.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/tracks_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,13 +24,18 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {CacheService? cacheService}) {
+  Widget wrap(
+    ApiClient apiClient, {
+    CacheService? cacheService,
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(
           cacheService ?? CacheService.inMemory(),
         ),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: Builder(
@@ -135,6 +141,7 @@ void main() {
           overrides: [
             apiClientProvider.overrideWithValue(apiClient),
             cacheServiceProvider.overrideWithValue(cacheService),
+            isOnlineProvider.overrideWithValue(true),
           ],
           child: MaterialApp(
             home: Consumer(
@@ -228,4 +235,28 @@ void main() {
       expect(button.onPressed, isNotNull);
     },
   );
+
+  testWidgets('the Delete button is disabled while offline', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 204);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, isOnline: false));
+    await openDialog(tester);
+
+    final button = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(button.onPressed, isNull);
+  });
+
+  testWidgets('the Delete button is enabled while online', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 204);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, isOnline: true));
+    await openDialog(tester);
+
+    final button = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(button.onPressed, isNotNull);
+  });
 }

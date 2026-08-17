@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/tracks_provider.dart';
 
 /// Lightweight Cancel/Delete confirm dialog for deleting a track (TRACK-05,
@@ -73,6 +74,8 @@ class _ConfirmDeleteTrackDialogState
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
+
     return AlertDialog(
       title: Text(
         'Delete ${widget.trackTitle}?',
@@ -98,18 +101,21 @@ class _ConfirmDeleteTrackDialogState
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.error,
+        Tooltip(
+          message: isOnline ? '' : 'Requires connection',
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: (!isOnline || _isSubmitting) ? null : _delete,
+            child: _isSubmitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(isOnline ? 'Delete' : 'Requires connection'),
           ),
-          onPressed: _isSubmitting ? null : _delete,
-          child: _isSubmitting
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Delete'),
         ),
       ],
     );

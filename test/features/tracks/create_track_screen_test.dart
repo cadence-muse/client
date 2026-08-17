@@ -5,6 +5,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/create_track_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/tracks_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,13 +25,18 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {CacheService? cacheService}) {
+  Widget wrap(
+    ApiClient apiClient, {
+    CacheService? cacheService,
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(
           cacheService ?? CacheService.inMemory(),
         ),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: Builder(
@@ -113,6 +119,7 @@ void main() {
           overrides: [
             apiClientProvider.overrideWithValue(apiClient),
             cacheServiceProvider.overrideWithValue(cacheService),
+            isOnlineProvider.overrideWithValue(true),
           ],
           child: MaterialApp(
             home: Consumer(
@@ -233,6 +240,40 @@ void main() {
         find.text('Something went wrong. Please try again.'),
         findsOneWidget,
       );
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'the Save track button is disabled while offline, even with a valid '
+    'filled form',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'id': 't1'}), 201);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: false));
+      await openCreateTrackScreen(tester);
+      await enterTitleAndArtist(tester);
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'the Save track button is enabled while online with a valid filled '
+    'form',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'id': 't1'}), 201);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: true));
+      await openCreateTrackScreen(tester);
+      await enterTitleAndArtist(tester);
+
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
     },
