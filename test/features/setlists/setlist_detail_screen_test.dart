@@ -129,8 +129,10 @@ void main() {
       expect(find.text('Tracks (2)'), findsOneWidget);
       expect(find.text('Song One'), findsOneWidget);
       expect(find.text('Song Two'), findsOneWidget);
-      expect(find.text('Artist One'), findsOneWidget);
-      expect(find.text('Artist Two'), findsOneWidget);
+      // Artist + duration are combined into one subtitle (trailing slot is
+      // reserved for the edit-mode remove icon).
+      expect(find.text('Artist One • 3m 45s'), findsOneWidget);
+      expect(find.text('Artist Two • 3m 20s'), findsOneWidget);
     },
   );
 
@@ -261,6 +263,164 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ConfirmDeleteSetlistDialog), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping Edit reveals a remove icon on every track row and the Add '
+    'tracks button; tapping Done hides them again',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 425,
+            'tracks': [
+              {
+                'trackId': 't1',
+                'position': 0,
+                'title': 'Song One',
+                'artist': 'Artist One',
+                'durationSeconds': 225,
+              },
+              {
+                'trackId': 't2',
+                'position': 1,
+                'title': 'Song Two',
+                'artist': 'Artist Two',
+                'durationSeconds': 200,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.remove_circle_outline), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.remove_circle_outline), findsNWidgets(2));
+      expect(
+        find.widgetWithText(ElevatedButton, 'Add tracks'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.widgetWithText(TextButton, 'Done'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.remove_circle_outline), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "tapping a row's remove icon calls removeSetlistTrack with that "
+    'trackId and refreshes via a second getSetlist call',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      var getSetlistCallCount = 0;
+      String? removedTrackId;
+      var removed = false;
+
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'DELETE' &&
+            request.url.path == '/api/band/b1/setlist/s1/track/t1') {
+          removedTrackId = 't1';
+          removed = true;
+          return http.Response('', 204);
+        }
+        getSetlistCallCount++;
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': removed ? 200 : 425,
+            'tracks': removed
+                ? [
+                    {
+                      'trackId': 't2',
+                      'position': 0,
+                      'title': 'Song Two',
+                      'artist': 'Artist Two',
+                      'durationSeconds': 200,
+                    },
+                  ]
+                : [
+                    {
+                      'trackId': 't1',
+                      'position': 0,
+                      'title': 'Song One',
+                      'artist': 'Artist One',
+                      'durationSeconds': 225,
+                    },
+                    {
+                      'trackId': 't2',
+                      'position': 1,
+                      'title': 'Song Two',
+                      'artist': 'Artist Two',
+                      'durationSeconds': 200,
+                    },
+                  ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.pumpAndSettle();
+
+      expect(getSetlistCallCount, 1);
+
+      await tester.tap(find.byIcon(Icons.remove_circle_outline).first);
+      await tester.pumpAndSettle();
+
+      expect(removedTrackId, 't1');
+      expect(getSetlistCallCount, 2);
+      expect(find.text('Song One'), findsNothing);
+      expect(find.text('Song Two'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the Add tracks button is absent outside edit mode and present inside '
+    'it',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(ElevatedButton, 'Add tracks'),
+        findsOneWidget,
+      );
     },
   );
 }

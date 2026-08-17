@@ -291,4 +291,32 @@ class PublicApi {
   Future<void> deleteSetlist(String bandId, String setlistId) async {
     await _client.send('DELETE', '/api/band/$bandId/setlist/$setlistId');
   }
+
+  /// Adds one or more of the band's existing tracks to a setlist in a
+  /// single bulk call (D-01, `AddSetlistTracksRequestBody`, `trackIds` max
+  /// 100) — distinct from the pre-existing single-track `POST .../track`
+  /// endpoint, which this plan does not use. `'204'` no content.
+  Future<void> addSetlistTracks({
+    required String bandId,
+    required String setlistId,
+    required List<String> trackIds,
+  }) async {
+    await _client.send(
+      'POST',
+      '/api/band/$bandId/setlist/$setlistId/tracks',
+      body: {'trackIds': trackIds},
+    );
+  }
+
+  /// Removes a single track from a setlist (D-13). `'204'` no content.
+  Future<void> removeSetlistTrack({
+    required String bandId,
+    required String setlistId,
+    required String trackId,
+  }) async {
+    await _client.send(
+      'DELETE',
+      '/api/band/$bandId/setlist/$setlistId/track/$trackId',
+    );
+  }
 }

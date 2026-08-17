@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../api/api_exception.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/setlists_provider.dart';
+import 'add_setlist_tracks_dialog.dart';
 import 'confirm_delete_setlist_dialog.dart';
 import 'edit_setlist_screen.dart';
 import 'setlist_formatting.dart';
 
-class SetlistDetailScreen extends ConsumerWidget {
+class SetlistDetailScreen extends ConsumerStatefulWidget {
   const SetlistDetailScreen({
     super.key,
     required this.bandId,
@@ -17,9 +20,54 @@ class SetlistDetailScreen extends ConsumerWidget {
   final String setlistId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SetlistDetailScreen> createState() =>
+      _SetlistDetailScreenState();
+}
+
+class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
+  bool _editMode = false;
+
+  Future<void> _removeTrack(String trackId) async {
+    try {
+      await ref
+          .read(publicApiProvider)
+          .removeSetlistTrack(
+            bandId: widget.bandId,
+            setlistId: widget.setlistId,
+            trackId: trackId,
+          );
+      // Server owns the post-remove durationSeconds/track array (SETL-09) —
+      // a full refresh() re-fetches rather than a client-side splice.
+      await ref
+          .read(
+            setlistDetailDataProvider(
+              widget.bandId,
+              widget.setlistId,
+            ).notifier,
+          )
+          .refresh();
+      if (ref.exists(setlistListDataProvider(widget.bandId))) {
+        await ref
+            .read(setlistListDataProvider(widget.bandId).notifier)
+            .refresh();
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to remove track. Try again.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final setlistAsync = ref.watch(
-      setlistDetailDataProvider(bandId, setlistId),
+      setlistDetailDataProvider(widget.bandId, widget.setlistId),
     );
     final name = setlistAsync.valueOrNull?['name'] as String?;
     final currentSetlist = setlistAsync.valueOrNull;
@@ -35,8 +83,8 @@ class SetlistDetailScreen extends ConsumerWidget {
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => EditSetlistScreen(
-                    bandId: bandId,
-                    setlistId: setlistId,
+                    bandId: widget.bandId,
+                    setlistId: widget.setlistId,
                     currentSetlist: currentSetlist,
                   ),
                 ),
@@ -49,7 +97,9 @@ class SetlistDetailScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _buildError(
           context,
-          () => ref.invalidate(setlistDetailDataProvider(bandId, setlistId)),
+          () => ref.invalidate(
+            setlistDetailDataProvider(widget.bandId, widget.setlistId),
+          ),
         ),
       ),
     );
@@ -82,7 +132,15 @@ class SetlistDetailScreen extends ConsumerWidget {
         ],
         const SizedBox(height: 16),
         Text('Duration: ${durationSeconds.asMinutesAndSeconds}'),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => setState(() => _editMode = !_editMode),
+            child: Text(_editMode ? 'Done' : 'Edit'),
+          ),
+        ),
+        const SizedBox(height: 8),
         const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
@@ -95,21 +153,47 @@ class SetlistDetailScreen extends ConsumerWidget {
           const Text('No tracks in this setlist')
         else
           ...tracks.map((track) {
+            final trackId = track['trackId'] as String;
             final title = track['title'] as String;
             final artist = track['artist'] as String;
             final trackDurationSeconds = track['durationSeconds'] as int?;
+            final durationText =
+                trackDurationSeconds?.asMinutesAndSeconds ?? '—';
             return ListTile(
               title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(
-                artist,
+                '$artist • $durationText',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: Text(
-                trackDurationSeconds?.asMinutesAndSeconds ?? '—',
-              ),
+              trailing: _editMode
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.remove_circle_outline,
+                        color: colorScheme.error,
+                      ),
+                      tooltip: 'Remove',
+                      onPressed: () => _removeTrack(trackId),
+                    )
+                  : null,
             );
           }),
+        if (_editMode) ...[
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => AddSetlistTracksDialog(
+                bandId: widget.bandId,
+                setlistId: widget.setlistId,
+                currentTrackIds: {
+                  for (final track in tracks) track['trackId'] as String,
+                },
+              ),
+            ),
+            child: const Text('Add tracks'),
+          ),
+        ],
         const SizedBox(height: 8),
         const Divider(height: 1),
         ListTile(
@@ -118,8 +202,8 @@ class SetlistDetailScreen extends ConsumerWidget {
           onTap: () => showDialog<void>(
             context: context,
             builder: (_) => ConfirmDeleteSetlistDialog(
-              bandId: bandId,
-              setlistId: setlistId,
+              bandId: widget.bandId,
+              setlistId: widget.setlistId,
               setlistName: name,
             ),
           ),
