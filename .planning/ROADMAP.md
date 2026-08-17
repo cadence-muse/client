@@ -132,7 +132,7 @@ Plans:
   5. User can delete a setlist, and the displayed running duration is always server-computed (no client-side math).
   6. User can view all setlists across every band they belong to on a global Setlists tab, optionally filtered to one band.
 
-**Plans**: 2/5 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -145,7 +145,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion — shares public_api.dart/setlists_provider.dart/setlist_detail_screen.dart)*
 
-- [ ] 04-03-PLAN.md — Add tracks (bulk picker) + remove track + Edit-mode toggle (SETL-06, SETL-07)
+- [x] 04-03-PLAN.md — Add tracks (bulk picker) + remove track + Edit-mode toggle (SETL-06, SETL-07)
 
 **Wave 4** *(blocked on Wave 3 completion — shares setlist_detail_screen.dart)*
 
@@ -183,5 +183,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation, Profile & Home | 3/3 | Complete    | 2026-08-15 |
 | 2. Bands | 5/5 | In Progress|  |
 | 3. Tracks | 4/4 | Complete    | 2026-08-16 |
-| 4. Setlists | 2/5 | In Progress|  |
+| 4. Setlists | 3/5 | In Progress|  |
 | 5. Offline Trust & Connectivity UX | 0/TBD | Not started | - |
