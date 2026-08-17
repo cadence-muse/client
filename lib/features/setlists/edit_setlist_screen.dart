@@ -96,6 +96,9 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
       if (ref.exists(setlistListDataProvider(widget.bandId))) {
         ref.invalidate(setlistListDataProvider(widget.bandId));
       }
+      if (ref.exists(userSetlistsListDataProvider)) {
+        ref.invalidate(userSetlistsListDataProvider);
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
     } on ApiException catch (e) {

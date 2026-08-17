@@ -48,6 +48,9 @@ class _ConfirmDeleteSetlistDialogState
       } else {
         ref.invalidate(setlistListDataProvider(widget.bandId));
       }
+      if (ref.exists(userSetlistsListDataProvider)) {
+        ref.invalidate(userSetlistsListDataProvider);
+      }
       if (!mounted) return;
       // Pop the dialog, then pop SetlistDetailScreen — the navigation depth
       // here is always dialog -> detail -> list (D-19).

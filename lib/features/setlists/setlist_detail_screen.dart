@@ -51,6 +51,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
             .read(setlistListDataProvider(widget.bandId).notifier)
             .refresh();
       }
+      if (ref.exists(userSetlistsListDataProvider)) {
+        ref.invalidate(userSetlistsListDataProvider);
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -117,6 +120,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
             ).notifier,
           )
           .reorderTracks(trackIds);
+      if (ref.exists(userSetlistsListDataProvider)) {
+        ref.invalidate(userSetlistsListDataProvider);
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

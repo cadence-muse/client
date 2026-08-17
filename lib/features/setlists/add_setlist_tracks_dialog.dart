@@ -62,6 +62,9 @@ class _AddSetlistTracksDialogState
             .read(setlistListDataProvider(widget.bandId).notifier)
             .refresh();
       }
+      if (ref.exists(userSetlistsListDataProvider)) {
+        ref.invalidate(userSetlistsListDataProvider);
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(

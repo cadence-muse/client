@@ -60,6 +60,9 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                 : _selectedTrackIds.toList(),
           );
       ref.invalidate(setlistListDataProvider(widget.bandId));
+      if (ref.exists(userSetlistsListDataProvider)) {
+        ref.invalidate(userSetlistsListDataProvider);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
