@@ -6,6 +6,7 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/edit_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,11 +25,18 @@ void main() {
     );
   }
 
+  // Defaults isOnlineProvider to true so pre-existing tests (which predate
+  // OFFL-03's connectivity gating) keep exercising the "online" path unless a
+  // test explicitly overrides it — real-app connectivity_plus resolves
+  // AsyncLoading/AsyncError to `false` in this sandboxed test environment
+  // with no platform-channel mock, which would otherwise disable the Save
+  // button by default.
   Widget wrap(
     ApiClient apiClient, {
     CacheService? cacheService,
     String bandId = 'b1',
     String currentName = 'The Testers',
+    bool isOnline = true,
   }) {
     return ProviderScope(
       overrides: [
@@ -36,6 +44,7 @@ void main() {
         cacheServiceProvider.overrideWithValue(
           cacheService ?? CacheService.inMemory(),
         ),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: EditBandScreen(bandId: bandId, currentName: currentName),
@@ -57,6 +66,7 @@ void main() {
         cacheServiceProvider.overrideWithValue(
           cacheService ?? CacheService.inMemory(),
         ),
+        isOnlineProvider.overrideWithValue(true),
       ],
       child: MaterialApp(
         home: Builder(
@@ -164,6 +174,36 @@ void main() {
   );
 
   testWidgets(
+    'Save button is disabled and reads "Requires connection" while '
+    'offline; enabled with a valid form while online',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: false));
+      await tester.enterText(find.byType(TextFormField), 'New Name');
+      await tester.pump();
+
+      final offlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(offlineButton.onPressed, isNull);
+      expect(find.text('Requires connection'), findsOneWidget);
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), 'New Name');
+      await tester.pump();
+
+      final onlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(onlineButton.onPressed, isNotNull);
+      expect(find.text('Save'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'a long/multi-byte-script band name is accepted by the field without a '
     'layout exception',
     (tester) async {
@@ -244,6 +284,7 @@ void main() {
         overrides: [
           apiClientProvider.overrideWithValue(apiClient),
           cacheServiceProvider.overrideWithValue(cacheService),
+          isOnlineProvider.overrideWithValue(true),
         ],
       );
       addTearDown(container.dispose);

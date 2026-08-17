@@ -6,6 +6,8 @@ import 'package:cadence/features/bands/band_avatar.dart';
 import 'package:cadence/features/bands/bands_screen.dart';
 import 'package:cadence/features/bands/create_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/widgets/sync_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,11 +26,22 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, CacheService cacheService) {
+  // Defaults isOnlineProvider to true so pre-existing tests (which predate
+  // OFFL-03's connectivity gating) keep exercising the "online" path unless a
+  // test explicitly overrides it — real-app connectivity_plus resolves
+  // AsyncLoading/AsyncError to `false` in this sandboxed test environment
+  // with no platform-channel mock, which would otherwise disable every
+  // mutation entry point by default.
+  Widget wrap(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: const MaterialApp(home: BandsScreen()),
     );
@@ -169,6 +182,69 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+
+  testWidgets('SyncStatusBadge is present once the bands list loads', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBands([
+      {'id': 'a', 'name': 'The Testers'},
+    ]);
+    final apiClient = buildApiClient((request) async {
+      return http.Response(
+        jsonEncode({
+          'items': [
+            {'id': 'a', 'name': 'The Testers'},
+          ],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pump();
+
+    expect(find.byType(SyncStatusBadge), findsOneWidget);
+
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('FAB is disabled and tooltipped while offline', (tester) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBands([]);
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+    await tester.pump();
+
+    final fab = tester.widget<FloatingActionButton>(
+      find.byType(FloatingActionButton),
+    );
+    expect(fab.onPressed, isNull);
+    expect(fab.tooltip, 'Requires connection');
+
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('FAB is enabled while online', (tester) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBands([]);
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pump();
+
+    final fab = tester.widget<FloatingActionButton>(
+      find.byType(FloatingActionButton),
+    );
+    expect(fab.onPressed, isNotNull);
+
+    await tester.pumpAndSettle();
+  });
 
   testWidgets(
     'tapping the FAB shows a bottom sheet with exactly "Create band" and '

@@ -241,4 +241,44 @@ void main() {
       ]);
     },
   );
+
+  test(
+    'on a cache hit, bandsListSyncedAtProvider resolves to the pre-seeded '
+    "cache's syncedAt before the background refresh settles, then updates "
+    'to a later value once the background refresh completes',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'Cached Band'},
+      ]);
+      final seededSyncedAt = await cacheService.readBandsSyncedAt();
+
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'Fresh Band'},
+            ],
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      container.listen(bandsListDataProvider, (_, _) {});
+      container.listen(bandsListSyncedAtProvider, (_, _) {});
+
+      await container.read(bandsListDataProvider.future);
+
+      expect(container.read(bandsListSyncedAtProvider), seededSyncedAt);
+
+      // Drain the background refresh fired from build()'s cache hit.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final refreshedSyncedAt = container.read(bandsListSyncedAtProvider);
+      expect(refreshedSyncedAt, isNotNull);
+      expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+    },
+  );
 }

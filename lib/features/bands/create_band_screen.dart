@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import 'band_detail_screen.dart';
 
 class CreateBandScreen extends ConsumerStatefulWidget {
@@ -60,6 +61,8 @@ class _CreateBandScreenState extends ConsumerState<CreateBandScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Create a new band')),
       body: SafeArea(
@@ -93,15 +96,18 @@ class _CreateBandScreenState extends ConsumerState<CreateBandScreen> {
                   ),
                 ],
                 const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Create'),
+                Tooltip(
+                  message: isOnline ? '' : 'Requires connection',
+                  child: FilledButton(
+                    onPressed: (!isOnline || _isSubmitting) ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(isOnline ? 'Create' : 'Requires connection'),
+                  ),
                 ),
               ],
             ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
+import '../../providers/connectivity_provider.dart';
 
 /// Type-to-confirm dialog for deleting a band (BAND-05, owner-only, D-13).
 ///
@@ -68,6 +69,7 @@ class _ConfirmDeleteBandDialogState
   Widget build(BuildContext context) {
     // Exact match only — no .trim()/.toLowerCase() — per D-13's intent.
     final matches = _controller.text == widget.bandName;
+    final isOnline = ref.watch(isOnlineProvider);
 
     return AlertDialog(
       title: Text('Delete ${widget.bandName}?'),
@@ -99,18 +101,23 @@ class _ConfirmDeleteBandDialogState
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.error,
+        Tooltip(
+          message: isOnline ? '' : 'Requires connection',
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: (!matches || !isOnline || _isSubmitting)
+                ? null
+                : _delete,
+            child: _isSubmitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(isOnline ? 'Delete' : 'Requires connection'),
           ),
-          onPressed: (!matches || _isSubmitting) ? null : _delete,
-          child: _isSubmitting
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Delete'),
         ),
       ],
     );

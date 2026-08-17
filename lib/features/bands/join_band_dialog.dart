@@ -5,6 +5,7 @@ import '../../api/api_exception.dart';
 import '../../cache/cache_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import 'band_detail_screen.dart';
 
 /// Result of a successful join, used to drive post-dialog navigation from
@@ -125,6 +126,8 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
+
     return AlertDialog(
       title: const Text('Join a band'),
       content: Form(
@@ -161,15 +164,18 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: _isSubmitting ? null : _submit,
-          child: _isSubmitting
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Join'),
+        Tooltip(
+          message: isOnline ? '' : 'Requires connection',
+          child: FilledButton(
+            onPressed: (!isOnline || _isSubmitting) ? null : _submit,
+            child: _isSubmitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(isOnline ? 'Join' : 'Requires connection'),
+          ),
         ),
       ],
     );

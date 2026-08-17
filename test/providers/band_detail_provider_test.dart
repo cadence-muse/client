@@ -268,4 +268,64 @@ void main() {
       expect(finalState?['name'], 'Fresh Network Name');
     },
   );
+
+  test(
+    'on a cache hit, bandDetailSyncedAtProvider(bandId) resolves to the '
+    "pre-seeded cache's syncedAt before the background refresh settles, "
+    'then updates to a later value once the background refresh completes',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', {
+        'id': 'b1',
+        'name': 'Cached Band',
+        'ownerId': 'u1',
+        'members': [
+          {'id': 'u1', 'username': 'alice'},
+        ],
+        'inviteCode': 'abc-123',
+      });
+      final seededSyncedAt = await cacheService.readBandDetailSyncedAt('b1');
+
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response(
+          jsonEncode({
+            'id': 'b1',
+            'name': 'Fresh Band',
+            'ownerId': 'u1',
+            'members': [
+              {'id': 'u1', 'username': 'alice'},
+            ],
+            'inviteCode': 'abc-123',
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
+      addTearDown(sub.close);
+      final syncedAtSub = container.listen(
+        bandDetailSyncedAtProvider('b1'),
+        (_, _) {},
+      );
+      addTearDown(syncedAtSub.close);
+
+      await container.read(bandDetailDataProvider('b1').future);
+
+      expect(
+        container.read(bandDetailSyncedAtProvider('b1')),
+        seededSyncedAt,
+      );
+
+      // Drain the background refresh fired from build()'s cache hit.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final refreshedSyncedAt = container.read(
+        bandDetailSyncedAtProvider('b1'),
+      );
+      expect(refreshedSyncedAt, isNotNull);
+      expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+    },
+  );
 }
