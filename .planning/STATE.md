@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Bands
-status: planning
+status: Awaiting next milestone
 stopped_at: Phase 05 UI-SPEC approved
-last_updated: "2026-08-17T15:44:24.639Z"
+last_updated: "2026-08-17T15:57:24.067Z"
 last_activity: 2026-08-17
-last_activity_desc: Phase 04 execution resumed (wave continue)
+last_activity_desc: Phase 05 complete; corrected stale Phase 2 state (all 6 plans incl. gap-closure were already done)
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 23
   completed_plans: 23
+current_phase: 5
+current_phase_name: Offline Trust & Connectivity UX
 ---
 
 # Project State
@@ -27,12 +27,10 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 
 ## Current Position
 
-Phase: 2 — Bands
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-17 — Phase 05 complete, transitioned to Phase 2
-
-Progress: [██████████] 100%
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-17 — Milestone v1.0 completed and archived
 
 ## Performance Metrics
 
@@ -115,14 +113,18 @@ None yet.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged and deferred at milestone close on 2026-08-17:
 
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| *(none)* | | | |
+| Category | Item | Status |
+|----------|------|--------|
+| verification_gap | Phase 02: 02-VERIFICATION.md | gaps_found (raw file, pre-02-06) — gap-closure plan 02-06 fixed all 4 flagged issues (CR-01/WR-01/WR-02/WR-03) same-day with passing regression tests; confirmed present and wired by v1.0-MILESTONE-AUDIT.md's independent integration check. File left as historical record, not re-stamped. |
 
 ## Session Continuity
 
 Last session: 2026-08-17T08:12:16.233Z
 Stopped at: Phase 05 UI-SPEC approved
 Resume file: /home/bulat.khafizov/projects/personal/cadence/cadence-client/.planning/phases/05-offline-trust-connectivity-ux/05-UI-SPEC.md
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
