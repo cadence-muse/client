@@ -153,9 +153,18 @@ class _AddSetlistTracksDialogState
             padding: EdgeInsets.symmetric(vertical: 8),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (error, stackTrace) => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('No more tracks available'),
+          error: (error, stackTrace) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                const Expanded(child: Text("Couldn't load tracks")),
+                TextButton(
+                  onPressed: () =>
+                      ref.invalidate(trackListDataProvider(widget.bandId)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
