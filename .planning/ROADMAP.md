@@ -170,12 +170,12 @@ Plans:
   3. A global offline-mode banner appears whenever the device has no connectivity, regardless of which screen the user is on.
   4. Create/update/delete actions are visibly disabled or blocked while offline instead of silently failing.
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Foundation & tracer: connectivity signal + syncedAt cache envelope (all 10 keys) + offline banner + staleness badge, proven on Profile/Home
+- [x] 05-01-PLAN.md — Foundation & tracer: connectivity signal + syncedAt cache envelope (all 10 keys) + offline banner + staleness badge, proven on Profile/Home
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -200,4 +200,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Bands | 5/5 | In Progress|  |
 | 3. Tracks | 4/4 | Complete    | 2026-08-16 |
 | 4. Setlists | 5/5 | Complete    | 2026-08-17 |
-| 5. Offline Trust & Connectivity UX | 0/5 | Not started | - |
+| 5. Offline Trust & Connectivity UX | 1/5 | In Progress|  |
