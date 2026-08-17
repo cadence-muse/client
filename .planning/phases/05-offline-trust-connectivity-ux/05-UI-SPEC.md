@@ -1,7 +1,7 @@
 ---
 phase: 5
 slug: offline-trust-connectivity-ux
-status: draft
+status: verified
 framework: Flutter/Material
 created: 2026-08-17
 ---
@@ -103,7 +103,7 @@ Material Design semantic colors via `ColorScheme.fromSeed(Colors.green)`:
 
 ## UI Considerations
 
-Applicable state coverage for Phase 5's four success criteria:
+### Success-criteria coverage
 
 | Category | Element(s) | Status | Resolution |
 |----------|------------|--------|------------|
@@ -112,6 +112,47 @@ Applicable state coverage for Phase 5's four success criteria:
 | offline-banner | Global, above IndexedStack | ✅ covered | Single persistent widget wrapping `RootScaffold.body`, watches connectivity provider (D-02), shows "You're offline — showing cached data" with cloud_off icon and warning container color. Appears regardless of tab. |
 | mutation-blocking | Create/update/delete entry points (FABs, Save buttons, destructive confirmations) | ✅ covered | Disabled at source (D-12) — FAB/button itself disabled while offline, never reaches form. Grayed via Material disabled opacity, tooltip "Requires connection" on interaction. Covers: Create Band, Add/Edit Track, Create/Edit/Delete Setlist, Join Band, Leave Band, Remove Member. |
 | connectivity-state | All UI reactivity | ✅ covered | Single global `StreamProvider<ConnectivityStatus>` (D-02, D-03 — no debounce) watched by banner, mutation entry points, and form Save buttons. Instant state flip on any radio/interface change. |
+
+### State-axis coverage (element/state probe)
+
+Ran against 5 elements: E1 Offline Banner, E2 Staleness Indicator, E3 Disabled Mutation Controls, E4 Connectivity Provider, E5 Cache Service timestamp envelope. 29 applicable considerations found; resolved below.
+
+**Resolved — explicit:**
+
+| Element | Consideration | Truth |
+|---------|---------------|-------|
+| E1 | populated | Banner shows fixed copy "You're offline — showing cached data" with `Icons.cloud_off` and `errorContainer` background whenever the connectivity provider emits offline; already specified in Copywriting Contract. |
+| E2 | empty (no syncedAt yet) | If a cache key has never been synced (no `syncedAt` exists), the indicator renders nothing — same as the <10m rule. It only appears once a `syncedAt` value exists and is 10+ minutes in the past. |
+| E2 | loading | The badge value comes from the already-loaded `syncedAt` field; it has no independent loading state — it appears once the parent data finishes loading (or not at all, per the empty resolution above). |
+| E2 | populated | Already specified: Scenario 3 in Interaction Model, and D-07/D-08/D-09. |
+| E2 | overflow (long-elapsed values) | No unit conversion — display raw elapsed minutes uncapped (e.g., "Synced 180m ago") for v1 simplicity. No hour/day formatting added; matches the bounded v1 scope in PROJECT.md. |
+| E3 | loading (connectivity not yet known at app start) | Connectivity provider seeds its initial state via `connectivity_plus`'s one-shot `checkConnectivity()` before subscribing to the stream, so mutation controls have a real enabled/disabled state from the first frame — never a null/loading gap. (User-confirmed.) |
+| E4 | loading | Same resolution as E3/loading — seeded via `checkConnectivity()`, deduplicated here. |
+| E5 | populated | Already specified via D-04/D-05 (every keyed cache entry wraps as `{data, syncedAt}`). |
+
+**Resolved — backstop (visual/manual QA, no automated test planned):**
+
+| Element | Consideration | Statement |
+|---------|---------------|-----------|
+| E1 | overflow / long-text | Verify banner text does not clip under Material large-font accessibility settings on narrow screens. |
+| E3 / E4 | error (connectivity_plus platform channel failure) | If `connectivity_plus` itself throws, treat as offline (fail-safe: disable mutations) — confirm visually; low-likelihood platform edge case, no automated test planned. |
+
+**Dismissed — not applicable (reason given):**
+
+| Element(s) | Considerations | Reason |
+|------------|-----------------|--------|
+| E1 | empty, loading, overflow, long-text | Banner is a single fixed-copy, binary shown/hidden widget driven by a provider emission — not a data-bound list/form. No empty-data, independent-loading, or dynamic-text-length states apply. |
+| E1 | error | `connectivity_plus`'s stream doesn't surface a data-fetch failure in normal operation — nothing to error on. |
+| E2 | error | Refresh-failure handling is already covered by D-06 (syncedAt frozen on failure) — not a new indicator-level error state. |
+| E2 | partial, zero-one-many, long-text | Indicator is a single scalar timestamp, not a list or user-generated text — these categories don't apply. |
+| E3 | empty, partial | No data list is rendered by a disabled control. |
+| E3 | long-text | Tooltip copy ("Requires connection") is fixed, not dynamic. |
+| E4 | long-text | Provider is state, not a text-rendering surface. |
+| E5 | empty (legacy cache migration) | App has not shipped yet — no pre-Phase-5 cached data exists in the wild, so no migration/back-compat handling is needed. (User-confirmed: don't worry about it.) |
+| E5 | loading, partial, overflow, zero-one-many | Cache service is a key-value read/write layer, not a rendered UI surface — these presentation categories don't apply. |
+| E5 | error | Cache I/O error handling (Hive box errors) predates Phase 5; this phase only adds the `syncedAt` envelope on top of existing methods and doesn't change error handling. |
+
+Coverage: 29/29 applicable considerations resolved (8 explicit, 2 backstop, 19 dismissed as not-applicable with reason). 0 unresolved.
 
 ---
 
@@ -233,14 +274,14 @@ ElevatedButton(
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: Copy (banner, tooltip, indicator) matches requirements OFFL-02 through OFFL-05
-- [ ] Dimension 2 Visuals: Offline banner, staleness indicator, disabled state follow Material Design conventions
-- [ ] Dimension 3 Color: Colors derive from Material ColorScheme (warning amber for banner + warning state, onSurfaceVariant for normal indicator)
-- [ ] Dimension 4 Typography: Text scales use Material label-small, body, title-medium per existing app conventions
-- [ ] Dimension 5 Spacing: Spacing uses Material 4px base unit, consistent with Phases 1-4
-- [ ] Dimension 6 Registry Safety: N/A (Flutter native, no third-party component registry)
+- [x] Dimension 1 Copywriting: Copy (banner, tooltip, indicator) matches requirements OFFL-02 through OFFL-05
+- [x] Dimension 2 Visuals: Offline banner, staleness indicator, disabled state follow Material Design conventions
+- [x] Dimension 3 Color: Colors derive from Material ColorScheme (warning amber for banner + warning state, onSurfaceVariant for normal indicator)
+- [x] Dimension 4 Typography: Text scales use Material label-small, body, title-medium per existing app conventions
+- [x] Dimension 5 Spacing: Spacing uses Material 4px base unit, consistent with Phases 1-4
+- [x] Dimension 6 Registry Safety: N/A (Flutter native, no third-party component registry)
 
-**Approval:** pending
+**Approval:** APPROVED — 6/6 dimensions pass, no blocking issues, no recommendations.
 
 ---
 
