@@ -6,6 +6,7 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/band_detail_screen.dart';
 import 'package:cadence/features/bands/join_band_dialog.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,11 +25,22 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, CacheService cacheService) {
+  // Defaults isOnlineProvider to true so pre-existing tests (which predate
+  // OFFL-03's connectivity gating) keep exercising the "online" path unless a
+  // test explicitly overrides it — real-app connectivity_plus resolves
+  // AsyncLoading/AsyncError to `false` in this sandboxed test environment
+  // with no platform-channel mock, which would otherwise disable the Join
+  // button by default.
+  Widget wrap(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: Consumer(
@@ -290,6 +302,49 @@ void main() {
       expect(button.onPressed, isNotNull);
     },
   );
+
+  testWidgets(
+    'Join button is disabled and reads "Requires connection" while offline',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await openDialog(tester);
+      await tester.enterText(find.byType(TextFormField), 'ABC123');
+      await tester.pump();
+
+      final offlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(offlineButton.onPressed, isNull);
+      expect(find.text('Requires connection'), findsOneWidget);
+    },
+  );
+
+  testWidgets('Join button is enabled while online', (tester) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBands([]);
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await openDialog(tester);
+    await tester.enterText(find.byType(TextFormField), 'ABC123');
+    await tester.pump();
+
+    final onlineButton = tester.widget<FilledButton>(
+      find.byType(FilledButton),
+    );
+    expect(onlineButton.onPressed, isNotNull);
+    expect(find.text('Join'), findsOneWidget);
+  });
 
   testWidgets(
     'a long/pasted invite code does not break the TextField\'s layout',

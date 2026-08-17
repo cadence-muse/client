@@ -6,6 +6,7 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/band_detail_screen.dart';
 import 'package:cadence/features/bands/create_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,13 +25,24 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {CacheService? cacheService}) {
+  // Defaults isOnlineProvider to true so pre-existing tests (which predate
+  // OFFL-03's connectivity gating) keep exercising the "online" path unless a
+  // test explicitly overrides it — real-app connectivity_plus resolves
+  // AsyncLoading/AsyncError to `false` in this sandboxed test environment
+  // with no platform-channel mock, which would otherwise disable the Create
+  // button by default.
+  Widget wrap(
+    ApiClient apiClient, {
+    CacheService? cacheService,
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(
           cacheService ?? CacheService.inMemory(),
         ),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: const MaterialApp(home: CreateBandScreen()),
     );
@@ -165,6 +177,36 @@ void main() {
       );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'Create button is disabled and reads "Requires connection" while '
+    'offline; enabled with a valid form while online',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'id': 'b1'}), 201);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: false));
+      await tester.enterText(find.byType(TextFormField), 'The Testers');
+      await tester.pump();
+
+      final offlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(offlineButton.onPressed, isNull);
+      expect(find.text('Requires connection'), findsOneWidget);
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), 'The Testers');
+      await tester.pump();
+
+      final onlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(onlineButton.onPressed, isNotNull);
+      expect(find.text('Create'), findsOneWidget);
     },
   );
 

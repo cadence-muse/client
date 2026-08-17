@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -522,6 +523,66 @@ void main() {
       await tester.enterText(find.byType(TextField), 'The Band');
       await tester.pump();
       expect(deleteButton().onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'D-14: losing connectivity while ConfirmDeleteBandDialog is already '
+    'open disables the Delete button live, even with a matching typed name',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'The Band'));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(name: 'The Band'),
+      );
+
+      // Controls connectivityProvider directly (rather than a static
+      // isOnlineProvider.overrideWithValue) so the dialog stays mounted
+      // across the online -> offline transition, proving live reactivity
+      // (D-14) rather than a fresh widget tree picking up a new default.
+      final connectivityController = StreamController<ConnectivityStatus>();
+      addTearDown(connectivityController.close);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(apiClient),
+            cacheServiceProvider.overrideWithValue(cacheService),
+            connectivityProvider.overrideWith(
+              (ref) => connectivityController.stream,
+            ),
+          ],
+          child: const MaterialApp(home: BandDetailScreen(bandId: 'b1')),
+        ),
+      );
+      connectivityController.add(ConnectivityStatus.online);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'The Band');
+      await tester.pump();
+
+      FilledButton deleteButton() => tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Delete'),
+      );
+      expect(deleteButton().onPressed, isNotNull);
+
+      // Connectivity drops while the dialog is still open, name still
+      // matching.
+      connectivityController.add(ConnectivityStatus.offline);
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Requires connection'),
+            )
+            .onPressed,
+        isNull,
+      );
     },
   );
 
