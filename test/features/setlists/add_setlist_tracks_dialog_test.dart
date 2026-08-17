@@ -5,6 +5,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/add_setlist_tracks_dialog.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,11 +24,20 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {required Set<String> currentTrackIds}) {
+  // Defaults isOnlineProvider to true — without an override, connectivity_plus
+  // has no platform-channel mock in the test environment and resolves to the
+  // fail-safe-offline default, which would break every pre-existing test
+  // written before this plan's connectivity gating.
+  Widget wrap(
+    ApiClient apiClient, {
+    required Set<String> currentTrackIds,
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(CacheService.inMemory()),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: Builder(
@@ -273,6 +283,95 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'with tracks selected and isOnlineProvider false, the Add button is '
+    'disabled with a "Requires connection" label',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, currentTrackIds: {}, isOnline: false),
+      );
+      await openDialog(tester);
+      await tester.tap(find.text('Track One'));
+      await tester.pump();
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
+      expect(find.text('Requires connection'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'with tracks selected and isOnlineProvider true, the Add button is '
+    'enabled',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, currentTrackIds: {}, isOnline: true),
+      );
+      await openDialog(tester);
+      await tester.tap(find.text('Track One'));
+      await tester.pump();
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'with zero tracks selected and isOnlineProvider true, the Add button '
+    'stays disabled (existing empty-selection guard preserved)',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, currentTrackIds: {}, isOnline: true),
+      );
+      await openDialog(tester);
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
     },
   );
 }

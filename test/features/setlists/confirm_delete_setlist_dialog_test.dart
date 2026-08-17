@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/confirm_delete_setlist_dialog.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,13 +23,22 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {CacheService? cacheService}) {
+  // Defaults isOnlineProvider to true — without an override, connectivity_plus
+  // has no platform-channel mock in the test environment and resolves to the
+  // fail-safe-offline default, which would break every pre-existing test
+  // written before this plan's connectivity gating.
+  Widget wrap(
+    ApiClient apiClient, {
+    CacheService? cacheService,
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(
           cacheService ?? CacheService.inMemory(),
         ),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: Builder(
@@ -176,6 +186,42 @@ void main() {
       expect(find.text('Delete failed. Try again.'), findsOneWidget);
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider false, the Delete button is disabled with a '
+    '"Requires connection" label',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: false));
+      await openDialog(tester);
+
+      final offlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(offlineButton.onPressed, isNull);
+      expect(find.text('Requires connection'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider true, the Delete button is enabled',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: true));
+      await openDialog(tester);
+
+      final onlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(onlineButton.onPressed, isNotNull);
     },
   );
 }
