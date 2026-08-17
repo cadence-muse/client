@@ -20,6 +20,21 @@ part 'tracks_provider.g.dart';
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
 /// rather than firing a second network request.
+/// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
+/// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
+/// shape, see `profile_provider.dart`). Set on a cache hit (from the
+/// pre-existing cached value) and bumped unconditionally on every successful
+/// [TrackListData._fetchAndCache]/[TrackListData.removeFromList] — never on
+/// a failed background refresh, since `_refresh()`'s catch branch never
+/// reaches that call.
+@riverpod
+class TrackListSyncedAt extends _$TrackListSyncedAt {
+  @override
+  DateTime? build(String bandId) => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class TrackListData extends _$TrackListData {
   Future<void>? _inFlightRefresh;
@@ -36,6 +51,9 @@ class TrackListData extends _$TrackListData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readBandTracks(bandId);
     if (cached != null) {
+      ref
+          .read(trackListSyncedAtProvider(bandId).notifier)
+          .set(await cache.readBandTracksSyncedAt(bandId));
       unawaited(_refresh(bandId));
       return cached;
     }
@@ -45,6 +63,7 @@ class TrackListData extends _$TrackListData {
   Future<List<Map<String, dynamic>>> _fetchAndCache(String bandId) async {
     final tracks = await ref.read(publicApiProvider).listBandTracks(bandId);
     await ref.read(cacheServiceProvider).writeBandTracks(bandId, tracks);
+    ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
     return tracks;
   }
 
@@ -102,6 +121,7 @@ class TrackListData extends _$TrackListData {
     _version++;
     state = AsyncData(filtered);
     unawaited(ref.read(cacheServiceProvider).writeBandTracks(bandId, filtered));
+    ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
   }
 }
 
@@ -113,6 +133,21 @@ class TrackListData extends _$TrackListData {
 /// immediately with a silent background refresh; cache miss fetches inline
 /// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
 /// tracks" + Retry error state).
+/// `bandTrackDetail` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
+/// trackId)` pair). Set on a cache hit (from the pre-existing cached value)
+/// and bumped unconditionally on every successful
+/// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields] — never
+/// on a failed background refresh, since `_refresh()`'s catch branch never
+/// reaches that call.
+@riverpod
+class TrackDetailSyncedAt extends _$TrackDetailSyncedAt {
+  @override
+  DateTime? build(String bandId, String trackId) => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class TrackDetailData extends _$TrackDetailData {
   Future<void>? _inFlightRefresh;
@@ -129,6 +164,9 @@ class TrackDetailData extends _$TrackDetailData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readBandTrackDetail(bandId, trackId);
     if (cached != null) {
+      ref
+          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
+          .set(await cache.readBandTrackDetailSyncedAt(bandId, trackId));
       unawaited(_refresh(bandId, trackId));
       return cached;
     }
@@ -145,6 +183,9 @@ class TrackDetailData extends _$TrackDetailData {
     await ref
         .read(cacheServiceProvider)
         .writeBandTrackDetail(bandId, trackId, track);
+    ref
+        .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
+        .set(DateTime.now());
     return track;
   }
 
@@ -202,6 +243,9 @@ class TrackDetailData extends _$TrackDetailData {
     await ref
         .read(cacheServiceProvider)
         .writeBandTrackDetail(bandId, trackId, updated);
+    ref
+        .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
+        .set(DateTime.now());
   }
 }
 
@@ -226,6 +270,20 @@ class SelectedBandIdFilter extends _$SelectedBandIdFilter {
 /// [TrackListData]'s cache-first shape, but non-family — [build] watches
 /// [selectedBandIdFilterProvider] directly, so changing the filter
 /// automatically triggers a full rebuild with the new cache key/fetch).
+/// `userTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
+/// stored timestamp (plain, non-family — mirrors [HomepageSyncedAt]'s
+/// shape). Set on a cache hit (from the pre-existing cached value) and
+/// bumped unconditionally on every successful
+/// [UserTracksListData._fetchAndCache] — never on a failed background
+/// refresh, since `_refresh()`'s catch branch never reaches that call.
+@riverpod
+class UserTracksSyncedAt extends _$UserTracksSyncedAt {
+  @override
+  DateTime? build() => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class UserTracksListData extends _$UserTracksListData {
   Future<void>? _inFlightRefresh;
@@ -243,6 +301,9 @@ class UserTracksListData extends _$UserTracksListData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readUserTracks(bandIdFilter);
     if (cached != null) {
+      ref
+          .read(userTracksSyncedAtProvider.notifier)
+          .set(await cache.readUserTracksSyncedAt(bandIdFilter));
       unawaited(_refresh(bandIdFilter));
       return cached;
     }
@@ -256,6 +317,7 @@ class UserTracksListData extends _$UserTracksListData {
         .read(publicApiProvider)
         .listUserTracks(bandIdFilter: bandIdFilter);
     await ref.read(cacheServiceProvider).writeUserTracks(bandIdFilter, tracks);
+    ref.read(userTracksSyncedAtProvider.notifier).set(DateTime.now());
     return tracks;
   }
 

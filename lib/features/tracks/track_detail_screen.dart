@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/connectivity_provider.dart';
 import '../../providers/tracks_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import 'confirm_delete_track_dialog.dart';
 import 'edit_track_screen.dart';
 import 'track_formatting.dart';
@@ -19,6 +21,8 @@ class TrackDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final trackAsync = ref.watch(trackDetailDataProvider(bandId, trackId));
+    final syncedAt = ref.watch(trackDetailSyncedAtProvider(bandId, trackId));
+    final isOnline = ref.watch(isOnlineProvider);
     final title = trackAsync.valueOrNull?['title'] as String?;
     final currentTrack = trackAsync.valueOrNull;
 
@@ -29,21 +33,28 @@ class TrackDetailScreen extends ConsumerWidget {
           if (currentTrack != null)
             IconButton(
               icon: const Icon(Icons.edit),
-              tooltip: 'Edit track',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => EditTrackScreen(
-                    bandId: bandId,
-                    trackId: trackId,
-                    currentTrack: currentTrack,
-                  ),
-                ),
-              ),
+              tooltip: isOnline ? 'Edit track' : 'Requires connection',
+              onPressed: isOnline
+                  ? () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EditTrackScreen(
+                          bandId: bandId,
+                          trackId: trackId,
+                          currentTrack: currentTrack,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
         ],
       ),
       body: trackAsync.when(
-        data: (track) => _buildContent(context, track),
+        data: (track) => Column(
+          children: [
+            SyncStatusBadge(syncedAt: syncedAt),
+            Expanded(child: _buildContent(context, track, isOnline)),
+          ],
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _buildError(
           context,
@@ -53,7 +64,11 @@ class TrackDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, Map<String, dynamic> track) {
+  Widget _buildContent(
+    BuildContext context,
+    Map<String, dynamic> track,
+    bool isOnline,
+  ) {
     final title = track['title'] as String;
     final artist = track['artist'] as String;
     final durationSeconds = track['durationSeconds'] as int?;
@@ -92,14 +107,17 @@ class TrackDetailScreen extends ConsumerWidget {
         ListTile(
           leading: Icon(Icons.delete, color: colorScheme.error),
           title: Text('Delete', style: TextStyle(color: colorScheme.error)),
-          onTap: () => showDialog<void>(
-            context: context,
-            builder: (_) => ConfirmDeleteTrackDialog(
-              bandId: bandId,
-              trackId: trackId,
-              trackTitle: title,
-            ),
-          ),
+          enabled: isOnline,
+          onTap: isOnline
+              ? () => showDialog<void>(
+                  context: context,
+                  builder: (_) => ConfirmDeleteTrackDialog(
+                    bandId: bandId,
+                    trackId: trackId,
+                    trackTitle: title,
+                  ),
+                )
+              : null,
         ),
       ],
     );

@@ -5,6 +5,7 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/edit_track_screen.dart';
 import 'package:cadence/features/tracks/track_detail_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,11 +24,16 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, CacheService cacheService) {
+  Widget wrap(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: const MaterialApp(
         home: TrackDetailScreen(bandId: 'b1', trackId: 't1'),
@@ -173,6 +179,73 @@ void main() {
         'key': 'C',
         'notes': 'Some notes',
       });
+    },
+  );
+
+  testWidgets(
+    'the Edit IconButton is disabled and the Delete ListTile is disabled '
+    'with "Requires connection" tooltip while offline',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      final editButton = tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byIcon(Icons.edit),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(editButton.onPressed, isNull);
+      expect(editButton.tooltip, 'Requires connection');
+
+      final deleteTile = tester.widget<ListTile>(
+        find.widgetWithText(ListTile, 'Delete'),
+      );
+      expect(deleteTile.enabled, isFalse);
+      expect(deleteTile.onTap, isNull);
+    },
+  );
+
+  testWidgets(
+    'the Edit IconButton and Delete ListTile are enabled while online',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: true),
+      );
+      await tester.pumpAndSettle();
+
+      final editButton = tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byIcon(Icons.edit),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(editButton.onPressed, isNotNull);
+      expect(editButton.tooltip, 'Edit track');
+
+      final deleteTile = tester.widget<ListTile>(
+        find.widgetWithText(ListTile, 'Delete'),
+      );
+      expect(deleteTile.enabled, isTrue);
+      expect(deleteTile.onTap, isNotNull);
     },
   );
 }

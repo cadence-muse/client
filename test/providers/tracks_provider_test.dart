@@ -160,6 +160,49 @@ void main() {
         ]);
       },
     );
+
+    test(
+      'trackListSyncedAtProvider resolves to the cache\'s stored syncedAt '
+      'on a cache hit and updates after a successful refresh',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeBandTracks('b1', [
+          {'id': 't1', 'title': 'Track', 'artist': 'Artist'},
+        ]);
+        final cachedSyncedAt = await cacheService.readBandTracksSyncedAt('b1');
+
+        final apiClient = buildApiClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track', 'artist': 'Artist'},
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(trackListDataProvider('b1'), (_, _) {});
+        await container.read(trackListDataProvider('b1').future);
+
+        expect(
+          container.read(trackListSyncedAtProvider('b1')),
+          cachedSyncedAt,
+        );
+
+        await container
+            .read(trackListDataProvider('b1').notifier)
+            .refresh();
+
+        expect(
+          container.read(trackListSyncedAtProvider('b1'))!.isAfter(
+            cachedSyncedAt!,
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('TrackDetailData', () {
@@ -298,6 +341,50 @@ void main() {
           'title': 'Locally Renamed Track',
           'artist': 'Cached Artist',
         });
+      },
+    );
+
+    test(
+      'trackDetailSyncedAtProvider resolves to the cache\'s stored syncedAt '
+      'on a cache hit and updates after a successful refresh',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeBandTrackDetail('b1', 't1', {
+          'id': 't1',
+          'title': 'Track',
+          'artist': 'Artist',
+        });
+        final cachedSyncedAt = await cacheService.readBandTrackDetailSyncedAt(
+          'b1',
+          't1',
+        );
+
+        final apiClient = buildApiClient((request) async {
+          return http.Response(
+            jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(trackDetailDataProvider('b1', 't1'), (_, _) {});
+        await container.read(trackDetailDataProvider('b1', 't1').future);
+
+        expect(
+          container.read(trackDetailSyncedAtProvider('b1', 't1')),
+          cachedSyncedAt,
+        );
+
+        await container
+            .read(trackDetailDataProvider('b1', 't1').notifier)
+            .refresh();
+
+        expect(
+          container
+              .read(trackDetailSyncedAtProvider('b1', 't1'))!
+              .isAfter(cachedSyncedAt!),
+          isTrue,
+        );
       },
     );
   });
@@ -463,6 +550,58 @@ void main() {
         await container.read(userTracksListDataProvider.future);
 
         expect(capturedBandIdFilters, contains('band-x'));
+      },
+    );
+
+    test(
+      'userTracksSyncedAtProvider resolves to the cache\'s stored syncedAt '
+      'on a cache hit and updates after a successful refresh',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeUserTracks(null, [
+          {
+            'id': 't1',
+            'title': 'Track',
+            'artist': 'Artist',
+            'bandId': 'b1',
+            'bandName': 'Band One',
+          },
+        ]);
+        final cachedSyncedAt = await cacheService.readUserTracksSyncedAt(
+          null,
+        );
+
+        final apiClient = buildApiClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 't1',
+                  'title': 'Track',
+                  'artist': 'Artist',
+                  'bandId': 'b1',
+                  'bandName': 'Band One',
+                },
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(userTracksListDataProvider, (_, _) {});
+        await container.read(userTracksListDataProvider.future);
+
+        expect(container.read(userTracksSyncedAtProvider), cachedSyncedAt);
+
+        await container.read(userTracksListDataProvider.notifier).refresh();
+
+        expect(
+          container.read(userTracksSyncedAtProvider)!.isAfter(
+            cachedSyncedAt!,
+          ),
+          isTrue,
+        );
       },
     );
   });

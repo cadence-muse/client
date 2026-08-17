@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/connectivity_provider.dart';
 import '../../providers/tracks_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import 'create_track_screen.dart';
 import 'track_detail_screen.dart';
 import 'track_formatting.dart';
@@ -14,11 +16,18 @@ class TrackListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(trackListDataProvider(bandId));
+    final syncedAt = ref.watch(trackListSyncedAtProvider(bandId));
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Tracks')),
       body: tracksAsync.when(
-        data: (tracks) => _buildContent(context, tracks),
+        data: (tracks) => Column(
+          children: [
+            SyncStatusBadge(syncedAt: syncedAt),
+            Expanded(child: _buildContent(context, tracks)),
+          ],
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _buildError(
           context,
@@ -26,10 +35,14 @@ class TrackListScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => CreateTrackScreen(bandId: bandId)),
-        ),
-        tooltip: 'Add track',
+        onPressed: isOnline
+            ? () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CreateTrackScreen(bandId: bandId),
+                ),
+              )
+            : null,
+        tooltip: isOnline ? 'Add track' : 'Requires connection',
         child: const Icon(Icons.add),
       ),
     );
