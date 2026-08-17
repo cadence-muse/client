@@ -423,4 +423,140 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    "invoking the ReorderableListView's onReorderItem callback directly "
+    'submits reorderSetlistTracks with all original track ids present, in '
+    'the new order (D-14) — automated substitute for the real drag '
+    'gesture, which 04-VALIDATION.md flags as manual-only. This project\'s '
+    'installed Flutter SDK deprecates onReorder in favor of onReorderItem '
+    '(newIndex already accounts for the removed item), so onReorderItem is '
+    'the callback under test, not the plan\'s originally-cited onReorder',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      List<String>? submittedTrackIds;
+
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'PUT' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks/reorder') {
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          submittedTrackIds = (body['trackIds'] as List).cast<String>();
+          return http.Response('', 204);
+        }
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 675,
+            'tracks': [
+              {
+                'trackId': 't1',
+                'position': 0,
+                'title': 'Song One',
+                'artist': 'Artist One',
+                'durationSeconds': 225,
+              },
+              {
+                'trackId': 't2',
+                'position': 1,
+                'title': 'Song Two',
+                'artist': 'Artist Two',
+                'durationSeconds': 225,
+              },
+              {
+                'trackId': 't3',
+                'position': 2,
+                'title': 'Song Three',
+                'artist': 'Artist Three',
+                'durationSeconds': 225,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.pumpAndSettle();
+
+      final reorderableList = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView),
+      );
+      reorderableList.onReorderItem!(0, 2);
+      await tester.pumpAndSettle();
+
+      expect(submittedTrackIds, isNotNull);
+      // All 3 original track ids are present — none dropped (T-04-11).
+      expect(submittedTrackIds!.toSet(), {'t1', 't2', 't3'});
+      expect(submittedTrackIds, hasLength(3));
+    },
+  );
+
+  testWidgets(
+    'a failing reorderSetlistTracks call shows the "Failed to reorder '
+    'tracks. Refreshing..." SnackBar and resyncs via a second getSetlist '
+    'call',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      var getSetlistCallCount = 0;
+
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'PUT' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks/reorder') {
+          return http.Response(
+            jsonEncode({'code': 'bad_request', 'message': 'reorder failed'}),
+            400,
+          );
+        }
+        getSetlistCallCount++;
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 450,
+            'tracks': [
+              {
+                'trackId': 't1',
+                'position': 0,
+                'title': 'Song One',
+                'artist': 'Artist One',
+                'durationSeconds': 225,
+              },
+              {
+                'trackId': 't2',
+                'position': 1,
+                'title': 'Song Two',
+                'artist': 'Artist Two',
+                'durationSeconds': 225,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(getSetlistCallCount, 1);
+
+      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.pumpAndSettle();
+
+      final reorderableList = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView),
+      );
+      reorderableList.onReorderItem!(0, 1);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Failed to reorder tracks. Refreshing...'),
+        findsOneWidget,
+      );
+      expect(getSetlistCallCount, 2);
+    },
+  );
 }

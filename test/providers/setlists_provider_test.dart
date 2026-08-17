@@ -378,5 +378,175 @@ void main() {
         });
       },
     );
+
+    test(
+      'reorderTracks() reorders the tracks list to match the given trackIds, '
+      'preserving each track\'s full map (not just its id)',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeSetlistDetail('b1', 's1', {
+          'id': 's1',
+          'name': 'Setlist',
+          'durationSeconds': 600,
+          'tracks': [
+            {
+              'trackId': 'A',
+              'position': 0,
+              'title': 'Track A',
+              'artist': 'Artist A',
+              'durationSeconds': 200,
+            },
+            {
+              'trackId': 'B',
+              'position': 1,
+              'title': 'Track B',
+              'artist': 'Artist B',
+              'durationSeconds': 200,
+            },
+            {
+              'trackId': 'C',
+              'position': 2,
+              'title': 'Track C',
+              'artist': 'Artist C',
+              'durationSeconds': 200,
+            },
+          ],
+        });
+
+        // Matches the cached payload exactly — build()'s unawaited
+        // background refresh (fired on the cache hit below) must not
+        // corrupt the tracks list this test asserts against once it
+        // resolves.
+        final apiClient = buildApiClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'id': 's1',
+              'name': 'Setlist',
+              'durationSeconds': 600,
+              'tracks': [
+                {
+                  'trackId': 'A',
+                  'position': 0,
+                  'title': 'Track A',
+                  'artist': 'Artist A',
+                  'durationSeconds': 200,
+                },
+                {
+                  'trackId': 'B',
+                  'position': 1,
+                  'title': 'Track B',
+                  'artist': 'Artist B',
+                  'durationSeconds': 200,
+                },
+                {
+                  'trackId': 'C',
+                  'position': 2,
+                  'title': 'Track C',
+                  'artist': 'Artist C',
+                  'durationSeconds': 200,
+                },
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(setlistDetailDataProvider('b1', 's1'), (_, _) {});
+        await container.read(setlistDetailDataProvider('b1', 's1').future);
+        // Let the background refresh resolve before mutating, so it can't
+        // race with reorderTracks()'s state write below.
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        await container
+            .read(setlistDetailDataProvider('b1', 's1').notifier)
+            .reorderTracks(['C', 'A', 'B']);
+
+        final tracks =
+            container
+                    .read(setlistDetailDataProvider('b1', 's1'))
+                    .valueOrNull!['tracks']
+                as List;
+        expect(tracks, [
+          {
+            'trackId': 'C',
+            'position': 2,
+            'title': 'Track C',
+            'artist': 'Artist C',
+            'durationSeconds': 200,
+          },
+          {
+            'trackId': 'A',
+            'position': 0,
+            'title': 'Track A',
+            'artist': 'Artist A',
+            'durationSeconds': 200,
+          },
+          {
+            'trackId': 'B',
+            'position': 1,
+            'title': 'Track B',
+            'artist': 'Artist B',
+            'durationSeconds': 200,
+          },
+        ]);
+      },
+    );
+
+    test(
+      'reorderTracks() is a local patch only — it never triggers a network '
+      'call',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeSetlistDetail('b1', 's1', {
+          'id': 's1',
+          'name': 'Setlist',
+          'durationSeconds': 400,
+          'tracks': [
+            {
+              'trackId': 'A',
+              'position': 0,
+              'title': 'Track A',
+              'artist': 'Artist A',
+            },
+            {
+              'trackId': 'B',
+              'position': 1,
+              'title': 'Track B',
+              'artist': 'Artist B',
+            },
+          ],
+        });
+
+        var callCount = 0;
+        final apiClient = buildApiClient((request) async {
+          callCount++;
+          return http.Response(
+            jsonEncode({
+              'id': 's1',
+              'name': 'Setlist',
+              'durationSeconds': 400,
+              'tracks': <Map<String, dynamic>>[],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(setlistDetailDataProvider('b1', 's1'), (_, _) {});
+        // build()'s cache hit fires an unawaited background refresh — let it
+        // resolve before resetting callCount so it isn't misattributed to
+        // reorderTracks() below.
+        await container.read(setlistDetailDataProvider('b1', 's1').future);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        callCount = 0;
+
+        await container
+            .read(setlistDetailDataProvider('b1', 's1').notifier)
+            .reorderTracks(['B', 'A']);
+
+        expect(callCount, 0);
+      },
+    );
   });
 }

@@ -207,4 +207,33 @@ class SetlistDetailData extends _$SetlistDetailData {
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, updated);
   }
+
+  /// Patches the cached setlist detail's `tracks` order in-place after a
+  /// successful [PublicApi.reorderSetlistTracks] call (D-14), without an
+  /// additional network fetch — reordering doesn't change `durationSeconds`
+  /// or track count, unlike [SetlistDetailScreen]'s add/remove flows, so a
+  /// local patch is safe here. [trackIds] is the complete new order (every
+  /// track currently in the setlist); each id's full existing track map
+  /// (title/artist/durationSeconds) is preserved, only the order changes.
+  /// No-ops if there's no data to patch (e.g. called while still loading or
+  /// in an error state).
+  Future<void> reorderTracks(List<String> trackIds) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final oldTracks = (current['tracks'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+    final trackMap = {
+      for (final t in oldTracks) t['trackId'] as String: t,
+    };
+    final reordered = [
+      for (final id in trackIds)
+        if (trackMap.containsKey(id)) trackMap[id]!,
+    ];
+    _version++;
+    final updated = {...current, 'tracks': reordered};
+    state = AsyncData(updated);
+    await ref
+        .read(cacheServiceProvider)
+        .writeSetlistDetail(bandId, setlistId, updated);
+  }
 }
