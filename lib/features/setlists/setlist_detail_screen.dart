@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import 'add_setlist_tracks_dialog.dart';
 import 'confirm_delete_setlist_dialog.dart';
 import 'edit_setlist_screen.dart';
@@ -179,6 +181,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     final setlistAsync = ref.watch(
       setlistDetailDataProvider(widget.bandId, widget.setlistId),
     );
+    final syncedAt = ref.watch(
+      setlistDetailSyncedAtProvider(widget.bandId, widget.setlistId),
+    );
+    final isOnline = ref.watch(isOnlineProvider);
     final name = setlistAsync.valueOrNull?['name'] as String?;
     final currentSetlist = setlistAsync.valueOrNull;
 
@@ -189,21 +195,28 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
           if (currentSetlist != null)
             IconButton(
               icon: const Icon(Icons.edit),
-              tooltip: 'Edit setlist',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => EditSetlistScreen(
-                    bandId: widget.bandId,
-                    setlistId: widget.setlistId,
-                    currentSetlist: currentSetlist,
-                  ),
-                ),
-              ),
+              tooltip: isOnline ? 'Edit setlist' : 'Requires connection',
+              onPressed: isOnline
+                  ? () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EditSetlistScreen(
+                          bandId: widget.bandId,
+                          setlistId: widget.setlistId,
+                          currentSetlist: currentSetlist,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
         ],
       ),
       body: setlistAsync.when(
-        data: (setlist) => _buildContent(context, setlist),
+        data: (setlist) => Column(
+          children: [
+            SyncStatusBadge(syncedAt: syncedAt),
+            Expanded(child: _buildContent(context, setlist, isOnline)),
+          ],
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _buildError(
           context,
@@ -215,7 +228,11 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     );
   }
 
-  Widget _buildContent(BuildContext context, Map<String, dynamic> setlist) {
+  Widget _buildContent(
+    BuildContext context,
+    Map<String, dynamic> setlist,
+    bool isOnline,
+  ) {
     final name = setlist['name'] as String;
     final eventLocation = setlist['eventLocation'] as String?;
     final eventDate = setlist['eventDate'] as String?;
@@ -254,9 +271,16 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
               const SizedBox(height: 16),
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () => setState(() => _editMode = !_editMode),
-                  child: Text(_editMode ? 'Done' : 'Edit'),
+                child: Tooltip(
+                  message: isOnline || _editMode ? '' : 'Requires connection',
+                  child: TextButton(
+                    onPressed: isOnline
+                        ? () => setState(() => _editMode = !_editMode)
+                        : (_editMode
+                              ? () => setState(() => _editMode = false)
+                              : null),
+                    child: Text(_editMode ? 'Done' : 'Edit'),
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -274,7 +298,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
         Expanded(
           child: tracks.isEmpty
               ? const Center(child: Text('No tracks in this setlist'))
-              : _editMode
+              : (_editMode && isOnline)
               ? ReorderableListView.builder(
                   buildDefaultDragHandles: false,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -351,7 +375,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                   }).toList(),
                 ),
         ),
-        if (_editMode)
+        if (_editMode && isOnline)
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
             child: ElevatedButton(
@@ -370,16 +394,19 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
           ),
         const Divider(height: 1),
         ListTile(
+          enabled: isOnline,
           leading: Icon(Icons.delete, color: colorScheme.error),
           title: Text('Delete', style: TextStyle(color: colorScheme.error)),
-          onTap: () => showDialog<void>(
-            context: context,
-            builder: (_) => ConfirmDeleteSetlistDialog(
-              bandId: widget.bandId,
-              setlistId: widget.setlistId,
-              setlistName: name,
-            ),
-          ),
+          onTap: isOnline
+              ? () => showDialog<void>(
+                  context: context,
+                  builder: (_) => ConfirmDeleteSetlistDialog(
+                    bandId: widget.bandId,
+                    setlistId: widget.setlistId,
+                    setlistName: name,
+                  ),
+                )
+              : null,
         ),
       ],
     );

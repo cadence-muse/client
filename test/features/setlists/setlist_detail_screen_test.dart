@@ -6,6 +6,8 @@ import 'package:cadence/features/setlists/confirm_delete_setlist_dialog.dart';
 import 'package:cadence/features/setlists/edit_setlist_screen.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/widgets/sync_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,11 +26,20 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, CacheService cacheService) {
+  // Defaults isOnlineProvider to true — without an override,
+  // connectivity_plus has no platform-channel mock in the test environment
+  // and resolves to the fail-safe-offline default, which would break every
+  // pre-existing test written before this plan's connectivity gating.
+  Widget wrap(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: const MaterialApp(
         home: SetlistDetailScreen(bandId: 'b1', setlistId: 's1'),
@@ -557,6 +568,174 @@ void main() {
         findsOneWidget,
       );
       expect(getSetlistCallCount, 2);
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider false, the Edit IconButton is disabled with a '
+    '"Requires connection" tooltip and SyncStatusBadge is present; with it '
+    'true, the Edit IconButton is enabled',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+      await tester.pumpAndSettle();
+
+      final offlineEditButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.edit),
+      );
+      expect(offlineEditButton.onPressed, isNull);
+      expect(offlineEditButton.tooltip, 'Requires connection');
+      expect(find.byType(SyncStatusBadge), findsOneWidget);
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
+      await tester.pumpAndSettle();
+
+      final onlineEditButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.edit),
+      );
+      expect(onlineEditButton.onPressed, isNotNull);
+      expect(onlineEditButton.tooltip, 'Edit setlist');
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider false and _editMode initially false, tapping '
+    'Edit does not enter edit mode',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': [
+              {
+                'trackId': 't1',
+                'position': 0,
+                'title': 'Song One',
+                'artist': 'Artist One',
+                'durationSeconds': 200,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReorderableListView), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'entering edit mode online then connectivity dropping mid-session '
+    'collapses the ReorderableListView back to a plain read-only ListView '
+    'and hides the Add tracks button (D-14)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 200,
+            'tracks': [
+              {
+                'trackId': 't1',
+                'position': 0,
+                'title': 'Song One',
+                'artist': 'Artist One',
+                'durationSeconds': 200,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          apiClientProvider.overrideWithValue(apiClient),
+          cacheServiceProvider.overrideWithValue(cacheService),
+          isOnlineProvider.overrideWithValue(true),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: SetlistDetailScreen(bandId: 'b1', setlistId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReorderableListView), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Add tracks'),
+        findsOneWidget,
+      );
+
+      container.updateOverrides([
+        apiClientProvider.overrideWithValue(apiClient),
+        cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(false),
+      ]);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ReorderableListView), findsNothing);
+      expect(find.byType(ListView), findsWidgets);
+      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider false, the Delete ListTile is disabled',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+      await tester.pumpAndSettle();
+
+      final deleteTile = tester.widget<ListTile>(
+        find.widgetWithText(ListTile, 'Delete'),
+      );
+      expect(deleteTile.enabled, isFalse);
     },
   );
 }
