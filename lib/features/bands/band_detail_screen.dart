@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import '../setlists/setlist_list_screen.dart';
 import '../tracks/track_list_screen.dart';
 import 'band_avatar.dart';
@@ -44,6 +46,8 @@ class BandDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bandAsync = ref.watch(bandDetailDataProvider(bandId));
     final profileAsync = ref.watch(profileDataProvider);
+    final syncedAt = ref.watch(bandDetailSyncedAtProvider(bandId));
+    final isOnline = ref.watch(isOnlineProvider);
     final bandName = bandAsync.valueOrNull?['name'] as String?;
 
     return Scaffold(
@@ -51,20 +55,33 @@ class BandDetailScreen extends ConsumerWidget {
         title: Text(bandName ?? 'Band'),
         actions: [
           if (bandName != null)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'Edit',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      EditBandScreen(bandId: bandId, currentName: bandName),
-                ),
+            Tooltip(
+              message: isOnline ? 'Edit' : 'Requires connection',
+              child: IconButton(
+                icon: const Icon(Icons.edit),
+                onPressed: isOnline
+                    ? () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EditBandScreen(
+                            bandId: bandId,
+                            currentName: bandName,
+                          ),
+                        ),
+                      )
+                    : null,
               ),
             ),
         ],
       ),
       body: bandAsync.when(
-        data: (band) => _buildContent(context, band, profileAsync),
+        data: (band) => Column(
+          children: [
+            SyncStatusBadge(syncedAt: syncedAt),
+            Expanded(
+              child: _buildContent(context, band, profileAsync, isOnline),
+            ),
+          ],
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => _buildError(
           context,
@@ -78,6 +95,7 @@ class BandDetailScreen extends ConsumerWidget {
     BuildContext context,
     Map<String, dynamic> band,
     AsyncValue<Map<String, dynamic>> profileAsync,
+    bool isOnline,
   ) {
     final name = band['name'] as String;
     final ownerId = band['ownerId'] as String?;
@@ -130,20 +148,24 @@ class BandDetailScreen extends ConsumerWidget {
             return ListTile(
               title: Text(memberUsername),
               trailing: showRemove
-                  ? IconButton(
-                      icon: Icon(
-                        Icons.person_remove,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      tooltip: 'Remove',
-                      onPressed: () => showDialog<void>(
-                        context: context,
-                        builder: (_) => ConfirmRemoveMemberDialog(
-                          bandId: bandId,
-                          memberUserId: memberUserId,
-                          memberUsername: memberUsername,
-                          bandName: name,
+                  ? Tooltip(
+                      message: isOnline ? 'Remove' : 'Requires connection',
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.person_remove,
+                          color: Theme.of(context).colorScheme.error,
                         ),
+                        onPressed: isOnline
+                            ? () => showDialog<void>(
+                                context: context,
+                                builder: (_) => ConfirmRemoveMemberDialog(
+                                  bandId: bandId,
+                                  memberUserId: memberUserId,
+                                  memberUsername: memberUsername,
+                                  bandName: name,
+                                ),
+                              )
+                            : null,
                       ),
                     )
                   : null,
@@ -198,37 +220,53 @@ class BandDetailScreen extends ConsumerWidget {
         ),
         if (isOwner == true) ...[
           const Divider(height: 1),
-          ListTile(
-            leading: Icon(
-              Icons.delete,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            title: Text(
-              'Delete',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-            onTap: () => showDialog<void>(
-              context: context,
-              builder: (_) =>
-                  ConfirmDeleteBandDialog(bandId: bandId, bandName: name),
+          Tooltip(
+            message: isOnline ? '' : 'Requires connection',
+            child: ListTile(
+              enabled: isOnline,
+              leading: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                'Delete',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: isOnline
+                  ? () => showDialog<void>(
+                      context: context,
+                      builder: (_) => ConfirmDeleteBandDialog(
+                        bandId: bandId,
+                        bandName: name,
+                      ),
+                    )
+                  : null,
             ),
           ),
         ],
         if (isOwner == false) ...[
           const Divider(height: 1),
-          ListTile(
-            leading: Icon(
-              Icons.logout,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            title: Text(
-              'Leave',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-            onTap: () => showDialog<void>(
-              context: context,
-              builder: (_) =>
-                  ConfirmLeaveBandDialog(bandId: bandId, bandName: name),
+          Tooltip(
+            message: isOnline ? '' : 'Requires connection',
+            child: ListTile(
+              enabled: isOnline,
+              leading: Icon(
+                Icons.logout,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                'Leave',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: isOnline
+                  ? () => showDialog<void>(
+                      context: context,
+                      builder: (_) => ConfirmLeaveBandDialog(
+                        bandId: bandId,
+                        bandName: name,
+                      ),
+                    )
+                  : null,
             ),
           ),
         ],

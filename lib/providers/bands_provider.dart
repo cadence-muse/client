@@ -7,6 +7,31 @@ import '../cache/cache_service.dart';
 
 part 'bands_provider.g.dart';
 
+/// D-04/D-05 (05-01-PLAN.md): independent `syncedAt` for the `bands` list
+/// cache key, mirroring [ProfileSyncedAt]'s shape. Set from the cache's
+/// stored timestamp on a cache hit, and bumped unconditionally on every
+/// successful cache write (fetch or local mutation) — never gated by
+/// [BandsListData]'s `_version` guard, since the cache write it mirrors
+/// already succeeded regardless of whether the fetched data itself gets
+/// discarded (05-RESEARCH.md Pitfall 6).
+@riverpod
+class BandsListSyncedAt extends _$BandsListSyncedAt {
+  @override
+  DateTime? build() => null;
+
+  void set(DateTime? value) => state = value;
+}
+
+/// Family counterpart of [BandsListSyncedAt] for `GET /api/band/{bandId}`,
+/// keyed per band to match [BandDetailData]'s `build(String bandId)` shape.
+@riverpod
+class BandDetailSyncedAt extends _$BandDetailSyncedAt {
+  @override
+  DateTime? build(String bandId) => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 /// Cache-first `GET /api/band/list` data.
 ///
 /// On [build], cached data (if present) is returned immediately with a
@@ -35,6 +60,9 @@ class BandsListData extends _$BandsListData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readBands();
     if (cached != null) {
+      ref
+          .read(bandsListSyncedAtProvider.notifier)
+          .set(await cache.readBandsSyncedAt());
       unawaited(_refresh());
       return cached;
     }
@@ -44,6 +72,7 @@ class BandsListData extends _$BandsListData {
   Future<List<Map<String, dynamic>>> _fetchAndCache() async {
     final bands = await ref.read(publicApiProvider).listBands();
     await ref.read(cacheServiceProvider).writeBands(bands);
+    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
     return bands;
   }
 
@@ -92,6 +121,7 @@ class BandsListData extends _$BandsListData {
   void setBands(List<Map<String, dynamic>> bands) {
     _version++;
     state = AsyncData(bands);
+    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
   }
 
   /// Patches [bandId]'s name in-place in the cached list after a
@@ -109,6 +139,7 @@ class BandsListData extends _$BandsListData {
     _version++;
     state = AsyncData(updated);
     unawaited(ref.read(cacheServiceProvider).writeBands(updated));
+    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
   }
 }
 
@@ -136,6 +167,9 @@ class BandDetailData extends _$BandDetailData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readBandDetail(bandId);
     if (cached != null) {
+      ref
+          .read(bandDetailSyncedAtProvider(bandId).notifier)
+          .set(await cache.readBandDetailSyncedAt(bandId));
       unawaited(_refresh(bandId));
       return cached;
     }
@@ -145,6 +179,7 @@ class BandDetailData extends _$BandDetailData {
   Future<Map<String, dynamic>> _fetchAndCache(String bandId) async {
     final band = await ref.read(publicApiProvider).getBand(bandId);
     await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
+    ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
     return band;
   }
 
@@ -199,5 +234,6 @@ class BandDetailData extends _$BandDetailData {
     _version++;
     state = AsyncData(updated);
     await ref.read(cacheServiceProvider).writeBandDetail(bandId, updated);
+    ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
   }
 }

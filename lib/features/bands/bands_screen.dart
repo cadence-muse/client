@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
+import '../../providers/connectivity_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import 'band_avatar.dart';
 import 'band_detail_screen.dart';
 import 'create_band_screen.dart';
@@ -13,17 +15,25 @@ class BandsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bandsAsync = ref.watch(bandsListDataProvider);
+    final syncedAt = ref.watch(bandsListSyncedAtProvider);
+    final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bands')),
       body: bandsAsync.when(
-        data: (bands) => _buildContent(context, bands),
+        data: (bands) => Column(
+          children: [
+            SyncStatusBadge(syncedAt: syncedAt),
+            Expanded(child: _buildContent(context, bands)),
+          ],
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
             _buildError(context, () => ref.invalidate(bandsListDataProvider)),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateJoinMenu(context, ref),
+        onPressed: isOnline ? () => _showCreateJoinMenu(context, ref) : null,
+        tooltip: isOnline ? null : 'Requires connection',
         child: const Icon(Icons.add),
       ),
     );

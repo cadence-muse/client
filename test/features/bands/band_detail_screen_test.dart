@@ -7,6 +7,8 @@ import 'package:cadence/features/bands/band_avatar.dart';
 import 'package:cadence/features/bands/band_detail_screen.dart';
 import 'package:cadence/features/bands/edit_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/widgets/sync_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,15 +28,23 @@ void main() {
     );
   }
 
+  // Defaults isOnlineProvider to true so pre-existing tests (which predate
+  // OFFL-03's connectivity gating) keep exercising the "online" path unless a
+  // test explicitly overrides it — real-app connectivity_plus resolves
+  // AsyncLoading/AsyncError to `false` in this sandboxed test environment
+  // with no platform-channel mock, which would otherwise disable every
+  // mutation entry point by default.
   Widget wrap(
     ApiClient apiClient,
     CacheService cacheService, {
     String bandId = 'b1',
+    bool isOnline = true,
   }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(home: BandDetailScreen(bandId: bandId)),
     );
@@ -49,11 +59,13 @@ void main() {
     ApiClient apiClient,
     CacheService cacheService, {
     required String bandId,
+    bool isOnline = true,
   }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: Builder(
@@ -318,6 +330,133 @@ void main() {
       expect(find.byType(BandDetailScreen), findsOneWidget);
       expect(find.text('New Name'), findsWidgets);
       expect(find.text('Old Name'), findsNothing);
+    },
+  );
+
+  testWidgets('SyncStatusBadge is present once the band detail loads', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBandDetail('b1', band());
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode(band()), 200);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pump();
+
+    expect(find.byType(SyncStatusBadge), findsOneWidget);
+
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+    'Edit icon is disabled while offline and enabled while online',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode(band()), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      final offlineEditButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.edit),
+      );
+      expect(offlineEditButton.onPressed, isNull);
+
+      final onlineCacheService = CacheService.inMemory();
+      await onlineCacheService.writeBandDetail('b1', band());
+      await tester.pumpWidget(wrap(apiClient, onlineCacheService));
+      await tester.pumpAndSettle();
+
+      final onlineEditButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.edit),
+      );
+      expect(onlineEditButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'Delete and Leave tiles are disabled while offline (owner sees Delete, '
+    'member sees Leave)',
+    (tester) async {
+      final ownerCacheService = CacheService.inMemory();
+      await ownerCacheService.writeBandDetail('b1', band());
+      final ownerApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: band,
+      );
+
+      await tester.pumpWidget(
+        wrap(ownerApiClient, ownerCacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      final deleteTile = tester.widget<ListTile>(
+        find.widgetWithText(ListTile, 'Delete'),
+      );
+      expect(deleteTile.enabled, isFalse);
+      expect(deleteTile.onTap, isNull);
+
+      final memberCacheService = CacheService.inMemory();
+      await memberCacheService.writeBandDetail('b1', band());
+      final memberApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+      );
+
+      await tester.pumpWidget(
+        wrap(memberApiClient, memberCacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      final leaveTile = tester.widget<ListTile>(
+        find.widgetWithText(ListTile, 'Leave'),
+      );
+      expect(leaveTile.enabled, isFalse);
+      expect(leaveTile.onTap, isNull);
+    },
+  );
+
+  testWidgets(
+    'Remove icon on a member row is disabled while offline, enabled while '
+    'online',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(members: members),
+      );
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      final offlineRemoveButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.person_remove),
+      );
+      expect(offlineRemoveButton.onPressed, isNull);
+
+      final onlineCacheService = CacheService.inMemory();
+      await onlineCacheService.writeBandDetail('b1', band(members: members));
+      await tester.pumpWidget(wrap(apiClient, onlineCacheService));
+      await tester.pumpAndSettle();
+
+      final onlineRemoveButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.person_remove),
+      );
+      expect(onlineRemoveButton.onPressed, isNotNull);
     },
   );
 
