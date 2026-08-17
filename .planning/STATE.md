@@ -5,12 +5,12 @@ milestone_name: milestone
 current_phase: 5
 current_phase_name: Offline Trust & Connectivity UX
 status: planning
-stopped_at: Phase 04 UI-SPEC approved
-last_updated: "2026-08-17T06:13:22.044Z"
+stopped_at: Phase 5 context gathered
+last_updated: "2026-08-17T08:02:47.351Z"
 last_activity: 2026-08-17
 last_activity_desc: Phase 04 execution resumed (wave continue)
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 18
   completed_plans: 18
@@ -122,6 +122,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-16T18:22:22.497Z
-Stopped at: Phase 04 UI-SPEC approved
-Resume file: .planning/phases/04-setlists/04-UI-SPEC.md
+Last session: 2026-08-17T08:02:47.336Z
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-offline-trust-connectivity-ux/05-CONTEXT.md
