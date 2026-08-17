@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/home/home_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/widgets/sync_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -164,6 +165,28 @@ void main() {
       );
       expect(textWidget.maxLines, 1);
       expect(textWidget.overflow, TextOverflow.ellipsis);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'SyncStatusBadge is present once homepageDataProvider resolves to data',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 1});
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'username': 'alice', 'bandsCount': 1}),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byType(SyncStatusBadge), findsOneWidget);
 
       await tester.pumpAndSettle();
     },

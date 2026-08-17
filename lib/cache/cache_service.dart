@@ -135,7 +135,9 @@ class CacheService {
 
   Future<Map<String, dynamic>?> readProfile() async {
     try {
-      return _profileStore.get(_profileKey);
+      final wrapped = _profileStore.get(_profileKey);
+      if (wrapped == null) return null;
+      return wrapped['data'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
     }
@@ -143,16 +145,34 @@ class CacheService {
 
   Future<void> writeProfile(Map<String, dynamic> data) async {
     try {
-      await _profileStore.put(_profileKey, data);
+      await _profileStore.put(_profileKey, {
+        'data': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
     }
   }
 
+  /// D-04/D-05: independent `syncedAt` for the `profile` cache key, written
+  /// atomically alongside `data` in the same [writeProfile] call. `null`
+  /// before any write, or on any read exception.
+  Future<DateTime?> readProfileSyncedAt() async {
+    try {
+      final wrapped = _profileStore.get(_profileKey);
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> readHomepage() async {
     try {
-      return _homepageStore.get(_homepageKey);
+      final wrapped = _homepageStore.get(_homepageKey);
+      if (wrapped == null) return null;
+      return wrapped['data'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
     }
@@ -160,18 +180,31 @@ class CacheService {
 
   Future<void> writeHomepage(Map<String, dynamic> data) async {
     try {
-      await _homepageStore.put(_homepageKey, data);
+      await _homepageStore.put(_homepageKey, {
+        'data': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
     }
   }
 
+  Future<DateTime?> readHomepageSyncedAt() async {
+    try {
+      final wrapped = _homepageStore.get(_homepageKey);
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Map<String, dynamic>>?> readBands() async {
     try {
-      final cached = _bandsStore.get(_bandsKey);
-      if (cached == null) return null;
-      return (cached['items'] as List).cast<Map<String, dynamic>>();
+      final wrapped = _bandsStore.get(_bandsKey);
+      if (wrapped == null) return null;
+      return (wrapped['items'] as List).cast<Map<String, dynamic>>();
     } catch (_) {
       return null;
     }
@@ -179,16 +212,31 @@ class CacheService {
 
   Future<void> writeBands(List<Map<String, dynamic>> data) async {
     try {
-      await _bandsStore.put(_bandsKey, {'items': data});
+      await _bandsStore.put(_bandsKey, {
+        'items': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
     }
   }
 
+  Future<DateTime?> readBandsSyncedAt() async {
+    try {
+      final wrapped = _bandsStore.get(_bandsKey);
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> readBandDetail(String bandId) async {
     try {
-      return _bandsStore.get(_bandDetailKey(bandId));
+      final wrapped = _bandsStore.get(_bandDetailKey(bandId));
+      if (wrapped == null) return null;
+      return wrapped['data'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
     }
@@ -196,10 +244,23 @@ class CacheService {
 
   Future<void> writeBandDetail(String bandId, Map<String, dynamic> data) async {
     try {
-      await _bandsStore.put(_bandDetailKey(bandId), data);
+      await _bandsStore.put(_bandDetailKey(bandId), {
+        'data': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  Future<DateTime?> readBandDetailSyncedAt(String bandId) async {
+    try {
+      final wrapped = _bandsStore.get(_bandDetailKey(bandId));
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -207,9 +268,9 @@ class CacheService {
 
   Future<List<Map<String, dynamic>>?> readBandTracks(String bandId) async {
     try {
-      final cached = _tracksStore.get(_bandTracksKey(bandId));
-      if (cached == null) return null;
-      return (cached['items'] as List).cast<Map<String, dynamic>>();
+      final wrapped = _tracksStore.get(_bandTracksKey(bandId));
+      if (wrapped == null) return null;
+      return (wrapped['items'] as List).cast<Map<String, dynamic>>();
     } catch (_) {
       return null;
     }
@@ -220,10 +281,23 @@ class CacheService {
     List<Map<String, dynamic>> data,
   ) async {
     try {
-      await _tracksStore.put(_bandTracksKey(bandId), {'items': data});
+      await _tracksStore.put(_bandTracksKey(bandId), {
+        'items': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  Future<DateTime?> readBandTracksSyncedAt(String bandId) async {
+    try {
+      final wrapped = _tracksStore.get(_bandTracksKey(bandId));
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -234,7 +308,9 @@ class CacheService {
     String trackId,
   ) async {
     try {
-      return _tracksStore.get(_trackDetailKey(bandId, trackId));
+      final wrapped = _tracksStore.get(_trackDetailKey(bandId, trackId));
+      if (wrapped == null) return null;
+      return wrapped['data'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
     }
@@ -246,10 +322,26 @@ class CacheService {
     Map<String, dynamic> data,
   ) async {
     try {
-      await _tracksStore.put(_trackDetailKey(bandId, trackId), data);
+      await _tracksStore.put(_trackDetailKey(bandId, trackId), {
+        'data': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  Future<DateTime?> readBandTrackDetailSyncedAt(
+    String bandId,
+    String trackId,
+  ) async {
+    try {
+      final wrapped = _tracksStore.get(_trackDetailKey(bandId, trackId));
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -260,9 +352,9 @@ class CacheService {
     String? bandIdFilter,
   ) async {
     try {
-      final cached = _tracksStore.get(_userTracksKey(bandIdFilter));
-      if (cached == null) return null;
-      return (cached['items'] as List).cast<Map<String, dynamic>>();
+      final wrapped = _tracksStore.get(_userTracksKey(bandIdFilter));
+      if (wrapped == null) return null;
+      return (wrapped['items'] as List).cast<Map<String, dynamic>>();
     } catch (_) {
       return null;
     }
@@ -273,10 +365,23 @@ class CacheService {
     List<Map<String, dynamic>> data,
   ) async {
     try {
-      await _tracksStore.put(_userTracksKey(bandIdFilter), {'items': data});
+      await _tracksStore.put(_userTracksKey(bandIdFilter), {
+        'items': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  Future<DateTime?> readUserTracksSyncedAt(String? bandIdFilter) async {
+    try {
+      final wrapped = _tracksStore.get(_userTracksKey(bandIdFilter));
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -285,9 +390,9 @@ class CacheService {
 
   Future<List<Map<String, dynamic>>?> readBandSetlists(String bandId) async {
     try {
-      final cached = _setlistsStore.get(_bandSetlistsKey(bandId));
-      if (cached == null) return null;
-      return (cached['items'] as List).cast<Map<String, dynamic>>();
+      final wrapped = _setlistsStore.get(_bandSetlistsKey(bandId));
+      if (wrapped == null) return null;
+      return (wrapped['items'] as List).cast<Map<String, dynamic>>();
     } catch (_) {
       return null;
     }
@@ -298,10 +403,23 @@ class CacheService {
     List<Map<String, dynamic>> data,
   ) async {
     try {
-      await _setlistsStore.put(_bandSetlistsKey(bandId), {'items': data});
+      await _setlistsStore.put(_bandSetlistsKey(bandId), {
+        'items': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  Future<DateTime?> readBandSetlistsSyncedAt(String bandId) async {
+    try {
+      final wrapped = _setlistsStore.get(_bandSetlistsKey(bandId));
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -312,7 +430,9 @@ class CacheService {
     String setlistId,
   ) async {
     try {
-      return _setlistsStore.get(_setlistDetailKey(bandId, setlistId));
+      final wrapped = _setlistsStore.get(_setlistDetailKey(bandId, setlistId));
+      if (wrapped == null) return null;
+      return wrapped['data'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
     }
@@ -324,10 +444,26 @@ class CacheService {
     Map<String, dynamic> data,
   ) async {
     try {
-      await _setlistsStore.put(_setlistDetailKey(bandId, setlistId), data);
+      await _setlistsStore.put(_setlistDetailKey(bandId, setlistId), {
+        'data': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  Future<DateTime?> readSetlistDetailSyncedAt(
+    String bandId,
+    String setlistId,
+  ) async {
+    try {
+      final wrapped = _setlistsStore.get(_setlistDetailKey(bandId, setlistId));
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -338,9 +474,9 @@ class CacheService {
     String? bandIdFilter,
   ) async {
     try {
-      final cached = _setlistsStore.get(_userSetlistsKey(bandIdFilter));
-      if (cached == null) return null;
-      return (cached['items'] as List).cast<Map<String, dynamic>>();
+      final wrapped = _setlistsStore.get(_userSetlistsKey(bandIdFilter));
+      if (wrapped == null) return null;
+      return (wrapped['items'] as List).cast<Map<String, dynamic>>();
     } catch (_) {
       return null;
     }
@@ -353,10 +489,21 @@ class CacheService {
     try {
       await _setlistsStore.put(_userSetlistsKey(bandIdFilter), {
         'items': data,
+        'syncedAt': DateTime.now().toIso8601String(),
       });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  Future<DateTime?> readUserSetlistsSyncedAt(String? bandIdFilter) async {
+    try {
+      final wrapped = _setlistsStore.get(_userSetlistsKey(bandIdFilter));
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 

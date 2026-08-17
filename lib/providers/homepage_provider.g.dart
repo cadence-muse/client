@@ -6,7 +6,7 @@ part of 'homepage_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$homepageDataHash() => r'bcdbd3a466253bc4e9f87135fc2fadf2c35294b6';
+String _$homepageSyncedAtHash() => r'50ae2aca0da4972743ccd7f2d23bef48a10c1257';
 
 /// Cache-first `GET /api/homepage` data.
 ///
@@ -20,8 +20,29 @@ String _$homepageDataHash() => r'bcdbd3a466253bc4e9f87135fc2fadf2c35294b6';
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
 /// rather than firing a second network request.
+/// D-05/D-06: `homepage` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp. Set on a cache hit (from the
+/// pre-existing cached value) and bumped unconditionally on every successful
+/// [HomepageData._fetchAndCache] — never on a failed background refresh,
+/// since `_refresh()`'s catch branch never reaches that call.
 ///
-/// Copied from [HomepageData].
+/// Copied from [HomepageSyncedAt].
+@ProviderFor(HomepageSyncedAt)
+final homepageSyncedAtProvider =
+    AutoDisposeNotifierProvider<HomepageSyncedAt, DateTime?>.internal(
+      HomepageSyncedAt.new,
+      name: r'homepageSyncedAtProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$homepageSyncedAtHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$HomepageSyncedAt = AutoDisposeNotifier<DateTime?>;
+String _$homepageDataHash() => r'ba02014a71cb2eccba6ecddc4ba9dafa999baa53';
+
+/// See also [HomepageData].
 @ProviderFor(HomepageData)
 final homepageDataProvider =
     AutoDisposeAsyncNotifierProvider<

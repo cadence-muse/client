@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import '../settings/settings_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -11,6 +12,7 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(profileDataProvider);
+    final syncedAt = ref.watch(profileSyncedAtProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -24,7 +26,12 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
       body: profileAsync.when(
-        data: (profile) => _buildContent(context, ref, profile),
+        data: (profile) => Column(
+          children: [
+            SyncStatusBadge(syncedAt: syncedAt),
+            Expanded(child: _buildContent(context, ref, profile)),
+          ],
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
             _buildError(context, () => ref.invalidate(profileDataProvider)),

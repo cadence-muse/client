@@ -6,7 +6,7 @@ part of 'profile_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$profileDataHash() => r'4fe1ff792a3dd0e86f4bc39ad8e0f7233cd539fb';
+String _$profileSyncedAtHash() => r'568ee3fe423cc7165e0a04bb6d638143360401df';
 
 /// Cache-first `GET /api/me` data.
 ///
@@ -20,8 +20,29 @@ String _$profileDataHash() => r'4fe1ff792a3dd0e86f4bc39ad8e0f7233cd539fb';
 /// [refresh] (the UI's pull-to-refresh / refresh-button entry point) dedupes
 /// concurrent calls: a second call while one is already in flight reuses the
 /// same [Future] rather than firing a second network request.
+/// D-05/D-06: `profile` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp. Set on a cache hit (from the
+/// pre-existing cached value) and bumped unconditionally on every successful
+/// [ProfileData._fetchAndCache] — never on a failed background refresh,
+/// since `_refresh()`'s catch branch never reaches that call.
 ///
-/// Copied from [ProfileData].
+/// Copied from [ProfileSyncedAt].
+@ProviderFor(ProfileSyncedAt)
+final profileSyncedAtProvider =
+    AutoDisposeNotifierProvider<ProfileSyncedAt, DateTime?>.internal(
+      ProfileSyncedAt.new,
+      name: r'profileSyncedAtProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$profileSyncedAtHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$ProfileSyncedAt = AutoDisposeNotifier<DateTime?>;
+String _$profileDataHash() => r'6bc11d208026f067ab10df8c1ab9e6994b6984af';
+
+/// See also [ProfileData].
 @ProviderFor(ProfileData)
 final profileDataProvider =
     AutoDisposeAsyncNotifierProvider<

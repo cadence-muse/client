@@ -19,6 +19,19 @@ part 'homepage_provider.g.dart';
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
 /// rather than firing a second network request.
+/// D-05/D-06: `homepage` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp. Set on a cache hit (from the
+/// pre-existing cached value) and bumped unconditionally on every successful
+/// [HomepageData._fetchAndCache] — never on a failed background refresh,
+/// since `_refresh()`'s catch branch never reaches that call.
+@riverpod
+class HomepageSyncedAt extends _$HomepageSyncedAt {
+  @override
+  DateTime? build() => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class HomepageData extends _$HomepageData {
   Future<void>? _inFlightRefresh;
@@ -28,6 +41,9 @@ class HomepageData extends _$HomepageData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readHomepage();
     if (cached != null) {
+      ref
+          .read(homepageSyncedAtProvider.notifier)
+          .set(await cache.readHomepageSyncedAt());
       unawaited(_refresh());
       return cached;
     }
@@ -39,6 +55,7 @@ class HomepageData extends _$HomepageData {
     final data = await apiClient.send('GET', '/api/homepage');
     final homepage = data!;
     await ref.read(cacheServiceProvider).writeHomepage(homepage);
+    ref.read(homepageSyncedAtProvider.notifier).set(DateTime.now());
     return homepage;
   }
 

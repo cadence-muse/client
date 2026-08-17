@@ -109,4 +109,44 @@ void main() {
 
     expect(callCount, 1);
   });
+
+  test(
+    'on a cache hit, homepageSyncedAtProvider resolves to the pre-seeded '
+    "cache's syncedAt before the background refresh settles, then updates "
+    'to a later value once the background refresh completes',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({
+        'username': 'cacheduser',
+        'bandsCount': 2,
+      });
+      final seededSyncedAt = await cacheService.readHomepageSyncedAt();
+
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response(
+          jsonEncode({'username': 'freshuser', 'bandsCount': 3}),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      // Keep both (autoDispose) providers alive across the gaps below,
+      // mirroring the persistent subscription a widget's ref.watch would
+      // hold in production (HomeScreen watches both).
+      container.listen(homepageDataProvider, (_, _) {});
+      container.listen(homepageSyncedAtProvider, (_, _) {});
+
+      await container.read(homepageDataProvider.future);
+
+      expect(container.read(homepageSyncedAtProvider), seededSyncedAt);
+
+      // Drain the background refresh fired from build()'s cache hit.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final refreshedSyncedAt = container.read(homepageSyncedAtProvider);
+      expect(refreshedSyncedAt, isNotNull);
+      expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+    },
+  );
 }

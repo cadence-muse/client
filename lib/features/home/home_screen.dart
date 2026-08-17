@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/homepage_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import '../bands/bands_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -10,6 +11,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeAsync = ref.watch(homepageDataProvider);
+    final syncedAt = ref.watch(homepageSyncedAtProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -23,7 +25,12 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       body: homeAsync.when(
-        data: (data) => _buildContent(context, data),
+        data: (data) => Column(
+          children: [
+            SyncStatusBadge(syncedAt: syncedAt),
+            Expanded(child: _buildContent(context, data)),
+          ],
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
             _buildError(context, () => ref.invalidate(homepageDataProvider)),

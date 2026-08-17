@@ -49,10 +49,10 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Offline & State
 
 - [x] **OFFL-01**: Profile, homepage, band, track, and setlist GET data is cached locally on Android/iOS
-- [ ] **OFFL-02**: Cached data remains viewable when the device has no connectivity
+- [x] **OFFL-02**: Cached data remains viewable when the device has no connectivity
 - [ ] **OFFL-03**: Mutations (create/update/delete) require connectivity and are disabled/blocked when offline
-- [ ] **OFFL-04**: Each cached screen shows a "last synced Xm ago" indicator, escalating to a warning style past ~30 minutes stale
-- [ ] **OFFL-05**: App shows a global offline-mode banner when the device has no connectivity
+- [x] **OFFL-04**: Each cached screen shows a "last synced Xm ago" indicator, escalating to a warning style past ~30 minutes stale
+- [x] **OFFL-05**: App shows a global offline-mode banner when the device has no connectivity
 - [x] **OFFL-06**: App state management migrates from ChangeNotifier/constructor-injected DI to Provider or Riverpod for band/track/setlist state shared across tabs
 
 ## v2 Requirements
@@ -129,10 +129,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETL-08 | Phase 4 | Complete |
 | SETL-09 | Phase 4 | Complete |
 | SETL-10 | Phase 4 | Complete |
-| OFFL-02 | Phase 5 | Pending |
+| OFFL-02 | Phase 5 | Complete |
 | OFFL-03 | Phase 5 | Pending |
-| OFFL-04 | Phase 5 | Pending |
-| OFFL-05 | Phase 5 | Pending |
+| OFFL-04 | Phase 5 | Complete |
+| OFFL-05 | Phase 5 | Complete |
 
 **Coverage:**
 
