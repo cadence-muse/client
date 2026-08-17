@@ -5,6 +5,7 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/features/setlists/setlists_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/widgets/sync_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -320,6 +321,64 @@ void main() {
       );
       expect(detailScreen.bandId, 'b2');
       expect(detailScreen.setlistId, 's2');
+    },
+  );
+
+  testWidgets(
+    'SyncStatusBadge is present once the global list loads; no '
+    'FloatingActionButton is present (SETL-10 is view-only)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'b1', 'name': 'Band One'},
+      ]);
+      await cacheService.writeUserSetlists(null, [
+        {
+          'id': 's1',
+          'name': 'Setlist One',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+          'bandId': 'b1',
+          'bandName': 'Band One',
+        },
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist One',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(SyncStatusBadge), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsNothing);
+
+      await tester.pumpAndSettle();
     },
   );
 }

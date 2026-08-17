@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
 
 /// Lets any band member edit an existing setlist's info (SETL-04) via a
@@ -114,6 +115,8 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Edit setlist')),
       body: SafeArea(
@@ -163,15 +166,18 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
                   ),
                 ],
                 const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save'),
+                Tooltip(
+                  message: isOnline ? '' : 'Requires connection',
+                  child: FilledButton(
+                    onPressed: (_isSubmitting || !isOnline) ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(isOnline ? 'Save' : 'Requires connection'),
+                  ),
                 ),
               ],
             ),

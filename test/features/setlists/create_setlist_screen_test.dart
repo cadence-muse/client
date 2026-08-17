@@ -5,6 +5,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/create_setlist_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,13 +24,22 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, {CacheService? cacheService}) {
+  // Defaults isOnlineProvider to true — without an override, connectivity_plus
+  // has no platform-channel mock in the test environment and resolves to the
+  // fail-safe-offline default, which would break every pre-existing test
+  // written before this plan's connectivity gating.
+  Widget wrap(
+    ApiClient apiClient, {
+    CacheService? cacheService,
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(
           cacheService ?? CacheService.inMemory(),
         ),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
         home: Builder(
@@ -267,6 +277,43 @@ void main() {
       final decoded = jsonDecode(requestBody!) as Map<String, dynamic>;
       expect(decoded['name'], 'My Setlist');
       expect(decoded['trackIds'], ['t1']);
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider false, the Create button is disabled with a '
+    '"Requires connection" label',
+    (tester) async {
+      final apiClient = buildApiClient(defaultHandler);
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: false));
+      await openCreateSetlistScreen(tester);
+      await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
+      await tester.pump();
+
+      final offlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(offlineButton.onPressed, isNull);
+      expect(find.text('Requires connection'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider true and a valid form, the Create button is '
+    'enabled',
+    (tester) async {
+      final apiClient = buildApiClient(defaultHandler);
+
+      await tester.pumpWidget(wrap(apiClient, isOnline: true));
+      await openCreateSetlistScreen(tester);
+      await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
+      await tester.pump();
+
+      final onlineButton = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      expect(onlineButton.onPressed, isNotNull);
     },
   );
 }

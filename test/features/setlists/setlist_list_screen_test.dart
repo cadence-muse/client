@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/setlist_list_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,11 +23,16 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, CacheService cacheService) {
+  Widget wrap(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    bool? isOnline,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        if (isOnline != null) isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: const MaterialApp(home: SetlistListScreen(bandId: 'b1')),
     );
@@ -206,6 +212,43 @@ void main() {
       final nameWidget = tester.widget<Text>(find.text(longName));
       expect(nameWidget.maxLines, 1);
       expect(nameWidget.overflow, TextOverflow.ellipsis);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'with isOnlineProvider false, the FAB is disabled with a "Requires '
+    'connection" tooltip; with it true, the FAB is enabled',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandSetlists('b1', []);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': []}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pump();
+
+      final offlineFab = tester.widget<FloatingActionButton>(
+        find.byType(FloatingActionButton),
+      );
+      expect(offlineFab.onPressed, isNull);
+      expect(offlineFab.tooltip, 'Requires connection');
+
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
+      await tester.pump();
+
+      final onlineFab = tester.widget<FloatingActionButton>(
+        find.byType(FloatingActionButton),
+      );
+      expect(onlineFab.onPressed, isNotNull);
+      expect(onlineFab.tooltip, 'Add setlist');
 
       await tester.pumpAndSettle();
     },

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
 import '../../providers/tracks_provider.dart';
 
@@ -90,6 +91,7 @@ class _AddSetlistTracksDialogState
   @override
   Widget build(BuildContext context) {
     final tracksAsync = ref.watch(trackListDataProvider(widget.bandId));
+    final isOnline = ref.watch(isOnlineProvider);
 
     return AlertDialog(
       title: const Text('Add tracks'),
@@ -205,17 +207,21 @@ class _AddSetlistTracksDialogState
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: (_isSubmitting || _selectedTrackIds.isEmpty)
-              ? null
-              : _submit,
-          child: _isSubmitting
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Add'),
+        Tooltip(
+          message: isOnline ? '' : 'Requires connection',
+          child: FilledButton(
+            onPressed:
+                (_isSubmitting || _selectedTrackIds.isEmpty || !isOnline)
+                ? null
+                : _submit,
+            child: _isSubmitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(isOnline ? 'Add' : 'Requires connection'),
+          ),
         ),
       ],
     );

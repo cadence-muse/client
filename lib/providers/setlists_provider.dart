@@ -20,6 +20,21 @@ part 'setlists_provider.g.dart';
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
 /// rather than firing a second network request.
+/// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
+/// `profile_provider.dart`). Set on a cache hit (from the pre-existing
+/// cached value) and bumped unconditionally on every successful
+/// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
+/// never on a failed background refresh, since `_refresh()`'s catch branch
+/// never reaches that call.
+@riverpod
+class SetlistListSyncedAt extends _$SetlistListSyncedAt {
+  @override
+  DateTime? build(String bandId) => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class SetlistListData extends _$SetlistListData {
   Future<void>? _inFlightRefresh;
@@ -36,6 +51,9 @@ class SetlistListData extends _$SetlistListData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readBandSetlists(bandId);
     if (cached != null) {
+      ref
+          .read(setlistListSyncedAtProvider(bandId).notifier)
+          .set(await cache.readBandSetlistsSyncedAt(bandId));
       unawaited(_refresh(bandId));
       return cached;
     }
@@ -47,6 +65,7 @@ class SetlistListData extends _$SetlistListData {
         .read(publicApiProvider)
         .listBandSetlists(bandId);
     await ref.read(cacheServiceProvider).writeBandSetlists(bandId, setlists);
+    ref.read(setlistListSyncedAtProvider(bandId).notifier).set(DateTime.now());
     return setlists;
   }
 
@@ -106,6 +125,7 @@ class SetlistListData extends _$SetlistListData {
     unawaited(
       ref.read(cacheServiceProvider).writeBandSetlists(bandId, filtered),
     );
+    ref.read(setlistListSyncedAtProvider(bandId).notifier).set(DateTime.now());
   }
 }
 
@@ -117,6 +137,21 @@ class SetlistListData extends _$SetlistListData {
 /// immediately with a silent background refresh; cache miss fetches inline
 /// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
 /// setlists" + Retry error state).
+/// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
+/// Set on a cache hit (from the pre-existing cached value) and bumped
+/// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
+/// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
+/// write — never on a failed background refresh, since `_refresh()`'s catch
+/// branch never reaches that call.
+@riverpod
+class SetlistDetailSyncedAt extends _$SetlistDetailSyncedAt {
+  @override
+  DateTime? build(String bandId, String setlistId) => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class SetlistDetailData extends _$SetlistDetailData {
   Future<void>? _inFlightRefresh;
@@ -133,6 +168,9 @@ class SetlistDetailData extends _$SetlistDetailData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readSetlistDetail(bandId, setlistId);
     if (cached != null) {
+      ref
+          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+          .set(await cache.readSetlistDetailSyncedAt(bandId, setlistId));
       unawaited(_refresh(bandId, setlistId));
       return cached;
     }
@@ -149,6 +187,9 @@ class SetlistDetailData extends _$SetlistDetailData {
     await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, setlist);
+    ref
+        .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+        .set(DateTime.now());
     return setlist;
   }
 
@@ -206,6 +247,9 @@ class SetlistDetailData extends _$SetlistDetailData {
     await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, updated);
+    ref
+        .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+        .set(DateTime.now());
   }
 
   /// Patches the cached setlist detail's `tracks` order in-place after a
@@ -235,6 +279,9 @@ class SetlistDetailData extends _$SetlistDetailData {
     await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, updated);
+    ref
+        .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+        .set(DateTime.now());
   }
 }
 
@@ -268,6 +315,20 @@ class SelectedSetlistBandIdFilter extends _$SelectedSetlistBandIdFilter {
 /// watches [selectedSetlistBandIdFilterProvider] directly, so changing the
 /// filter automatically triggers a full rebuild with the new cache
 /// key/fetch).
+/// D-04: `userSetlists` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [HomepageSyncedAt], see
+/// `homepage_provider.dart`). Set on a cache hit (from the pre-existing
+/// cached value) and bumped unconditionally on every successful
+/// [UserSetlistsListData._fetchAndCache] — never on a failed background
+/// refresh, since `_refresh()`'s catch branch never reaches that call.
+@riverpod
+class UserSetlistsSyncedAt extends _$UserSetlistsSyncedAt {
+  @override
+  DateTime? build() => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class UserSetlistsListData extends _$UserSetlistsListData {
   Future<void>? _inFlightRefresh;
@@ -285,6 +346,9 @@ class UserSetlistsListData extends _$UserSetlistsListData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readUserSetlists(bandIdFilter);
     if (cached != null) {
+      ref
+          .read(userSetlistsSyncedAtProvider.notifier)
+          .set(await cache.readUserSetlistsSyncedAt(bandIdFilter));
       unawaited(_refresh(bandIdFilter));
       return cached;
     }
@@ -300,6 +364,7 @@ class UserSetlistsListData extends _$UserSetlistsListData {
     await ref
         .read(cacheServiceProvider)
         .writeUserSetlists(bandIdFilter, setlists);
+    ref.read(userSetlistsSyncedAtProvider.notifier).set(DateTime.now());
     return setlists;
   }
 

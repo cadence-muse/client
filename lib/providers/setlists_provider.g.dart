@@ -6,7 +6,8 @@ part of 'setlists_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$setlistListDataHash() => r'2136f4e8e2eb6f0a06f0c54f8405e3f50b8cb63a';
+String _$setlistListSyncedAtHash() =>
+    r'b29c8520784425b1ae4bc28761689bdab9f177f7';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,11 +30,11 @@ class _SystemHash {
   }
 }
 
-abstract class _$SetlistListData
-    extends BuildlessAutoDisposeAsyncNotifier<List<Map<String, dynamic>>> {
+abstract class _$SetlistListSyncedAt
+    extends BuildlessAutoDisposeNotifier<DateTime?> {
   late final String bandId;
 
-  FutureOr<List<Map<String, dynamic>>> build(String bandId);
+  DateTime? build(String bandId);
 }
 
 /// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
@@ -49,10 +50,17 @@ abstract class _$SetlistListData
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
 /// rather than firing a second network request.
+/// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
+/// `profile_provider.dart`). Set on a cache hit (from the pre-existing
+/// cached value) and bumped unconditionally on every successful
+/// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
+/// never on a failed background refresh, since `_refresh()`'s catch branch
+/// never reaches that call.
 ///
-/// Copied from [SetlistListData].
-@ProviderFor(SetlistListData)
-const setlistListDataProvider = SetlistListDataFamily();
+/// Copied from [SetlistListSyncedAt].
+@ProviderFor(SetlistListSyncedAt)
+const setlistListSyncedAtProvider = SetlistListSyncedAtFamily();
 
 /// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
 /// (family provider — mirrors [TrackListData]'s cache-first shape, see
@@ -67,10 +75,16 @@ const setlistListDataProvider = SetlistListDataFamily();
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
 /// rather than firing a second network request.
+/// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
+/// `profile_provider.dart`). Set on a cache hit (from the pre-existing
+/// cached value) and bumped unconditionally on every successful
+/// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
+/// never on a failed background refresh, since `_refresh()`'s catch branch
+/// never reaches that call.
 ///
-/// Copied from [SetlistListData].
-class SetlistListDataFamily
-    extends Family<AsyncValue<List<Map<String, dynamic>>>> {
+/// Copied from [SetlistListSyncedAt].
+class SetlistListSyncedAtFamily extends Family<DateTime?> {
   /// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
   /// (family provider — mirrors [TrackListData]'s cache-first shape, see
   /// `tracks_provider.dart`).
@@ -84,9 +98,16 @@ class SetlistListDataFamily
   /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
   /// a second call while one is already in flight reuses the same [Future]
   /// rather than firing a second network request.
+  /// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
+  /// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
+  /// `profile_provider.dart`). Set on a cache hit (from the pre-existing
+  /// cached value) and bumped unconditionally on every successful
+  /// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
+  /// never on a failed background refresh, since `_refresh()`'s catch branch
+  /// never reaches that call.
   ///
-  /// Copied from [SetlistListData].
-  const SetlistListDataFamily();
+  /// Copied from [SetlistListSyncedAt].
+  const SetlistListSyncedAtFamily();
 
   /// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
   /// (family provider — mirrors [TrackListData]'s cache-first shape, see
@@ -101,8 +122,190 @@ class SetlistListDataFamily
   /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
   /// a second call while one is already in flight reuses the same [Future]
   /// rather than firing a second network request.
+  /// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
+  /// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
+  /// `profile_provider.dart`). Set on a cache hit (from the pre-existing
+  /// cached value) and bumped unconditionally on every successful
+  /// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
+  /// never on a failed background refresh, since `_refresh()`'s catch branch
+  /// never reaches that call.
   ///
-  /// Copied from [SetlistListData].
+  /// Copied from [SetlistListSyncedAt].
+  SetlistListSyncedAtProvider call(String bandId) {
+    return SetlistListSyncedAtProvider(bandId);
+  }
+
+  @override
+  SetlistListSyncedAtProvider getProviderOverride(
+    covariant SetlistListSyncedAtProvider provider,
+  ) {
+    return call(provider.bandId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'setlistListSyncedAtProvider';
+}
+
+/// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
+/// (family provider — mirrors [TrackListData]'s cache-first shape, see
+/// `tracks_provider.dart`).
+///
+/// On [build], cached data (if present) is returned immediately with a
+/// background refresh kicked off silently (no loading spinner, no error
+/// surfaced if the background refresh fails). With no cache, the network
+/// fetch happens inline and any [ApiException] becomes an [AsyncError],
+/// which is what drives the "Failed to load setlists" + Retry error state.
+///
+/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+/// a second call while one is already in flight reuses the same [Future]
+/// rather than firing a second network request.
+/// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
+/// `profile_provider.dart`). Set on a cache hit (from the pre-existing
+/// cached value) and bumped unconditionally on every successful
+/// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
+/// never on a failed background refresh, since `_refresh()`'s catch branch
+/// never reaches that call.
+///
+/// Copied from [SetlistListSyncedAt].
+class SetlistListSyncedAtProvider
+    extends AutoDisposeNotifierProviderImpl<SetlistListSyncedAt, DateTime?> {
+  /// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
+  /// (family provider — mirrors [TrackListData]'s cache-first shape, see
+  /// `tracks_provider.dart`).
+  ///
+  /// On [build], cached data (if present) is returned immediately with a
+  /// background refresh kicked off silently (no loading spinner, no error
+  /// surfaced if the background refresh fails). With no cache, the network
+  /// fetch happens inline and any [ApiException] becomes an [AsyncError],
+  /// which is what drives the "Failed to load setlists" + Retry error state.
+  ///
+  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+  /// a second call while one is already in flight reuses the same [Future]
+  /// rather than firing a second network request.
+  /// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
+  /// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
+  /// `profile_provider.dart`). Set on a cache hit (from the pre-existing
+  /// cached value) and bumped unconditionally on every successful
+  /// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
+  /// never on a failed background refresh, since `_refresh()`'s catch branch
+  /// never reaches that call.
+  ///
+  /// Copied from [SetlistListSyncedAt].
+  SetlistListSyncedAtProvider(String bandId)
+    : this._internal(
+        () => SetlistListSyncedAt()..bandId = bandId,
+        from: setlistListSyncedAtProvider,
+        name: r'setlistListSyncedAtProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$setlistListSyncedAtHash,
+        dependencies: SetlistListSyncedAtFamily._dependencies,
+        allTransitiveDependencies:
+            SetlistListSyncedAtFamily._allTransitiveDependencies,
+        bandId: bandId,
+      );
+
+  SetlistListSyncedAtProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.bandId,
+  }) : super.internal();
+
+  final String bandId;
+
+  @override
+  DateTime? runNotifierBuild(covariant SetlistListSyncedAt notifier) {
+    return notifier.build(bandId);
+  }
+
+  @override
+  Override overrideWith(SetlistListSyncedAt Function() create) {
+    return ProviderOverride(
+      origin: this,
+      override: SetlistListSyncedAtProvider._internal(
+        () => create()..bandId = bandId,
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        bandId: bandId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeNotifierProviderElement<SetlistListSyncedAt, DateTime?>
+  createElement() {
+    return _SetlistListSyncedAtProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SetlistListSyncedAtProvider && other.bandId == bandId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, bandId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin SetlistListSyncedAtRef on AutoDisposeNotifierProviderRef<DateTime?> {
+  /// The parameter `bandId` of this provider.
+  String get bandId;
+}
+
+class _SetlistListSyncedAtProviderElement
+    extends AutoDisposeNotifierProviderElement<SetlistListSyncedAt, DateTime?>
+    with SetlistListSyncedAtRef {
+  _SetlistListSyncedAtProviderElement(super.provider);
+
+  @override
+  String get bandId => (origin as SetlistListSyncedAtProvider).bandId;
+}
+
+String _$setlistListDataHash() => r'861b3d816470fbfa12c246b8359a3fd6424f61dc';
+
+abstract class _$SetlistListData
+    extends BuildlessAutoDisposeAsyncNotifier<List<Map<String, dynamic>>> {
+  late final String bandId;
+
+  FutureOr<List<Map<String, dynamic>>> build(String bandId);
+}
+
+/// See also [SetlistListData].
+@ProviderFor(SetlistListData)
+const setlistListDataProvider = SetlistListDataFamily();
+
+/// See also [SetlistListData].
+class SetlistListDataFamily
+    extends Family<AsyncValue<List<Map<String, dynamic>>>> {
+  /// See also [SetlistListData].
+  const SetlistListDataFamily();
+
+  /// See also [SetlistListData].
   SetlistListDataProvider call(String bandId) {
     return SetlistListDataProvider(bandId);
   }
@@ -129,42 +332,14 @@ class SetlistListDataFamily
   String? get name => r'setlistListDataProvider';
 }
 
-/// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
-/// (family provider — mirrors [TrackListData]'s cache-first shape, see
-/// `tracks_provider.dart`).
-///
-/// On [build], cached data (if present) is returned immediately with a
-/// background refresh kicked off silently (no loading spinner, no error
-/// surfaced if the background refresh fails). With no cache, the network
-/// fetch happens inline and any [ApiException] becomes an [AsyncError],
-/// which is what drives the "Failed to load setlists" + Retry error state.
-///
-/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-/// a second call while one is already in flight reuses the same [Future]
-/// rather than firing a second network request.
-///
-/// Copied from [SetlistListData].
+/// See also [SetlistListData].
 class SetlistListDataProvider
     extends
         AutoDisposeAsyncNotifierProviderImpl<
           SetlistListData,
           List<Map<String, dynamic>>
         > {
-  /// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
-  /// (family provider — mirrors [TrackListData]'s cache-first shape, see
-  /// `tracks_provider.dart`).
-  ///
-  /// On [build], cached data (if present) is returned immediately with a
-  /// background refresh kicked off silently (no loading spinner, no error
-  /// surfaced if the background refresh fails). With no cache, the network
-  /// fetch happens inline and any [ApiException] becomes an [AsyncError],
-  /// which is what drives the "Failed to load setlists" + Retry error state.
-  ///
-  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-  /// a second call while one is already in flight reuses the same [Future]
-  /// rather than firing a second network request.
-  ///
-  /// Copied from [SetlistListData].
+  /// See also [SetlistListData].
   SetlistListDataProvider(String bandId)
     : this._internal(
         () => SetlistListData()..bandId = bandId,
@@ -258,14 +433,15 @@ class _SetlistListDataProviderElement
   String get bandId => (origin as SetlistListDataProvider).bandId;
 }
 
-String _$setlistDetailDataHash() => r'f4168b75c44eec9721b17594a5838e04ca65c22f';
+String _$setlistDetailSyncedAtHash() =>
+    r'7685cf2a425b76e7426c1f1a6c4211a84f287208';
 
-abstract class _$SetlistDetailData
-    extends BuildlessAutoDisposeAsyncNotifier<Map<String, dynamic>> {
+abstract class _$SetlistDetailSyncedAt
+    extends BuildlessAutoDisposeNotifier<DateTime?> {
   late final String bandId;
   late final String setlistId;
 
-  FutureOr<Map<String, dynamic>> build(String bandId, String setlistId);
+  DateTime? build(String bandId, String setlistId);
 }
 
 /// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
@@ -276,10 +452,17 @@ abstract class _$SetlistDetailData
 /// immediately with a silent background refresh; cache miss fetches inline
 /// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
 /// setlists" + Retry error state).
+/// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
+/// Set on a cache hit (from the pre-existing cached value) and bumped
+/// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
+/// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
+/// write — never on a failed background refresh, since `_refresh()`'s catch
+/// branch never reaches that call.
 ///
-/// Copied from [SetlistDetailData].
-@ProviderFor(SetlistDetailData)
-const setlistDetailDataProvider = SetlistDetailDataFamily();
+/// Copied from [SetlistDetailSyncedAt].
+@ProviderFor(SetlistDetailSyncedAt)
+const setlistDetailSyncedAtProvider = SetlistDetailSyncedAtFamily();
 
 /// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
 /// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
@@ -289,9 +472,16 @@ const setlistDetailDataProvider = SetlistDetailDataFamily();
 /// immediately with a silent background refresh; cache miss fetches inline
 /// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
 /// setlists" + Retry error state).
+/// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
+/// Set on a cache hit (from the pre-existing cached value) and bumped
+/// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
+/// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
+/// write — never on a failed background refresh, since `_refresh()`'s catch
+/// branch never reaches that call.
 ///
-/// Copied from [SetlistDetailData].
-class SetlistDetailDataFamily extends Family<AsyncValue<Map<String, dynamic>>> {
+/// Copied from [SetlistDetailSyncedAt].
+class SetlistDetailSyncedAtFamily extends Family<DateTime?> {
   /// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
   /// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
   /// cache-first shape, see `tracks_provider.dart`).
@@ -300,9 +490,16 @@ class SetlistDetailDataFamily extends Family<AsyncValue<Map<String, dynamic>>> {
   /// immediately with a silent background refresh; cache miss fetches inline
   /// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
   /// setlists" + Retry error state).
+  /// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
+  /// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
+  /// Set on a cache hit (from the pre-existing cached value) and bumped
+  /// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
+  /// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
+  /// write — never on a failed background refresh, since `_refresh()`'s catch
+  /// branch never reaches that call.
   ///
-  /// Copied from [SetlistDetailData].
-  const SetlistDetailDataFamily();
+  /// Copied from [SetlistDetailSyncedAt].
+  const SetlistDetailSyncedAtFamily();
 
   /// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
   /// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
@@ -312,8 +509,196 @@ class SetlistDetailDataFamily extends Family<AsyncValue<Map<String, dynamic>>> {
   /// immediately with a silent background refresh; cache miss fetches inline
   /// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
   /// setlists" + Retry error state).
+  /// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
+  /// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
+  /// Set on a cache hit (from the pre-existing cached value) and bumped
+  /// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
+  /// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
+  /// write — never on a failed background refresh, since `_refresh()`'s catch
+  /// branch never reaches that call.
   ///
-  /// Copied from [SetlistDetailData].
+  /// Copied from [SetlistDetailSyncedAt].
+  SetlistDetailSyncedAtProvider call(String bandId, String setlistId) {
+    return SetlistDetailSyncedAtProvider(bandId, setlistId);
+  }
+
+  @override
+  SetlistDetailSyncedAtProvider getProviderOverride(
+    covariant SetlistDetailSyncedAtProvider provider,
+  ) {
+    return call(provider.bandId, provider.setlistId);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'setlistDetailSyncedAtProvider';
+}
+
+/// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
+/// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
+/// cache-first shape, see `tracks_provider.dart`).
+///
+/// Mirrors [SetlistListData]'s cache-first shape: cache hit returns
+/// immediately with a silent background refresh; cache miss fetches inline
+/// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
+/// setlists" + Retry error state).
+/// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
+/// Set on a cache hit (from the pre-existing cached value) and bumped
+/// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
+/// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
+/// write — never on a failed background refresh, since `_refresh()`'s catch
+/// branch never reaches that call.
+///
+/// Copied from [SetlistDetailSyncedAt].
+class SetlistDetailSyncedAtProvider
+    extends AutoDisposeNotifierProviderImpl<SetlistDetailSyncedAt, DateTime?> {
+  /// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
+  /// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
+  /// cache-first shape, see `tracks_provider.dart`).
+  ///
+  /// Mirrors [SetlistListData]'s cache-first shape: cache hit returns
+  /// immediately with a silent background refresh; cache miss fetches inline
+  /// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
+  /// setlists" + Retry error state).
+  /// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
+  /// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
+  /// Set on a cache hit (from the pre-existing cached value) and bumped
+  /// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
+  /// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
+  /// write — never on a failed background refresh, since `_refresh()`'s catch
+  /// branch never reaches that call.
+  ///
+  /// Copied from [SetlistDetailSyncedAt].
+  SetlistDetailSyncedAtProvider(String bandId, String setlistId)
+    : this._internal(
+        () => SetlistDetailSyncedAt()
+          ..bandId = bandId
+          ..setlistId = setlistId,
+        from: setlistDetailSyncedAtProvider,
+        name: r'setlistDetailSyncedAtProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$setlistDetailSyncedAtHash,
+        dependencies: SetlistDetailSyncedAtFamily._dependencies,
+        allTransitiveDependencies:
+            SetlistDetailSyncedAtFamily._allTransitiveDependencies,
+        bandId: bandId,
+        setlistId: setlistId,
+      );
+
+  SetlistDetailSyncedAtProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.bandId,
+    required this.setlistId,
+  }) : super.internal();
+
+  final String bandId;
+  final String setlistId;
+
+  @override
+  DateTime? runNotifierBuild(covariant SetlistDetailSyncedAt notifier) {
+    return notifier.build(bandId, setlistId);
+  }
+
+  @override
+  Override overrideWith(SetlistDetailSyncedAt Function() create) {
+    return ProviderOverride(
+      origin: this,
+      override: SetlistDetailSyncedAtProvider._internal(
+        () => create()
+          ..bandId = bandId
+          ..setlistId = setlistId,
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        bandId: bandId,
+        setlistId: setlistId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeNotifierProviderElement<SetlistDetailSyncedAt, DateTime?>
+  createElement() {
+    return _SetlistDetailSyncedAtProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SetlistDetailSyncedAtProvider &&
+        other.bandId == bandId &&
+        other.setlistId == setlistId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, bandId.hashCode);
+    hash = _SystemHash.combine(hash, setlistId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin SetlistDetailSyncedAtRef on AutoDisposeNotifierProviderRef<DateTime?> {
+  /// The parameter `bandId` of this provider.
+  String get bandId;
+
+  /// The parameter `setlistId` of this provider.
+  String get setlistId;
+}
+
+class _SetlistDetailSyncedAtProviderElement
+    extends AutoDisposeNotifierProviderElement<SetlistDetailSyncedAt, DateTime?>
+    with SetlistDetailSyncedAtRef {
+  _SetlistDetailSyncedAtProviderElement(super.provider);
+
+  @override
+  String get bandId => (origin as SetlistDetailSyncedAtProvider).bandId;
+  @override
+  String get setlistId => (origin as SetlistDetailSyncedAtProvider).setlistId;
+}
+
+String _$setlistDetailDataHash() => r'cabbdfb235011b278fb9adec11b401a2ca440058';
+
+abstract class _$SetlistDetailData
+    extends BuildlessAutoDisposeAsyncNotifier<Map<String, dynamic>> {
+  late final String bandId;
+  late final String setlistId;
+
+  FutureOr<Map<String, dynamic>> build(String bandId, String setlistId);
+}
+
+/// See also [SetlistDetailData].
+@ProviderFor(SetlistDetailData)
+const setlistDetailDataProvider = SetlistDetailDataFamily();
+
+/// See also [SetlistDetailData].
+class SetlistDetailDataFamily extends Family<AsyncValue<Map<String, dynamic>>> {
+  /// See also [SetlistDetailData].
+  const SetlistDetailDataFamily();
+
+  /// See also [SetlistDetailData].
   SetlistDetailDataProvider call(String bandId, String setlistId) {
     return SetlistDetailDataProvider(bandId, setlistId);
   }
@@ -340,32 +725,14 @@ class SetlistDetailDataFamily extends Family<AsyncValue<Map<String, dynamic>>> {
   String? get name => r'setlistDetailDataProvider';
 }
 
-/// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
-/// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
-/// cache-first shape, see `tracks_provider.dart`).
-///
-/// Mirrors [SetlistListData]'s cache-first shape: cache hit returns
-/// immediately with a silent background refresh; cache miss fetches inline
-/// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
-/// setlists" + Retry error state).
-///
-/// Copied from [SetlistDetailData].
+/// See also [SetlistDetailData].
 class SetlistDetailDataProvider
     extends
         AutoDisposeAsyncNotifierProviderImpl<
           SetlistDetailData,
           Map<String, dynamic>
         > {
-  /// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
-  /// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
-  /// cache-first shape, see `tracks_provider.dart`).
-  ///
-  /// Mirrors [SetlistListData]'s cache-first shape: cache hit returns
-  /// immediately with a silent background refresh; cache miss fetches inline
-  /// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
-  /// setlists" + Retry error state).
-  ///
-  /// Copied from [SetlistDetailData].
+  /// See also [SetlistDetailData].
   SetlistDetailDataProvider(String bandId, String setlistId)
     : this._internal(
         () => SetlistDetailData()
@@ -504,8 +871,8 @@ final selectedSetlistBandIdFilterProvider =
     );
 
 typedef _$SelectedSetlistBandIdFilter = AutoDisposeNotifier<String?>;
-String _$userSetlistsListDataHash() =>
-    r'38b0ea9b96923a9cdd0910dd66b848f01ceea3e2';
+String _$userSetlistsSyncedAtHash() =>
+    r'bd44d3b1b517a3efdb70d3838a89338f4418289e';
 
 /// Cache-first `GET /api/setlist/list` data spanning every band the user
 /// belongs to, optionally narrowed by [SelectedSetlistBandIdFilter] (mirrors
@@ -513,8 +880,31 @@ String _$userSetlistsListDataHash() =>
 /// watches [selectedSetlistBandIdFilterProvider] directly, so changing the
 /// filter automatically triggers a full rebuild with the new cache
 /// key/fetch).
+/// D-04: `userSetlists` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp (mirrors [HomepageSyncedAt], see
+/// `homepage_provider.dart`). Set on a cache hit (from the pre-existing
+/// cached value) and bumped unconditionally on every successful
+/// [UserSetlistsListData._fetchAndCache] — never on a failed background
+/// refresh, since `_refresh()`'s catch branch never reaches that call.
 ///
-/// Copied from [UserSetlistsListData].
+/// Copied from [UserSetlistsSyncedAt].
+@ProviderFor(UserSetlistsSyncedAt)
+final userSetlistsSyncedAtProvider =
+    AutoDisposeNotifierProvider<UserSetlistsSyncedAt, DateTime?>.internal(
+      UserSetlistsSyncedAt.new,
+      name: r'userSetlistsSyncedAtProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$userSetlistsSyncedAtHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+typedef _$UserSetlistsSyncedAt = AutoDisposeNotifier<DateTime?>;
+String _$userSetlistsListDataHash() =>
+    r'0aae32a56766594da20b28754f96be26b0dca868';
+
+/// See also [UserSetlistsListData].
 @ProviderFor(UserSetlistsListData)
 final userSetlistsListDataProvider =
     AutoDisposeAsyncNotifierProvider<
