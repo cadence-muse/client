@@ -19,6 +19,19 @@ part 'profile_provider.g.dart';
 /// [refresh] (the UI's pull-to-refresh / refresh-button entry point) dedupes
 /// concurrent calls: a second call while one is already in flight reuses the
 /// same [Future] rather than firing a second network request.
+/// D-05/D-06: `profile` cache key's `syncedAt`, mirrored from
+/// `cache_service.dart`'s stored timestamp. Set on a cache hit (from the
+/// pre-existing cached value) and bumped unconditionally on every successful
+/// [ProfileData._fetchAndCache] — never on a failed background refresh,
+/// since `_refresh()`'s catch branch never reaches that call.
+@riverpod
+class ProfileSyncedAt extends _$ProfileSyncedAt {
+  @override
+  DateTime? build() => null;
+
+  void set(DateTime? value) => state = value;
+}
+
 @riverpod
 class ProfileData extends _$ProfileData {
   Future<void>? _inFlightRefresh;
@@ -28,6 +41,9 @@ class ProfileData extends _$ProfileData {
     final cache = ref.watch(cacheServiceProvider);
     final cached = await cache.readProfile();
     if (cached != null) {
+      ref
+          .read(profileSyncedAtProvider.notifier)
+          .set(await cache.readProfileSyncedAt());
       unawaited(_refresh());
       return cached;
     }
@@ -39,6 +55,7 @@ class ProfileData extends _$ProfileData {
     final data = await apiClient.send('GET', '/api/me');
     final profile = data!;
     await ref.read(cacheServiceProvider).writeProfile(profile);
+    ref.read(profileSyncedAtProvider.notifier).set(DateTime.now());
     return profile;
   }
 

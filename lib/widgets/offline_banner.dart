@@ -1,0 +1,37 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/connectivity_provider.dart';
+
+/// D-10: single global widget wrapping `RootScaffold`'s body — reflects the
+/// same [isOnlineProvider] value on every bottom-nav tab, never a per-tab
+/// instance.
+class OfflineBanner extends ConsumerWidget {
+  const OfflineBanner({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isOnline = ref.watch(isOnlineProvider);
+    if (isOnline) {
+      return const SizedBox.shrink();
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      color: colorScheme.errorContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off, color: colorScheme.onErrorContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "You're offline — showing cached data",
+              style: TextStyle(color: colorScheme.onErrorContainer),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

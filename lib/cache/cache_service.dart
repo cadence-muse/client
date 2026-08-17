@@ -135,7 +135,9 @@ class CacheService {
 
   Future<Map<String, dynamic>?> readProfile() async {
     try {
-      return _profileStore.get(_profileKey);
+      final wrapped = _profileStore.get(_profileKey);
+      if (wrapped == null) return null;
+      return wrapped['data'] as Map<String, dynamic>?;
     } catch (_) {
       return null;
     }
@@ -143,10 +145,26 @@ class CacheService {
 
   Future<void> writeProfile(Map<String, dynamic> data) async {
     try {
-      await _profileStore.put(_profileKey, data);
+      await _profileStore.put(_profileKey, {
+        'data': data,
+        'syncedAt': DateTime.now().toIso8601String(),
+      });
     } catch (_) {
       // Non-critical cache write failure; swallow and keep serving the
       // in-memory/network data instead.
+    }
+  }
+
+  /// D-04/D-05: independent `syncedAt` for the `profile` cache key, written
+  /// atomically alongside `data` in the same [writeProfile] call. `null`
+  /// before any write, or on any read exception.
+  Future<DateTime?> readProfileSyncedAt() async {
+    try {
+      final wrapped = _profileStore.get(_profileKey);
+      if (wrapped == null) return null;
+      return DateTime.parse(wrapped['syncedAt'] as String);
+    } catch (_) {
+      return null;
     }
   }
 

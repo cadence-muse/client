@@ -35,6 +35,25 @@ void main() {
     expect(result, isNull);
   });
 
+  test(
+    'readProfileSyncedAt is null before any write and a recent DateTime '
+    'immediately after writeProfile()',
+    () async {
+      final cache = CacheService.instance;
+
+      expect(await cache.readProfileSyncedAt(), isNull);
+
+      await cache.writeProfile({'id': 'u1', 'username': 'alice'});
+
+      final syncedAt = await cache.readProfileSyncedAt();
+      expect(syncedAt, isNotNull);
+      expect(
+        DateTime.now().difference(syncedAt!).inSeconds,
+        lessThan(5),
+      );
+    },
+  );
+
   test('writeHomepage then readHomepage roundtrips the same map', () async {
     final cache = CacheService.instance;
     await cache.writeHomepage({'username': 'alice', 'bandsCount': 3});
