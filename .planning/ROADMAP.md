@@ -170,7 +170,7 @@ Plans:
   3. A global offline-mode banner appears whenever the device has no connectivity, regardless of which screen the user is on.
   4. Create/update/delete actions are visibly disabled or blocked while offline instead of silently failing.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -185,7 +185,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 05-05-PLAN.md — Cross-screen regression guard + live cross-tab offline-banner consistency test
+- [x] 05-05-PLAN.md — Cross-screen regression guard + live cross-tab offline-banner consistency test
 
 **UI hint**: yes
 
@@ -200,4 +200,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Bands | 5/5 | In Progress|  |
 | 3. Tracks | 4/4 | Complete    | 2026-08-16 |
 | 4. Setlists | 5/5 | Complete    | 2026-08-17 |
-| 5. Offline Trust & Connectivity UX | 4/5 | In Progress|  |
+| 5. Offline Trust & Connectivity UX | 5/5 | In Progress|  |
