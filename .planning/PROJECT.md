@@ -22,13 +22,13 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - ✓ User can list, create, view, update, and delete setlists within a band — Phase 4
 - ✓ User can add/remove tracks on a setlist and reorder them — Phase 4
 - ✓ User can view all setlists across every band they belong to via a global filterable Setlists tab — Phase 4
+- ✓ All GET-able band/track/setlist/profile data is cached locally on Android/iOS and remains viewable when offline; staleness indicators and connectivity-gated mutations are consistent across every screen — Phase 5
 
 ### Active
 
 - [ ] User can list, create, view, update, and delete bands they belong to
 - [ ] User can join a band via invite code
 - [ ] User (owner) can remove a band member; any member can remove themselves
-- [ ] All GET-able band/track/setlist/profile data is cached locally on Android/iOS and remains viewable when offline (read-only; mutations require connectivity)
 
 ### Out of Scope
 
@@ -85,4 +85,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-17 — Phase 4 complete*
+*Last updated: 2026-08-17 — Phase 5 complete*
