@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../features/bands/bands_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/setlists/setlists_screen.dart';
 import '../features/songs/tracks_screen.dart';
 import '../providers/navigation_provider.dart';
 
@@ -13,10 +14,14 @@ class RootScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(selectedTabIndexProvider);
+    // D-21: Home / Bands / Tracks / Setlists / Profile — a deliberate
+    // reordering (Bands and Tracks swap positions, Setlists is inserted
+    // after Tracks), not just an append-at-end of the new tab.
     final screens = [
       const HomeScreen(),
-      const TracksScreen(),
       const BandsScreen(),
+      const TracksScreen(),
+      const SetlistsScreen(),
       const ProfileScreen(),
     ];
 
@@ -33,14 +38,19 @@ class RootScaffold extends ConsumerWidget {
             label: 'Home',
           ),
           NavigationDestination(
+            icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups),
+            label: 'Bands',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.music_note_outlined),
             selectedIcon: Icon(Icons.music_note),
             label: 'Tracks',
           ),
           NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Bands',
+            icon: Icon(Icons.playlist_play_outlined),
+            selectedIcon: Icon(Icons.playlist_play),
+            label: 'Setlists',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

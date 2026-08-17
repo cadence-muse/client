@@ -9,8 +9,8 @@ part of 'navigation_provider.dart';
 String _$selectedTabIndexHash() => r'5161d7640348ed0510aae275b530b94a37870932';
 
 /// The bottom-nav tab index currently selected in [RootScaffold]
-/// (0=Home, 1=Tracks, 2=Bands, 3=Profile — matching [RootScaffold]'s
-/// `NavigationDestination` order).
+/// (0=Home, 1=Bands, 2=Tracks, 3=Setlists, 4=Profile — matching
+/// [RootScaffold]'s `NavigationDestination` order, D-21).
 ///
 /// Lifting this into a provider (rather than [RootScaffold]'s own local
 /// `setState`) lets other screens switch tabs without a direct reference to

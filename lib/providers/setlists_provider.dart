@@ -237,3 +237,109 @@ class SetlistDetailData extends _$SetlistDetailData {
         .writeSetlistDetail(bandId, setlistId, updated);
   }
 }
+
+/// The band the global Setlists tab's list is currently filtered to; `null`
+/// means "all bands". Plain (non-family) provider — its notifier's `state`
+/// is set directly by `SetlistsScreen`'s filter dropdown.
+///
+/// Named `SelectedSetlistBandIdFilter`, not `SelectedBandIdFilter` — the
+/// latter is already defined in `tracks_provider.dart`, and
+/// `add_setlist_tracks_dialog.dart` imports both provider files. A same-named
+/// top-level identifier in both would be a Dart ambiguous-import compile
+/// error, so this provider is distinctly named despite being functionally
+/// identical to Track's filter (see `04-05-PLAN.md`'s naming-deviation
+/// note).
+@riverpod
+class SelectedSetlistBandIdFilter extends _$SelectedSetlistBandIdFilter {
+  @override
+  String? build() => null;
+
+  /// Sets the filter (`null` = all bands). A public method instead of the
+  /// literal `notifier.state = value` instruction — the latter fails
+  /// `flutter analyze` (`invalid_use_of_protected_member`) when called from
+  /// outside the notifier itself, per the same pattern established by
+  /// `SelectedBandIdFilter.setFilter()` (03-03).
+  void setFilter(String? bandId) => state = bandId;
+}
+
+/// Cache-first `GET /api/setlist/list` data spanning every band the user
+/// belongs to, optionally narrowed by [SelectedSetlistBandIdFilter] (mirrors
+/// [UserTracksListData]'s cache-first shape, but non-family — [build]
+/// watches [selectedSetlistBandIdFilterProvider] directly, so changing the
+/// filter automatically triggers a full rebuild with the new cache
+/// key/fetch).
+@riverpod
+class UserSetlistsListData extends _$UserSetlistsListData {
+  Future<void>? _inFlightRefresh;
+
+  /// Monotonic counter bumped by every local-mutation method.
+  /// [_refresh]/[_doRefresh] capture this before their network await and
+  /// discard a fetched result if it changed while the fetch was in flight —
+  /// otherwise a slower background refresh could silently revert a local
+  /// mutation that landed first (WR-02).
+  final int _version = 0;
+
+  @override
+  Future<List<Map<String, dynamic>>> build() async {
+    final bandIdFilter = ref.watch(selectedSetlistBandIdFilterProvider);
+    final cache = ref.watch(cacheServiceProvider);
+    final cached = await cache.readUserSetlists(bandIdFilter);
+    if (cached != null) {
+      unawaited(_refresh(bandIdFilter));
+      return cached;
+    }
+    return _fetchAndCache(bandIdFilter);
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchAndCache(
+    String? bandIdFilter,
+  ) async {
+    final setlists = await ref
+        .read(publicApiProvider)
+        .listUserSetlists(bandIdFilter: bandIdFilter);
+    await ref
+        .read(cacheServiceProvider)
+        .writeUserSetlists(bandIdFilter, setlists);
+    return setlists;
+  }
+
+  /// Silent background refresh fired from [build] on a cache hit. Never
+  /// surfaces an error — a failed background refresh just leaves the
+  /// currently-cached data displayed.
+  Future<void> _refresh(String? bandIdFilter) async {
+    final capturedVersion = _version;
+    try {
+      final fresh = await _fetchAndCache(bandIdFilter);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
+    } catch (_) {
+      // Keep showing cached data.
+    }
+  }
+
+  /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
+  /// Deduplicates concurrent calls so tapping refresh twice in quick
+  /// succession triggers exactly one network request.
+  Future<void> refresh() {
+    return _inFlightRefresh ??= _doRefresh().whenComplete(
+      () => _inFlightRefresh = null,
+    );
+  }
+
+  Future<void> _doRefresh() async {
+    final bandIdFilter = ref.read(selectedSetlistBandIdFilterProvider);
+    final capturedVersion = _version;
+    try {
+      final fresh = await _fetchAndCache(bandIdFilter);
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
+    } catch (e, st) {
+      if (state.value == null) {
+        state = AsyncError(e, st);
+      }
+      // Otherwise silently keep the last good data visible.
+    }
+  }
+}

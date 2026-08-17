@@ -135,11 +135,12 @@ class TracksScreen extends ConsumerWidget {
             if (showViewBandsButton) ...[
               const SizedBox(height: 16),
               ElevatedButton(
-                // WR-01: switch to the Bands tab (index 2 per
-                // root_scaffold.dart's destination order) instead of
+                // WR-01: switch to the Bands tab (index 1 per
+                // root_scaffold.dart's destination order, D-21's
+                // Home/Bands/Tracks/Setlists/Profile reorder) instead of
                 // being a no-op.
                 onPressed: () =>
-                    ref.read(selectedTabIndexProvider.notifier).setIndex(2),
+                    ref.read(selectedTabIndexProvider.notifier).setIndex(1),
                 child: const Text('View bands'),
               ),
             ],

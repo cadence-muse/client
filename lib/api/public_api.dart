@@ -335,4 +335,19 @@ class PublicApi {
       body: {'trackIds': trackIds},
     );
   }
+
+  /// Returns setlists across every band the current user belongs to
+  /// (`UserSetlistListItem` — id/name/tracksCount/durationSeconds/bandId/
+  /// bandName + optional eventDate), optionally narrowed to a single band
+  /// via [bandIdFilter]. Mirrors `listUserTracks` exactly (D-03, SETL-10).
+  Future<List<Map<String, dynamic>>> listUserSetlists({
+    String? bandIdFilter,
+  }) async {
+    final response = await _client.send(
+      'GET',
+      '/api/setlist/list',
+      queryParameters: bandIdFilter == null ? null : {'bandId': bandIdFilter},
+    );
+    return (response!['items'] as List).cast<Map<String, dynamic>>();
+  }
 }

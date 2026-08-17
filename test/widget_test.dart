@@ -175,7 +175,7 @@ void main() {
 
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        2,
+        1,
       );
     },
   );

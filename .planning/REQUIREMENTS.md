@@ -44,7 +44,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SETL-07**: User can remove a track from a setlist
 - [x] **SETL-08**: User can reorder tracks within a setlist via drag-and-drop
 - [ ] **SETL-09**: User sees a setlist's total running duration (server-computed, no client math)
-- [ ] **SETL-10**: User can view all setlists across every band they belong to on a global Setlists tab, optionally filtered by band
+- [x] **SETL-10**: User can view all setlists across every band they belong to on a global Setlists tab, optionally filtered by band
 
 ### Offline & State
 
@@ -128,7 +128,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETL-07 | Phase 4 | Pending |
 | SETL-08 | Phase 4 | Complete |
 | SETL-09 | Phase 4 | Pending |
-| SETL-10 | Phase 4 | Pending |
+| SETL-10 | Phase 4 | Complete |
 | OFFL-02 | Phase 5 | Pending |
 | OFFL-03 | Phase 5 | Pending |
 | OFFL-04 | Phase 5 | Pending |

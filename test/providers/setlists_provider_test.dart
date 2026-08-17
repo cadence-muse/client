@@ -549,4 +549,176 @@ void main() {
       },
     );
   });
+
+  group('UserSetlistsListData', () {
+    test(
+      'cache-hit returns cached data immediately with a silent background refresh',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeUserSetlists(null, [
+          {
+            'id': 's1',
+            'name': 'Cached Setlist',
+            'tracksCount': 3,
+            'durationSeconds': 600,
+            'bandId': 'b1',
+            'bandName': 'Band One',
+          },
+        ]);
+
+        final apiClient = buildApiClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 's1',
+                  'name': 'Cached Setlist',
+                  'tracksCount': 3,
+                  'durationSeconds': 600,
+                  'bandId': 'b1',
+                  'bandName': 'Band One',
+                },
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+
+        final data = await container.read(userSetlistsListDataProvider.future);
+
+        expect(data, [
+          {
+            'id': 's1',
+            'name': 'Cached Setlist',
+            'tracksCount': 3,
+            'durationSeconds': 600,
+            'bandId': 'b1',
+            'bandName': 'Band One',
+          },
+        ]);
+      },
+    );
+
+    test('no cache and network failure yields AsyncError', () async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'network_error', 'message': 'offline'}),
+          500,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      await expectLater(
+        container.read(userSetlistsListDataProvider.future),
+        throwsA(isA<ApiException>()),
+      );
+      expect(container.read(userSetlistsListDataProvider).hasError, isTrue);
+    });
+
+    test('two rapid refresh() calls trigger exactly one network call', () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeUserSetlists(null, [
+        {
+          'id': 's1',
+          'name': 'Setlist',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+          'bandId': 'b1',
+          'bandName': 'Band One',
+        },
+      ]);
+
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      container.listen(userSetlistsListDataProvider, (_, _) {});
+      await container.read(userSetlistsListDataProvider.future);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      callCount = 0;
+
+      final notifier = container.read(userSetlistsListDataProvider.notifier);
+      final first = notifier.refresh();
+      final second = notifier.refresh();
+      await Future.wait([first, second]);
+
+      expect(callCount, 1);
+    });
+
+    test(
+      'changing selectedSetlistBandIdFilterProvider triggers a rebuild whose '
+      'listUserSetlists call receives the new bandIdFilter',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeUserSetlists(null, [
+          {
+            'id': 's1',
+            'name': 'Setlist One',
+            'tracksCount': 1,
+            'durationSeconds': 200,
+            'bandId': 'b1',
+            'bandName': 'Band One',
+          },
+        ]);
+        // No cache seeded for 'band-x' — forces build() to hit the network
+        // inline (rather than a background refresh) so capturing the
+        // request's query parameter is deterministic.
+
+        final capturedBandIdFilters = <String?>[];
+        final apiClient = buildApiClient((request) async {
+          capturedBandIdFilters.add(request.url.queryParameters['bandId']);
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 's2',
+                  'name': 'Setlist Two',
+                  'tracksCount': 1,
+                  'durationSeconds': 200,
+                  'bandId': 'band-x',
+                  'bandName': 'Band X',
+                },
+              ],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(userSetlistsListDataProvider, (_, _) {});
+        await container.read(userSetlistsListDataProvider.future);
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        capturedBandIdFilters.clear();
+
+        container
+            .read(selectedSetlistBandIdFilterProvider.notifier)
+            .setFilter('band-x');
+        await container.read(userSetlistsListDataProvider.future);
+
+        expect(capturedBandIdFilters, contains('band-x'));
+      },
+    );
+  });
 }
