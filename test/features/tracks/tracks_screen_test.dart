@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/songs/tracks_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/widgets/sync_status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -138,6 +139,8 @@ void main() {
       expect(find.text('Artist Two'), findsOneWidget);
       expect(find.text('2:05'), findsOneWidget);
       expect(find.text('3:20'), findsOneWidget);
+      expect(find.byType(SyncStatusBadge), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsNothing);
 
       await tester.pumpAndSettle();
     },

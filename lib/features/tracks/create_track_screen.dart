@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/tracks_provider.dart';
 import 'track_formatting.dart';
 
@@ -97,6 +98,8 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(isOnlineProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Add track')),
       body: SafeArea(
@@ -183,15 +186,18 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
                   ),
                 ],
                 const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save track'),
+                Tooltip(
+                  message: isOnline ? '' : 'Requires connection',
+                  child: FilledButton(
+                    onPressed: (!isOnline || _isSubmitting) ? null : _submit,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(isOnline ? 'Save track' : 'Requires connection'),
+                  ),
                 ),
               ],
             ),

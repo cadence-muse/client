@@ -4,6 +4,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/track_list_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,11 +23,16 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, CacheService cacheService) {
+  Widget wrap(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: const MaterialApp(home: TrackListScreen(bandId: 'b1')),
     );
@@ -149,6 +155,53 @@ void main() {
       expect(artistWidget.overflow, TextOverflow.ellipsis);
 
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'the Add-track FAB is disabled with a "Requires connection" tooltip '
+    'while offline',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', []);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': []}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      final fab = tester.widget<FloatingActionButton>(
+        find.byType(FloatingActionButton),
+      );
+      expect(fab.onPressed, isNull);
+      expect(fab.tooltip, 'Requires connection');
+    },
+  );
+
+  testWidgets(
+    'the Add-track FAB is enabled with an "Add track" tooltip while online',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', []);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': []}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: true),
+      );
+      await tester.pumpAndSettle();
+
+      final fab = tester.widget<FloatingActionButton>(
+        find.byType(FloatingActionButton),
+      );
+      expect(fab.onPressed, isNotNull);
+      expect(fab.tooltip, 'Add track');
     },
   );
 }

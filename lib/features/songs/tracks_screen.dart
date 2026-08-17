@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/tracks_provider.dart';
+import '../../widgets/sync_status_badge.dart';
 import '../tracks/track_detail_screen.dart';
 import '../tracks/track_formatting.dart';
 
@@ -61,9 +62,15 @@ class TracksScreen extends ConsumerWidget {
 
   Widget _buildTracksBody(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(userTracksListDataProvider);
+    final syncedAt = ref.watch(userTracksSyncedAtProvider);
 
     return tracksAsync.when(
-      data: (tracks) => _buildContent(context, ref, tracks),
+      data: (tracks) => Column(
+        children: [
+          SyncStatusBadge(syncedAt: syncedAt),
+          Expanded(child: _buildContent(context, ref, tracks)),
+        ],
+      ),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) => _buildError(
         context,
