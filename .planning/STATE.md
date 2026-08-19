@@ -1,17 +1,13 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
 status: Awaiting next milestone
-stopped_at: Phase 05 UI-SPEC approved
-last_updated: "2026-08-17T15:57:24.067Z"
+stopped_at: Completed quick task 260819-v0u (add /api/logout call on sign-out)
+last_updated: "2026-08-19T19:30:27.004Z"
 last_activity: 2026-08-17
 last_activity_desc: Phase 05 complete; corrected stale Phase 2 state (all 6 plans incl. gap-closure were already done)
-progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 23
-  completed_plans: 23
+state_head: 6a55de34f7a1c41460f7a2a08b43950352707c7a
+milestone_name: milestone
 current_phase: 5
 current_phase_name: Offline Trust & Connectivity UX
 ---
@@ -102,6 +98,7 @@ Recent decisions affecting current work:
 - [Phase 3]: 03-04 (gap closure): `updateBandTrack` now always sends all 6 editable fields (title/artist required, non-nullable) instead of omitting nulls — server treats an omitted field as "keep" and an explicit `null` as "clear"; applies to any future PUT/PATCH with optional clearable fields (e.g. setlist mutations)
 - [Phase 3]: 03-04: New `SelectedTabIndex` Riverpod notifier (`navigation_provider.dart`) lets a screen switch `RootScaffold`'s bottom-nav tab without a direct reference to its state — reusable pattern for any future cross-tab navigation
 - [Phase 3]: Team confirmed backend strictly validates/enforces the musical key format — NF-01 (unrecognized key values) is unreachable in practice via UAT, no client-side workaround needed
+- [Phase 5]: Quick 260819-v0u: AuthSession.signOut() calls PublicApi.logout() best-effort (fire before local clear, swallow all errors) with a _loggingOut reentrancy guard to prevent unbounded recursion when a 403 on the logout call itself triggers ApiClient.onUnauthorized -> signOut()
 
 ### Pending Todos
 
@@ -110,6 +107,12 @@ None yet.
 ### Blockers/Concerns
 
 - API gap: `UserProfile.id` and `Band.ownerId` were added to `lib/api/publicapi.yml` this milestone but require backend implementation before BAND-08 (self-leave) and BAND-05/BAND-09 (owner-only UI gating) can be built as specified — see REQUIREMENTS.md "API Gaps". Client-side fallback (username-match / no proactive hiding) documented there if backend isn't ready when Phase 2 starts.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260819-v0u | add /api/logout call when user logs out on profile screen | 2026-08-19 | 6a55de3 | [260819-v0u-add-api-logout-call-when-user-logs-out-o](./quick/260819-v0u-add-api-logout-call-when-user-logs-out-o/) |
 
 ## Deferred Items
 
@@ -121,9 +124,9 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-17T08:12:16.233Z
-Stopped at: Phase 05 UI-SPEC approved
-Resume file: /home/bulat.khafizov/projects/personal/cadence/cadence-client/.planning/phases/05-offline-trust-connectivity-ux/05-UI-SPEC.md
+Last session: 2026-08-19T19:30:19.354Z
+Stopped at: Completed quick task 260819-v0u (add /api/logout call on sign-out)
+Resume file: None
 
 ## Operator Next Steps
 
