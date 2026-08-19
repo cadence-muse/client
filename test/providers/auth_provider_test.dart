@@ -1,11 +1,14 @@
 import 'dart:io';
 
+import 'package:cadence/api/api_client.dart';
 import 'package:cadence/api/token_storage.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 /// Copied from `test/widget_test.dart` — a fake secure-storage backend so
@@ -320,11 +323,31 @@ void main() {
     FlutterSecureStoragePlatform.instance = _FakeSecureStorage();
   });
 
-  ProviderContainer buildContainer({_FakeCacheService? fakeCacheService}) {
+  // Defaults to a handler returning `200` with an empty body for any
+  // request, so the existing signIn/build tests (which never touch the
+  // network) are unaffected. Wires getToken/onUnauthorized to
+  // authSessionProvider itself, mirroring the real apiClientProvider in
+  // lib/providers/auth_provider.dart, so tests can exercise the logout
+  // call's Authorization header and the onUnauthorized -> signOut() path.
+  ProviderContainer buildContainer({
+    _FakeCacheService? fakeCacheService,
+    Future<http.Response> Function(http.Request)? apiHandler,
+  }) {
     final container = ProviderContainer(
       overrides: [
         cacheServiceProvider.overrideWithValue(
           fakeCacheService ?? _FakeCacheService(),
+        ),
+        apiClientProvider.overrideWith(
+          (ref) => ApiClient(
+            baseUrl: 'http://localhost',
+            getToken: () => ref.read(authSessionProvider).value,
+            onUnauthorized: () =>
+                ref.read(authSessionProvider.notifier).signOut(),
+            httpClient: MockClient(
+              apiHandler ?? (request) async => http.Response('', 200),
+            ),
+          ),
         ),
       ],
     );
@@ -383,6 +406,29 @@ void main() {
         expect(container.read(authSessionProvider).value, isNull);
         expect(await TokenStorage().read(), isNull);
         expect(fakeCacheService.clearAllCallCount, 1);
+      },
+    );
+
+    test(
+      'signOut() sends exactly one POST /api/logout with the Authorization '
+      'header set to the still-active token before clearing local state',
+      () async {
+        http.Request? capturedRequest;
+        final container = buildContainer(
+          apiHandler: (request) async {
+            capturedRequest = request;
+            return http.Response('', 200);
+          },
+        );
+        await container.read(authSessionProvider.future);
+        await container.read(authSessionProvider.notifier).signIn('new-token');
+
+        await container.read(authSessionProvider.notifier).signOut();
+
+        expect(capturedRequest, isNotNull);
+        expect(capturedRequest!.method, 'POST');
+        expect(capturedRequest!.url.path, '/api/logout');
+        expect(capturedRequest!.headers['Authorization'], 'new-token');
       },
     );
   });
