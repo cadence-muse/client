@@ -1,7 +1,9 @@
 import 'api_client.dart';
 
-/// Maps to the `Register`/`Login` operations in `lib/api/publicapi.yml`.
-/// Logging out just drops the local token, see [AuthSession.signOut].
+/// Maps to the `Register`/`Login`/`Logout` operations in
+/// `lib/api/publicapi.yml`. Logging out calls the backend via [logout], but
+/// [AuthSession.signOut] still always succeeds locally even if that call
+/// fails — see its doc comment.
 class PublicApi {
   PublicApi(this._client);
 
@@ -35,6 +37,15 @@ class PublicApi {
       requireAuth: false,
     );
     return response!['token'] as String;
+  }
+
+  /// Invalidates the current session token server-side (`Logout` in
+  /// `publicapi.yml` — `POST /api/logout`, sessionAuth-protected, no body,
+  /// `'200'` response has no content schema). Callers should treat this as
+  /// best-effort: see [AuthSession.signOut], which always completes the
+  /// local sign-out (token/cache clear) even if this call throws.
+  Future<void> logout() async {
+    await _client.send('POST', '/api/logout');
   }
 
   /// Returns the current user's bands (`BandListItem` — id + name only).
