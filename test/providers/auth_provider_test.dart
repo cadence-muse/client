@@ -431,6 +431,48 @@ void main() {
         expect(capturedRequest!.headers['Authorization'], 'new-token');
       },
     );
+
+    test(
+      'signOut() completes local sign-out even when the logout network call '
+      'throws (offline/unreachable backend)',
+      () async {
+        final fakeCacheService = _FakeCacheService();
+        final container = buildContainer(
+          fakeCacheService: fakeCacheService,
+          apiHandler: (request) async =>
+              throw const SocketException('no network'),
+        );
+        await container.read(authSessionProvider.future);
+        await container.read(authSessionProvider.notifier).signIn('new-token');
+
+        await container.read(authSessionProvider.notifier).signOut();
+
+        expect(container.read(authSessionProvider).value, isNull);
+        expect(await TokenStorage().read(), isNull);
+        expect(fakeCacheService.clearAllCallCount, 1);
+      },
+    );
+
+    test(
+      'signOut() completes exactly once (no unbounded recursion) when the '
+      'logout call itself gets a 403, which triggers onUnauthorized -> '
+      'signOut() from inside the in-flight logout call',
+      () async {
+        final fakeCacheService = _FakeCacheService();
+        final container = buildContainer(
+          fakeCacheService: fakeCacheService,
+          apiHandler: (request) async => http.Response('', 403),
+        );
+        await container.read(authSessionProvider.future);
+        await container.read(authSessionProvider.notifier).signIn('new-token');
+
+        await container.read(authSessionProvider.notifier).signOut();
+
+        expect(container.read(authSessionProvider).value, isNull);
+        expect(await TokenStorage().read(), isNull);
+        expect(fakeCacheService.clearAllCallCount, 1);
+      },
+    );
   });
 
   test(
