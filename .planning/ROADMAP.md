@@ -66,7 +66,12 @@ Full detail for Phases 1-5: `.planning/milestones/v1.0-ROADMAP.md`
   3. On the Bands list and a band's detail screen, the user sees each band's member count and their own role (Owner/Member) displayed.
   4. On track list/detail screens, icons represent musical key, duration, and notes at a glance.
   5. On setlist list/detail screens, icons represent location and duration at a glance.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 06-01-PLAN.md — Password change end-to-end (USER-03) + remaining spec field extensions
+- [ ] 06-02-PLAN.md — Band member count & role display (BAND-10)
+- [ ] 06-03-PLAN.md — Track metadata icons: key/duration/notes (TRACK-07)
+- [ ] 06-04-PLAN.md — Setlist metadata icons: location/duration (SETL-11)
 **UI hint**: yes
 
 ### Phase 7: Cache Behavior Flip — Online-First
@@ -128,7 +133,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 3. Tracks | v1.0 | 4/4 | Complete | 2026-08-16 |
 | 4. Setlists | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 5. Offline Trust & Connectivity UX | v1.0 | 5/5 | Complete | 2026-08-17 |
-| 6. Foundation Info & Settings Polish | v1.1 | 0/TBD | Not started | - |
+| 6. Foundation Info & Settings Polish | v1.1 | 0/4 | Not started | - |
 | 7. Cache Behavior Flip — Online-First | v1.1 | 0/TBD | Not started | - |
 | 8. Band Owner Tools | v1.1 | 0/TBD | Not started | - |
 | 9. Homepage Quick Actions | v1.1 | 0/TBD | Not started | - |
