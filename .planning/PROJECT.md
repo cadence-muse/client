@@ -8,6 +8,19 @@ Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands 
 
 A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
 
+## Current Milestone: v1.1 UI Improvements
+
+**Goal:** Catch the app up to the fe72e78 schema update, flip offline cache to online-first, polish info-display UI, and add search to the setlist song picker.
+
+**Target features:**
+- Change password form on Profile screen (`POST /api/me/password`)
+- Band member count + role (owner/member) shown in Bands UI
+- Remove owner-only UI gates on band/track/setlist edit+delete — schema now allows any member
+- Owner tools: rotate invite code, transfer ownership
+- Cache behavior flip: online → always fetch fresh; offline → serve cache + warning, dropping the `SyncStatusBadge`/staleness-badge system entirely
+- Icons for location, duration, musical key, notes on Track and Setlist detail/list screens
+- Setlist track picker: replace dialog with a searchable list; extend `publicapi.yml`'s `ListBandTracks` with a `searchQuery` field (client adds the spec, backend to follow) and wire the picker to it
+
 ## Requirements
 
 ### Validated
@@ -29,7 +42,7 @@ A band member can open the app without signal — at a venue, in a basement, on 
 
 ### Active
 
-_(None yet — define next milestone's requirements via `/gsd-new-milestone`)_
+_(v1.1 UI Improvements — see Current Milestone above; REQ-IDs defined in `.planning/REQUIREMENTS.md`)_
 
 ### Out of Scope
 
@@ -49,6 +62,8 @@ _(None yet — define next milestone's requirements via `/gsd-new-milestone`)_
 **API gaps closed this milestone:** `publicapi.yml` was extended with `UserProfile.id`, `Band.ownerId`, `GET /api/track/list`, `GET /api/setlist/list`, and bulk setlist-track add — all now implemented and integrated.
 
 **Known non-blocking items carried into next milestone:** one manual accessibility check outstanding (offline-banner text under ≥200% font scaling, Phase 5); Nyquist `/gsd-validate-phase` never run this milestone (coverage TODO, not a compliance failure) — see `.planning/milestones/v1.0-MILESTONE-AUDIT.md`.
+
+**v1.1 schema catch-up:** `publicapi.yml` was updated server-side ahead of the client in commit `fe72e78` (2026-08-20) — adds `POST /api/me/password`, `Band.membersCount`, member `id`/`role` (owner/member enum), `POST /api/band/{bandId}/rotate-invite-code`, `POST /api/band/{bandId}/transfer-ownership`; loosens band/track/setlist mutation summaries from owner-only to any-member; converts `/api/track/list` and `/api/setlist/list` from GET to POST with a `searchQuery` request body; consolidates single-track setlist add/remove into the existing bulk `tracks` endpoints (`AddSetlistTracks`/`RemoveSetlistTracks`, both now body-driven). App is unreleased, so no backward-compat shims are needed for any of these changes.
 
 ## Constraints
 
@@ -91,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-17 after v1.0 milestone*
+*Last updated: 2026-08-20 after starting v1.1 milestone*

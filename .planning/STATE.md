@@ -1,15 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-status: Awaiting next milestone
-stopped_at: Completed quick task 260819-v0u (add /api/logout call on sign-out)
-last_updated: "2026-08-19T19:30:27.004Z"
-last_activity: 2026-08-17
-last_activity_desc: Phase 05 complete; corrected stale Phase 2 state (all 6 plans incl. gap-closure were already done)
-state_head: 6a55de34f7a1c41460f7a2a08b43950352707c7a
-milestone_name: milestone
-current_phase: 5
-current_phase_name: Offline Trust & Connectivity UX
+milestone: v1.1
+milestone_name: UI Improvements
+status: planning
+last_updated: "2026-08-20T16:22:52.058Z"
+last_activity: 2026-08-20
+progress:
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -23,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-08-16)
 
 ## Current Position
 
-Phase: Milestone v1.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-17 — Milestone v1.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-08-20 — Milestone v1.1 started
 
 ## Performance Metrics
 
