@@ -1,326 +1,815 @@
-# Architecture Research
+# Architecture Patterns: v1.1 UI Improvements Integration
 
-**Domain:** Flutter mobile app — REST-backed feature CRUD + offline read cache, migrating off constructor-DI to Riverpod
-**Researched:** 2026-08-14
-**Confidence:** MEDIUM-HIGH (repository/cache pattern is corroborated by official Flutter architecture docs — HIGH; specific local-DB package choice is LOW-confidence community opinion, treated as a recommendation not a fact)
+**Project:** Cadence (v1.1 milestone)  
+**Researched:** 2026-08-20  
+**Focus:** Integration of 7 changes into existing Riverpod+Hive+ApiClient architecture  
+**Confidence:** HIGH (pattern leverages existing code, no new infrastructure)
 
-## Standard Architecture
+---
 
-### System Overview
+## Executive Summary
 
-The existing `lib/api/` layer (ApiClient, AuthSession, PublicApi, TokenStorage) stays intact and unchanged. Three new layers are inserted between it and the feature screens: a generic **Cache** layer, a per-entity **Repository** layer that implements network-first-with-cache-fallback, and a **Provider (Riverpod)** layer that replaces constructor-injected prop-drilling.
+The v1.1 changes integrate cleanly with the existing Riverpod+Hive foundation, requiring no rewrite of the provider layer's interface or Hive schema. The cache-first pattern flips to online-first at the AsyncNotifier `build()` level (routing through different fetch paths based on connectivity), eliminating the silent background-refresh race condition entirely. The `{data, syncedAt}` envelope persists (offline-fallback text needs the timestamp), but `SyncStatusBadge`'s per-minute timer is removed, replaced by a static "You're offline" banner shown only when offline AND cache exists. Ownership gating simplifies from a tri-state pattern to a dual-gate approach: `_isMemberResolved()` gates the now-any-member mutation UI, while `_isOwnerFromMembers()` (computed from the `role` field in `Band.members[]`) gates owner-only tools. The `searchQuery` parameter integrates as an optional argument to `PublicApi.listBandTracks()`, with local filtering in v1.1 (backend filtering ready for v1.2 without client changes).
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          UI Layer (existing)                         │
-│  lib/features/{home,songs,bands,profile}/  — now ConsumerWidgets     │
-│  watch Riverpod providers instead of receiving DI via constructors   │
-└───────────────────────────────┬───────────────────────────────────────┘
-                                 │ ref.watch(xProvider)
-┌───────────────────────────────▼───────────────────────────────────────┐
-│                    Provider Layer (NEW — lib/providers/)              │
-│  apiClientProvider · authSessionProvider · cacheStoreProvider         │
-│  bandsRepositoryProvider · tracksRepositoryProvider · ...             │
-│  bandsListProvider(FutureProvider) · bandTracksProvider(family) · ... │
-└───────────────────────────────┬───────────────────────────────────────┘
-                                 │
-┌───────────────────────────────▼───────────────────────────────────────┐
-│                Repository Layer (NEW — lib/repositories/)             │
-│  BandsRepository · TracksRepository · SetlistsRepository ·            │
-│  ProfileRepository                                                    │
-│  Reads: network-first, fall back to cache on network-class failure    │
-│  Writes: online-only, update/invalidate cache keys on success         │
-└──────────┬───────────────────────────────────────────┬────────────────┘
-           │                                            │
-┌──────────▼──────────────────┐          ┌──────────────▼─────────────────┐
-│   API Layer (existing +NEW) │          │   Cache Layer (NEW — lib/cache/) │
-│   lib/api/                  │          │   CacheStore (abstract)          │
-│   ApiClient (unchanged)     │          │   ├─ sqflite impl (Android/iOS)  │
-│   AuthSession (unchanged)   │          │   └─ no-op impl (web, excluded)  │
-│   PublicApi (unchanged)     │          │   Stores {key → json, fetchedAt} │
-│   BandsApi/TracksApi/       │          │   keyed by request signature     │
-│   SetlistsApi/ProfileApi(NEW)│         └───────────────────────────────────┘
-└──────────────────────────────┘
-```
+---
 
-### Component Responsibilities
+## Question 1: Cache-First → Online-First Pattern (Clean, Incremental Flip)
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| `ApiClient` (existing, unchanged) | HTTP transport, auth header injection, 403 auto-logout | Already in `lib/api/api_client.dart` — do not modify for caching |
-| `BandsApi` / `TracksApi` / `SetlistsApi` / `ProfileApi` (new) | Thin typed wrappers over `ApiClient.send()`, one per `publicapi.yml` resource group | Mirror `PublicApi`'s existing pattern exactly — same file layout, same error propagation |
-| `CacheStore` (new) | Generic, feature-agnostic key→JSON blob store with a timestamp; no domain knowledge | Single-table local store (see Technology Choice below), abstract interface + platform impls via conditional import (same technique as `http_client_factory_*`) |
-| `*Repository` (new, one per entity) | Owns the network-first/cache-fallback policy for reads; online-only for writes; decides cache keys and invalidation | Plain Dart class depending on one `*Api` + `CacheStore`; returns a small `CacheResult<T>{data, fromCache, fetchedAt}` wrapper, not raw models |
-| Riverpod providers (new) | Wire dependencies without constructor threading; expose async state to widgets | `Provider` for singletons (ApiClient, CacheStore, Repositories), `FutureProvider`/`AsyncNotifierProvider` (optionally `.family` for band-scoped data) for screen-facing state |
-| Feature screens (existing dirs, rewritten) | Render `AsyncValue`, show "offline — showing cached data from HH:mm" affordance when `fromCache == true` | `ConsumerWidget`/`ConsumerStatefulWidget` |
+### Current State (v1.0): Cache-First with Background Refresh
 
-## Recommended Project Structure
+**Strategy:** Return cached data immediately on cache hit, kick off silent background refresh, fetch inline on miss.
 
-```
-lib/
-├── api/                          # existing — HTTP/auth, extended with new typed clients
-│   ├── api_client.dart           # unchanged
-│   ├── auth_session.dart         # unchanged
-│   ├── public_api.dart           # unchanged (login/register)
-│   ├── bands_api.dart            # NEW — /api/bands* CRUD + join + remove-member
-│   ├── tracks_api.dart           # NEW — /api/bands/{id}/tracks* CRUD
-│   ├── setlists_api.dart         # NEW — /api/bands/{id}/setlists* CRUD + track add/remove/reorder
-│   ├── profile_api.dart          # NEW — /api/me, /api/homepage
-│   ├── api_exception.dart        # existing — add an isNetworkError classifier (see Pattern 2)
-│   └── token_storage.dart        # unchanged
-├── cache/                        # NEW — generic offline cache infra, no domain knowledge
-│   ├── cache_store.dart          # abstract interface: get(key), put(key, json, fetchedAt), clear()
-│   ├── cache_store_io.dart       # sqflite-backed impl, used on Android/iOS
-│   ├── cache_store_web.dart      # no-op impl — every get() misses (web excluded this milestone)
-│   └── cache_store_factory.dart  # conditional-import selector (mirrors http_client_factory.dart)
-├── repositories/                 # NEW — network-first-with-cache-fallback per entity
-│   ├── bands_repository.dart
-│   ├── tracks_repository.dart
-│   ├── setlists_repository.dart
-│   └── profile_repository.dart
-├── providers/                    # NEW — Riverpod wiring, replaces constructor DI
-│   ├── api_providers.dart        # apiClientProvider, authSessionProvider, *ApiProviders
-│   ├── cache_providers.dart      # cacheStoreProvider
-│   └── repository_providers.dart # *RepositoryProvider + screen-facing Future/AsyncNotifier providers
-├── features/                     # existing — screens become ConsumerWidgets
-│   ├── bands/  songs/  profile/  home/  auth/  settings/
-└── navigation/, theme/, config/  # unchanged
-```
+All 10 cache keys use this pattern via `ProfileData`, `BandsListData`, etc.:
 
-### Structure Rationale
-
-- **`lib/cache/` is a new top-level infra dir, not nested under `lib/api/`:** the cache store has zero knowledge of HTTP or the API shape — it is a generic key/JSON/timestamp store. Keeping it a sibling of `lib/api/` (matching the existing convention that `api/`, `config/`, `theme/` are infra-level, feature-agnostic directories) keeps `ApiClient` untouched and testable in isolation.
-- **`lib/repositories/` is a new top-level dir, not folded into `lib/features/{feature}/`:** repository instances are typically consumed by more than one screen within a feature (e.g., a bands list screen and a band detail screen both need `BandsRepository`) and sometimes across features (Home screen's summary likely reads from the same `BandsRepository`/`ProfileRepository`). A shared top-level location avoids duplicating fetch/cache logic per screen.
-- **`lib/providers/` is separated from both `api/` and `repositories/`:** keeps Riverpod-specific wiring (which is inherently a cross-cutting, app-wide concern) out of the plain-Dart data layer, so the API and repository layers stay framework-agnostic and unit-testable without a `ProviderContainer`.
-- **`lib/features/{feature}/` keeps its existing role** (screens + feature-local models like `band.dart`) — only the *how it gets data* changes (from constructor-injected instances to `ref.watch(...)`), not the directory's purpose.
-
-## Architectural Patterns
-
-### Pattern 1: Repository as network-first-with-cache-fallback (the core pattern)
-
-**What:** Each repository read method first attempts the real API call. On success, it decodes the response, writes the raw JSON to `CacheStore` under a deterministic key, and returns fresh data. On failure classified as a *network-class* error (no connectivity, DNS failure, timeout — not a 4xx/5xx business error, not a 403), it reads the same cache key and returns cached data if present; if there is no cached entry, it rethrows the original error.
-
-**When to use:** All GET-backed reads for bands/tracks/setlists/profile (the milestone's entire offline-cache requirement).
-
-**Trade-offs:** Simpler and more honest than a "stream cached-then-fresh" pattern (see Pattern 1b) because it never shows the user two different answers for the same screen load; costs one extra round trip to check cache only on the failure path, which is cheap.
-
-**Example:**
 ```dart
-class CacheResult<T> {
-  final T data;
-  final bool fromCache;
-  final DateTime fetchedAt;
-  const CacheResult(this.data, this.fromCache, this.fetchedAt);
+@override
+Future<Map<String, dynamic>> build() async {
+  final cache = ref.watch(cacheServiceProvider);
+  final cached = await cache.readProfile();
+  if (cached != null) {
+    ref.read(profileSyncedAtProvider.notifier).set(await cache.readProfileSyncedAt());
+    unawaited(_refresh()); // Silent background refresh, no error surfaced
+    return cached;
+  }
+  return _fetchAndCache(); // Inline fetch on cache miss
 }
+```
 
-class TracksRepository {
-  TracksRepository(this._api, this._cache);
-  final TracksApi _api;
-  final CacheStore _cache;
+**Problem:** `_refresh()` captures the provider state at fetch-start, but a local mutation (e.g., `setBands()`) that lands while the fetch is in flight gets silently overwritten by the background-fetched result. Solution (v1.0): `_version` guard — background refresh discards its result if version changed during the fetch (WR-02).
 
-  String _key(String bandId) => 'band:$bandId:tracks';
+### v1.1 Requirement: Online-First (Always Fetch Fresh When Online)
 
-  Future<CacheResult<List<Track>>> getTracks(String bandId) async {
-    final key = _key(bandId);
-    try {
-      final json = await _api.listTracks(bandId); // ApiClient under the hood
-      await _cache.put(key, json, DateTime.now());
-      return CacheResult(_decode(json), false, DateTime.now());
-    } on ApiException catch (e) {
-      if (!e.isNetworkError) rethrow; // 403/4xx/5xx must propagate, not be masked by cache
-      final cached = await _cache.get(key);
-      if (cached == null) rethrow;
-      return CacheResult(_decode(cached.json), true, cached.fetchedAt);
+**Online:** Always fetch fresh from API (no cache shortcut).  
+**Offline:** Return cache (or error if cache missing).
+
+**Why the change?** Removes the background-refresh race entirely—no more mutations being silently reverted by a background fetch. Simpler logic, no `_version` guard needed for refreshes.
+
+### Solution: Conditional Routing in `build()`
+
+Add `isOnlineProvider` dependency; route to online or offline path:
+
+```dart
+@riverpod
+class ProfileData extends _$ProfileData {
+  Future<void>? _inFlightRefresh;
+  int _version = 0; // Still needed for user-initiated refresh() only
+
+  @override
+  Future<Map<String, dynamic>> build() async {
+    final isOnline = ref.watch(isOnlineProvider);
+    
+    if (isOnline) {
+      return _fetchAndCacheOnline();
+    } else {
+      return _loadOfflineCache();
     }
   }
 
-  List<Track> _decode(String json) => /* ... */ [];
+  Future<Map<String, dynamic>> _fetchAndCacheOnline() async {
+    // Fetch fresh, cache it, return
+    final profile = await ref.read(apiClientProvider).send('GET', '/api/me');
+    final data = profile!;
+    await ref.read(cacheServiceProvider).writeProfile(data);
+    ref.read(profileSyncedAtProvider.notifier).set(DateTime.now());
+    return data;
+  }
+
+  Future<Map<String, dynamic>> _loadOfflineCache() async {
+    // Serve cache or error
+    final cached = await ref.read(cacheServiceProvider).readProfile();
+    if (cached != null) {
+      ref.read(profileSyncedAtProvider.notifier).set(
+        await ref.read(cacheServiceProvider).readProfileSyncedAt(),
+      );
+      return cached;
+    }
+    throw OfflineNoCacheException('Profile data not available offline');
+  }
+
+  // User-initiated refresh (still needed for pull-to-refresh, explicit button)
+  Future<void> refresh() {
+    return _inFlightRefresh ??= _doRefresh().whenComplete(
+      () => _inFlightRefresh = null,
+    );
+  }
+
+  Future<void> _doRefresh() async {
+    final capturedVersion = _version;
+    try {
+      final fresh = await _fetchAndCacheOnline();
+      if (_version == capturedVersion) {
+        state = AsyncData(fresh);
+      }
+    } catch (e, st) {
+      if (state.value == null) {
+        state = AsyncError(e, st);
+      }
+    }
+  }
+
+  // Local mutations still bump _version to guard against future refresh()
+  void setProfile(Map<String, dynamic> profile) {
+    _version++;
+    state = AsyncData(profile);
+    unawaited(ref.read(cacheServiceProvider).writeProfile(profile));
+    ref.read(profileSyncedAtProvider.notifier).set(DateTime.now());
+  }
 }
 ```
 
-### Pattern 1b (rejected for v1): Stream that emits cache-then-fresh
+**Key changes:**
+- Delete `_refresh()` (background silent refresh) — no longer needed.
+- Delete all `unawaited(_refresh())` calls from `build()`.
+- Add `isOnlineProvider` watch in `build()`.
+- Keep `_version` for user-initiated `refresh()` only (guards against a user tapping refresh twice while online, or refreshing offline after going back online).
+- Keep `*SyncedAt` providers (needed for offline-fallback banner text).
 
-**What:** `Stream<T> getX()` emits the cached value immediately (if any), then emits the fresh network value when it arrives — the pattern shown in Flutter's own offline-first architecture guide.
+### Riverpod Invalidation on Connectivity Change
 
-**When to use:** Apps that want instant paint from cache even while online, with a background refresh.
+When `isOnlineProvider` changes (device goes online/offline), Riverpod automatically re-runs `build()` on all watching providers. No manual invalidation needed—the `ref.watch(isOnlineProvider)` line in `build()` is the dependency hook.
 
-**Trade-offs:** More responsive UX, but adds `StreamProvider`/subscription-lifecycle complexity and a "the screen just changed values under the user's cursor" UX question that v1 doesn't need. **Recommendation: skip for this milestone** — Pattern 1 (single Future, cache only as a fallback) is sufficient because the requirement is "viewable when offline," not "instant paint while online." Revisit if a later milestone wants perceived-latency optimization.
-
-### Pattern 2: Classify errors before deciding to fall back to cache
-
-**What:** Add an `isNetworkError` (or `ApiExceptionKind` enum) to the existing `ApiException` type so repositories can distinguish "device/API unreachable" (→ fall back to cache) from "403 unauthorized" (→ must still trigger `AuthSession.signOut()`, must NOT be masked by stale cached data) and "422/500 business error" (→ must surface to the user, must NOT be silently replaced by cache).
-
-**When to use:** Every repository read/write method.
-
-**Trade-offs:** A few extra lines in `ApiClient`/`ApiException`; without this, a 403 or validation error could be incorrectly swallowed by a cache-fallback and the auto-logout requirement (an already-validated, working behavior) could silently regress.
-
-**Example:**
 ```dart
-extension on ApiException {
-  bool get isNetworkError => statusCode == null; // no HTTP response reached at all
+// When device goes offline, Riverpod auto-runs all providers watching isOnlineProvider
+// build() is called again, this time isOnline == false, so _loadOfflineCache() is used
+// When device comes back online, build() is called again, isOnline == true, _fetchAndCacheOnline() is used
+```
+
+### Applied to All 10 Cache Keys
+
+| Provider | Cache Key | Template | Notes |
+|----------|-----------|----------|-------|
+| `ProfileData` | `profile` | Simple | No family |
+| `HomepageData` | `homepage` | Simple | No family |
+| `BandsListData` | `bands` | List + mutations | `setBands()`, `renameBand()` |
+| `BandDetailData(bandId)` | `bands-{id}` | Family + mutations | `updateName()` |
+| `TracksData(bandId)` | `tracks-{bandId}` | Family + mutations | Create/update/delete track |
+| `SetlistsData(bandId)` | `setlists-{bandId}` | Family + mutations | Create/update/delete setlist |
+| `TrackListData` | `tracks-list` | Simple list | Cross-band, no mutations |
+| `SetlistListData` | `setlists-list` | Simple list | Cross-band, no mutations |
+| `TrackDetailData(trackId)` | `track-{id}` (if exists) | Family + mutations | Verify existence |
+| `SetlistDetailData(setlistId)` | `setlist-{id}` (if exists) | Family + mutations | Verify existence |
+
+---
+
+## Question 2: `{data, syncedAt}` Envelope — Simplified Purpose, Unchanged Schema
+
+### Current Envelope (v1.0)
+
+Hive stores `{data, syncedAt}` for all 10 cache keys:
+
+```dart
+await _box.put('profile', {
+  'data': profileJson,
+  'syncedAt': DateTime.now().toIso8601String(),
+});
+```
+
+Read via sibling `*SyncedAt` providers:
+
+```dart
+@riverpod
+class ProfileSyncedAt extends _$ProfileSyncedAt {
+  @override
+  DateTime? build() => null;
+  
+  void set(DateTime? value) => state = value;
 }
 ```
 
-### Pattern 3: connectivity_plus is a UI hint, not the read/write gate
+Used by `SyncStatusBadge` to render "Synced Xm ago" + time-aging timer that updates every minute.
 
-**What:** Do not use `connectivity_plus`'s `checkConnectivity()`/`onConnectivityChanged` as the trigger for whether a repository attempts a network call or falls back to cache. `connectivity_plus` reports whether a network *interface* is up — not whether the API is actually reachable (captive portals, VPN drops, server outages all look "connected" to it). The correct trigger is Pattern 2: attempt the real request, classify the resulting exception.
+### Answer: Envelope Stays, Purpose Simplifies
 
-**When to use:** Reserve `connectivity_plus` (optional dependency) purely for a lightweight, app-wide "You're offline" banner (e.g., in `RootScaffold`) for user feedback — it should never gate correctness.
+**Keep the envelope?** YES. Why:
+1. Offline-fallback banner needs timestamp for "Last synced 2h ago" text.
+2. Future v1.2 may add offline-write-queue — `syncedAt` marks when cache was last known-good.
+3. Zero refactor cost — envelope is already in place.
 
-**Trade-offs:** Slightly less "obviously offline-aware" code path than gating on connectivity state, but avoids both false positives (banner says offline while API is actually reachable over a different route) and false negatives (banner says online, but request still times out) — the network attempt itself is always the ground truth.
+**What changes?** How it's *used* by the UI:
+- **Before (v1.0):** Time-periodic timer refreshes UI every minute, escalating color from onSurfaceVariant to error at 30m.
+- **After (v1.1):** Static display, no timer, no escalation. Shown only in offline banner, not as a separate badge on every screen.
 
-## Data Flow
+### Offline-Fallback Banner (Replaces `SyncStatusBadge`)
 
-### Read Flow (online/offline branching, this is the flow that matters most for the roadmap)
+New widget `OfflineFallbackBanner` (no timer, no escalation):
 
-```
-Screen (ConsumerWidget)
-   │ ref.watch(bandTracksProvider(bandId))
-   ▼
-FutureProvider.family in lib/providers/repository_providers.dart
-   │ calls
-   ▼
-TracksRepository.getTracks(bandId)
-   │
-   ├─ 1. await TracksApi.listTracks(bandId)  ──▶ ApiClient.send('GET', ...)
-   │
-   ├─ 2a. SUCCESS ─▶ decode JSON ─▶ CacheStore.put(key, json, now)
-   │                 ─▶ return CacheResult(data, fromCache: false, fetchedAt: now)
-   │
-   └─ 2b. ApiException thrown
-          │
-          ├─ isNetworkError == false (403 / 4xx / 5xx)
-          │      ─▶ rethrow (403 still drives AuthSession.signOut() as today;
-          │         business errors still surface to the user — never masked by cache)
-          │
-          └─ isNetworkError == true (timeout / unreachable / DNS failure)
-                 │
-                 ├─ CacheStore.get(key) HIT
-                 │      ─▶ decode cached JSON
-                 │      ─▶ return CacheResult(data, fromCache: true, fetchedAt: cachedAt)
-                 │
-                 └─ CacheStore.get(key) MISS
-                        ─▶ rethrow (nothing to show — screen shows an error state)
-   ▼
-AsyncValue<CacheResult<List<Track>>> in the provider
-   ▼
-Screen renders list; if result.fromCache, shows
-"Offline — showing data from {fetchedAt}" banner instead of a stale-looking silent list
-```
+```dart
+class OfflineFallbackBanner extends StatelessWidget {
+  const OfflineFallbackBanner({super.key, required this.syncedAt, required this.isOnline});
 
-### Write Flow (online-only, per "mutations require connectivity")
+  final DateTime? syncedAt;
+  final bool isOnline;
 
-```
-Screen action (e.g. "add track")
-   ▼
-TracksRepository.createTrack(bandId, input)
-   │ await TracksApi.create(bandId, input)  — no cache read/fallback attempted
-   ├─ SUCCESS ─▶ update/merge the band:$bandId:tracks cache entry immediately
-   │             (the device was online for this write — keep the cache fresh so
-   │             the very next offline read reflects the mutation without a refetch)
-   └─ FAILURE ─▶ rethrow ApiException as-is; screen shows retry-when-online error
-                 (no queue, no optimistic local write — out of scope this milestone)
-```
+  @override
+  Widget build(BuildContext context) {
+    if (isOnline || syncedAt == null) {
+      return const SizedBox.shrink(); // Hidden if online OR no cache (no syncedAt means no cache)
+    }
 
-### State Management (Riverpod, replacing constructor DI)
+    final age = DateTime.now().difference(syncedAt);
+    final ageText = age.inHours > 0
+        ? '${age.inHours}h ago'
+        : '${age.inMinutes}m ago';
 
-```
-ProviderScope (root, in main.dart/app.dart)
-   │
-   ├─ authSessionProvider   → wraps the *existing* AuthSession instance/class as-is
-   ├─ apiClientProvider     → reads authSessionProvider, constructs ApiClient (unchanged class)
-   ├─ cacheStoreProvider    → platform-selected CacheStore (sqflite on io, no-op on web)
-   ├─ *ApiProviders (bandsApiProvider, tracksApiProvider, ...) → wrap apiClientProvider
-   ├─ *RepositoryProviders (bandsRepositoryProvider, ...) → wrap *ApiProvider + cacheStoreProvider
-   └─ screen-facing providers (bandsListProvider, bandTracksProvider(bandId), ...)
-        → FutureProvider / FutureProvider.family calling into a repository
-   ▼
-Widgets: ConsumerWidget.build(context, ref) → ref.watch(...) → AsyncValue.when(...)
+    return Container(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(
+            Icons.cloud_off,
+            size: 16,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'You\'re offline. Last synced $ageText.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 ```
 
-### Key Data Flows
+**Key differences from `SyncStatusBadge`:**
+- No `Timer.periodic` (no time-aging).
+- No warning-color escalation.
+- Static text computed once in `build()`.
+- Shown/hidden based on `isOnline` && `syncedAt != null`.
 
-1. **Cache-key scoping:** cache keys are request signatures, not entity IDs alone (`band:$bandId:tracks`, `band:$bandId:setlists`, `setlist:$setlistId`, `bands:list`, `me:profile`, `me:homepage`) — this keeps the cache a dumb, generic key→JSON store with no relational/foreign-key modeling, matching the "last-fetched response, read-only" scope explicitly chosen for v1.
-2. **AuthSession stays authoritative for 403 handling:** the cache-fallback path never intercepts a 403; `ApiClient`'s existing auto-logout behavior is preserved unchanged, so the offline feature cannot accidentally let a logged-out/revoked session keep showing cached data as if it were a valid, authenticated view. (Whether cached data should be purged on sign-out is a product decision to make explicit in the phase that builds `CacheStore` — recommend clearing on `signOut()` to avoid one user's cached band data leaking into a different user's session on a shared device.)
+### Schema: No Changes Needed
 
-## Scaling Considerations
+Internal Hive structure stays the same:
 
-This is a small per-device local cache, not a server-scaling concern — "scale" here means data volume per band, not concurrent users.
+```dart
+// cache_service.dart — unchanged
+await _profileBox.put('profile', {
+  'data': freshData,
+  'syncedAt': DateTime.now().toIso8601String(),
+});
+```
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Small band (few tracks/setlists) | Current design (whole-list JSON blob per cache key) is more than sufficient; no pagination needed |
-| Large band (hundreds of tracks/setlists) | Still fine for a read-only "last fetched snapshot" cache; if the API paginates, cache per-page keys rather than one giant blob |
-| Multiple bands, long-term app use | Add a simple TTL/eviction policy (e.g., drop cache entries not read in N days) and clear cache on `signOut()` — otherwise the local store grows unbounded across every band/setlist a user has ever viewed |
+No migration. Existing v1.0 cache remains readable.
 
-### Scaling Priorities
+### Practical Changes Summary
 
-1. **First real risk:** stale-looking data with no indication it's stale — mitigated by always carrying `fetchedAt`/`fromCache` through to the UI (Pattern 1), not a storage-scale problem.
-2. **Second risk:** cache leaking across accounts on a shared device — mitigated by clearing `CacheStore` on sign-out.
+| Aspect | Before (v1.0) | After (v1.1) | Change |
+|--------|---------------|--------------|--------|
+| Hive envelope | `{data, syncedAt}` | `{data, syncedAt}` | None |
+| Envelope reading | Cache hit + background refresh | Offline fallback only | Same code, different trigger |
+| `*SyncedAt` providers | 10 per cache key | 10 per cache key | Persist, simpler purpose |
+| UI refresh on `syncedAt` change | Time-periodic (timer) + provider invalidation | One-time display (no timer) | Simplifies |
+| Staleness badge | `SyncStatusBadge` (10 call-sites) | Removed | Delete widget + 10 removals |
+| Offline banner | None | `OfflineFallbackBanner` (10 call-sites) | New widget + 10 additions |
 
-## Anti-Patterns
+---
 
-### Anti-Pattern 1: Gating cache-fallback on `connectivity_plus` connectivity state
+## Question 3: Owner-Only UI Gates — Dual-Gate Pattern (Simpler than Tri-State)
 
-**What people do:** Check `connectivity_plus` before deciding whether to call the API at all, and treat "connected" as "cache fallback not needed."
-**Why it's wrong:** An "up" network interface doesn't mean the API is reachable (captive portals, VPN misconfiguration, server outage). This produces both false "online, but request still fails" surprises and unnecessary offline banners when the API is actually fine.
-**Do this instead:** Always attempt the request; classify the resulting exception (Pattern 2) to decide whether to read from cache. Use `connectivity_plus` only for an optional, non-authoritative UI banner.
+### Current Pattern (v1.0): Tri-State Ownership Check
 
-### Anti-Pattern 2: Building a full relational offline mirror for v1
+`band_detail_screen.dart`:
 
-**What people do:** Reach for a relational embedded DB (e.g., Drift/SQLite) and replicate every API entity with foreign keys, on the assumption offline caching always means "a local copy of the database."
-**Why it's wrong:** The milestone's scope is explicitly "last-fetched response, read-only, no offline mutation queue, no conflict resolution" — a relational schema with FK constraints, migrations, and joins solves problems (offline querying/filtering, cross-entity joins while offline) that this milestone doesn't have. It's meaningfully more code and more moving parts (schema versioning, generated code) for no v1 benefit.
-**Do this instead:** A single generic `cache_entries(key TEXT PRIMARY KEY, json TEXT, fetched_at INTEGER)` table (or equivalent key-value store) is sufficient — the "relation" between a band and its tracks is already expressed by the cache *key* (`band:$id:tracks`), not by SQL foreign keys. Revisit only if a future milestone needs offline filtering/search across cached entities.
+```dart
+/// Returns true (owner), false (resolved non-owner), or null (profile loading).
+static bool? _ownershipStatus(
+  AsyncValue<Map<String, dynamic>> profileAsync,
+  String? ownerId,
+) {
+  return profileAsync.maybeWhen(
+    data: (profile) => _isOwner(profile['id'] as String?, ownerId),
+    orElse: () => null,
+  );
+}
 
-### Anti-Pattern 3: Silently serving stale data without surfacing staleness
+static bool _isOwner(String? currentUserId, String? ownerId) =>
+    currentUserId != null && ownerId != null && currentUserId == ownerId;
 
-**What people do:** Return cached data from the repository looking identical to fresh data, with no `fromCache`/`fetchedAt` signal reaching the UI.
-**Why it's wrong:** Users at a venue with no signal (the stated core value) need to trust what they're looking at — a setlist that's actually 3 days old, shown with no indication, can lead to on-stage surprises (a track was removed/reordered since).
-**Do this instead:** Thread `CacheResult{data, fromCache, fetchedAt}` all the way to the widget layer and always render an "offline — data from {time}" affordance when `fromCache == true`.
+// UI: if (isOwner == true) showOwnerButton(); if (isOwner != null) showMemberUI();
+```
 
-### Anti-Pattern 4: Letting cache-fallback mask auth/business errors
+**Why tri-state?** Avoid rendering owner-only actions before profile loads (null state). Once loaded, definitively true/false.
 
-**What people do:** Catch *every* exception in the repository and fall back to cache, including 403s and validation errors.
-**Why it's wrong:** A 403 must still trigger `AuthSession.signOut()` (an already-validated, working behavior per `PROJECT.md`) — masking it with cached data would mean a logged-out session appears to still work. A 422/500 is a real, actionable error the user needs to see, not something the cache should paper over.
-**Do this instead:** Only network-class exceptions (no HTTP response reached) trigger cache fallback (Pattern 2); everything else propagates unchanged.
+### v1.1 Schema Changes
 
-## Integration Points
+1. Mutation endpoints loosen: **any member** can now edit/delete band/track/setlist (not owner-only).
+2. New fields: `Band.membersCount`, `Band.members[].id`, `Band.members[].role: 'owner'|'member'`.
+3. Owner-only endpoints remain owner-only: `POST /api/band/{id}/rotate-invite-code`, `POST /api/band/{id}/transfer-ownership`.
 
-### External Services
+### Solution: Dual-Gate Pattern (Not a Tri-State Replacement)
 
-| Service | Integration Pattern | Notes |
-|---------|---------------------|-------|
-| Cadence public API (`lib/api/publicapi.yml`) | Existing `ApiClient.send()`, extended with new typed `*Api` classes per resource group | Source of truth for shapes — no inventing fields/endpoints per `PROJECT.md` constraint |
-| Local cache store (sqflite or equivalent) | New `CacheStore` abstraction behind conditional import (mirrors existing `http_client_factory_*` web/io/stub split) | Android/iOS only this milestone; web gets a no-op impl so behavior there is unchanged (network-only, as today) |
-| `connectivity_plus` (optional, new) | Read-only UI hint via `onConnectivityChanged` stream, e.g. driving a `RootScaffold`-level banner | Not used to gate repository read/write logic (Pattern 3) |
+**Gate 1: Mutation visibility** → "any authenticated member"
 
-### Internal Boundaries
+Replace tri-state with simple member-resolved check:
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| UI ↔ Provider layer | `ref.watch(provider)` / `AsyncValue.when(...)` | Replaces constructor-injected prop-drilling flagged as an anti-pattern in the existing codebase map |
-| Provider layer ↔ Repository layer | Direct method calls, repositories are plain Dart (no Riverpod imports inside `lib/repositories/`) | Keeps repositories unit-testable without a `ProviderContainer` |
-| Repository ↔ API layer | Repository owns exactly one `*Api` instance; `*Api` classes never know about caching | Mirrors the existing `PublicApi` → `ApiClient` relationship exactly, so the pattern is already familiar in this codebase |
-| Repository ↔ Cache layer | Repository owns cache-key naming and invalidation; `CacheStore` is dumb (key→JSON+timestamp only) | Keeps the cache layer entity-agnostic and reusable across all four repositories |
-| `ApiClient`'s existing 403 auto-logout ↔ new cache-fallback | Cache-fallback only triggers on network-class errors (Pattern 2); 403 handling in `ApiClient` is untouched | Prevents the new offline feature from regressing the already-validated auto-logout behavior |
+```dart
+/// Returns true only if profile is loaded (user is authenticated).
+/// Gates edit/delete UI that's now available to any member.
+static bool _isMemberResolved(AsyncValue<Map<String, dynamic>> profileAsync) {
+  return profileAsync.maybeWhen(
+    data: (_) => true, // Profile loaded = user authenticated
+    orElse: () => false,
+  );
+}
 
-## Suggested Build Order
+// UI: if (_isMemberResolved(profileAsync)) showEditButton();
+```
 
-1. **Riverpod skeleton** — add `ProviderScope`, bridge existing `AuthSession`/`ApiClient` (unmodified classes) into `authSessionProvider`/`apiClientProvider`. No behavior change, but unblocks everything else and directly satisfies the "migrate off constructor-injected ChangeNotifier/prop-drilling" requirement first, in isolation, with minimal risk.
-2. **Generic cache infra** (`lib/cache/`) — `CacheStore` interface + sqflite (or chosen store) impl + web no-op impl + conditional-import wiring. No dependency on domain models; can be built/tested standalone against fake keys.
-3. **New typed `*Api` classes** (`lib/api/bands_api.dart`, `tracks_api.dart`, `setlists_api.dart`, `profile_api.dart`) — can proceed in parallel with step 2 since both depend only on the existing, unchanged `ApiClient`.
-4. **Repository layer**, one entity at a time (Bands → Tracks → Setlists → Profile, matching dependency order since tracks/setlists are nested under a band) — each depends on steps 1–3 being done for that entity.
-5. **Feature screens rewritten as `ConsumerWidget`s**, one feature at a time, consuming the repository providers and adding the offline/`fromCache` UI affordance — depends on step 4 for that feature.
+**Gate 2: Owner tools** → "only if current user is band owner"
 
-This ordering means "state management migration" and "cache infrastructure" are natural early, foundational phases before any of the CRUD feature phases (Bands/Tracks/Setlists/Profile), which is a strong signal for how the roadmap should sequence phases: foundation first, then one vertical feature slice per phase reusing that foundation.
+Compute from `Band.members[].role` (new schema field):
+
+```dart
+/// Checks if current user is band owner by looking up their role in members list.
+/// Used to gate owner-only tools (rotate-invite-code, transfer-ownership).
+static bool? _isOwnerFromMembers(
+  AsyncValue<Map<String, dynamic>> profileAsync,
+  Map<String, dynamic> band,
+) {
+  return profileAsync.maybeWhen(
+    data: (profile) {
+      final userId = profile['id'] as String?;
+      if (userId == null) return null;
+      
+      final members = band['members'] as List? ?? [];
+      for (final member in members.cast<Map<String, dynamic>>()) {
+        if (member['id'] == userId) {
+          return member['role'] == 'owner';
+        }
+      }
+      return null; // User not in members list (shouldn't happen)
+    },
+    orElse: () => null,
+  );
+}
+
+// UI: final isOwner = _isOwnerFromMembers(profileAsync, band);
+//     if (isOwner == true) showRotateInviteCodeButton();
+```
+
+**Why this is better than tri-state:**
+- Cleaner semantics: `_isMemberResolved()` is boolean (authenticated), `_isOwnerFromMembers()` is tri-state (computed from role).
+- Decouples "user is authenticated" from "user is band owner."
+- Reuses schema-provided `role` field instead of comparing IDs.
+- Two separate concerns, two separate checks (no confusion).
+
+### Applied to All Mutation Endpoints
+
+| Endpoint | v1.0 Gate | v1.1 Gate | How |
+|----------|-----------|-----------|-----|
+| `PUT /api/band/{id}` | owner-only | any member | Use `_isMemberResolved()` |
+| `DELETE /api/band/{id}` | owner-only | any member | Use `_isMemberResolved()` |
+| `PUT /api/track/{id}` | owner-only | any member | Use `_isMemberResolved()` |
+| `DELETE /api/track/{id}` | owner-only | any member | Use `_isMemberResolved()` |
+| `PUT /api/setlist/{id}` | owner-only | any member | Use `_isMemberResolved()` |
+| `DELETE /api/setlist/{id}` | owner-only | any member | Use `_isMemberResolved()` |
+| `POST /api/band/{id}/rotate-invite-code` | owner-only | **owner-only** | Use `_isOwnerFromMembers()` (new) |
+| `POST /api/band/{id}/transfer-ownership` | owner-only | **owner-only** | Use `_isOwnerFromMembers()` (new) |
+
+### Member-Count Display
+
+Use `Band.membersCount` directly (no gate, purely informational):
+
+```dart
+Text('${band["membersCount"] as int} members')
+```
+
+### Migration Path
+
+1. Add `_isMemberResolved()` helper to all screens that gate mutations.
+2. Add `_isOwnerFromMembers()` helper to screens with owner tools.
+3. Replace all `_isOwner(profileId, ownerId)` calls with `_isMemberResolved(profileAsync)`.
+4. Delete all references to `Band.ownerId` in UI (stays in schema for future use, not used in v1.1).
+5. Keep tri-state logic only for owner-tools gates; remove everywhere else.
+
+---
+
+## Question 4: `searchQuery` Parameter Integration
+
+### Current API Shape (v1.0)
+
+```yaml
+/api/track/list:
+  post:
+    operationId: ListBandTracks
+    parameters:
+      - name: bandId
+        in: query
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties: {} # Empty
+```
+
+### v1.1 Schema Extension
+
+```yaml
+/api/track/list:
+  post:
+    operationId: ListBandTracks
+    parameters:
+      - name: bandId
+        in: query
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              searchQuery:
+                type: string
+                description: "Optional substring match filter"
+```
+
+### PublicApi.listBandTracks() Update
+
+**Before:**
+
+```dart
+Future<List<Map<String, dynamic>>> listBandTracks(String bandId) async {
+  final response = await _client.send(
+    'POST',
+    '/api/track/list',
+    queryParams: {'bandId': bandId},
+    body: {},
+  );
+  return (response!['items'] as List).cast<Map<String, dynamic>>();
+}
+```
+
+**After (backward-compatible):**
+
+```dart
+Future<List<Map<String, dynamic>>> listBandTracks(
+  String bandId, {
+  String? searchQuery,
+}) async {
+  final body = <String, dynamic>{};
+  if (searchQuery != null && searchQuery.isNotEmpty) {
+    body['searchQuery'] = searchQuery;
+  }
+  
+  final response = await _client.send(
+    'POST',
+    '/api/track/list',
+    queryParams: {'bandId': bandId},
+    body: body,
+  );
+  return (response!['items'] as List).cast<Map<String, dynamic>>();
+}
+```
+
+**Backward-compatible:** Calling `listBandTracks(bandId)` (no search) works; sends empty body, matching v1.0.
+
+### Setlist Track Picker (Local Search in v1.1)
+
+New UI component: `SetlistTrackPickerScreen` with local search (backend filtering added in v1.2).
+
+```dart
+class SetlistTrackPickerScreen extends ConsumerStatefulWidget {
+  const SetlistTrackPickerScreen({
+    super.key,
+    required this.bandId,
+    required this.onTracksSelected,
+  });
+
+  final String bandId;
+  final Function(List<String>) onTracksSelected; // Track IDs to add
+
+  @override
+  ConsumerState<SetlistTrackPickerScreen> createState() => _SetlistTrackPickerScreenState();
+}
+
+class _SetlistTrackPickerScreenState extends ConsumerState<SetlistTrackPickerScreen> {
+  final _searchController = TextEditingController();
+  final _selected = <String>{};
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tracksAsync = ref.watch(tracksDataProvider(widget.bandId));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Select Tracks'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Search tracks...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _selected.isNotEmpty
+                ? () {
+                    widget.onTracksSelected(_selected.toList());
+                    Navigator.pop(context);
+                  }
+                : null,
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+      body: tracksAsync.when(
+        data: (tracks) {
+          final filtered = _searchQuery.isEmpty
+              ? tracks
+              : tracks
+                  .where((t) =>
+                      (t['name'] as String)
+                          .toLowerCase()
+                          .contains(_searchQuery.toLowerCase()))
+                  .toList();
+
+          return ListView.builder(
+            itemCount: filtered.length,
+            itemBuilder: (context, index) {
+              final track = filtered[index];
+              final trackId = track['id'] as String;
+              return CheckboxListTile(
+                title: Text(track['name'] as String),
+                subtitle: Text(track['duration'] as String? ?? ''),
+                value: _selected.contains(trackId),
+                onChanged: (selected) {
+                  setState(() {
+                    if (selected == true) {
+                      _selected.add(trackId);
+                    } else {
+                      _selected.remove(trackId);
+                    }
+                  });
+                },
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, st) => Center(
+          child: Text('Error: ${error.toString()}'),
+        ),
+      ),
+    );
+  }
+}
+```
+
+**v1.1 approach:** Local filtering in the widget (no provider change needed).
+
+**v1.2+ approach (when backend implements searchQuery):**
+
+Add family parameter to `TracksData`:
+
+```dart
+@riverpod
+class TracksData extends _$TracksData {
+  @override
+  Future<List<Map<String, dynamic>>> build(
+    String bandId, {
+    String? searchQuery,
+  }) async {
+    // Online/offline logic...
+    return ref.read(publicApiProvider).listBandTracks(
+      bandId,
+      searchQuery: searchQuery,
+    );
+  }
+}
+
+// Widget:
+final tracksAsync = ref.watch(
+  tracksDataProvider(bandId, searchQuery: _searchQuery),
+);
+```
+
+But v1.1 doesn't need this; local filtering is sufficient.
+
+---
+
+## Component Boundaries & Integration Summary
+
+### New Components
+
+| Component | Purpose | Type | Status |
+|-----------|---------|------|--------|
+| `OfflineFallbackBanner` | Static offline banner (replaces SyncStatusBadge) | Widget | New |
+| `OfflineNoCacheException` | Error type for offline + no cache | Exception | New |
+| `_isMemberResolved()` | Gate any-member mutation UI | Helper | New |
+| `_isOwnerFromMembers()` | Gate owner-only tools | Helper | New |
+| `SetlistTrackPickerScreen` | Searchable track picker | Screen | New |
+| `ChangePasswordScreen` | Change password form | Screen | New |
+| `RotateInviteCodeDialog` | Rotate band invite code | Dialog | New |
+| `TransferOwnershipDialog` | Transfer band ownership | Dialog | New |
+
+### Modified Components
+
+| Component | Change | Impact |
+|-----------|--------|--------|
+| All 10 cache providers | Online-first routing + remove `_refresh()` | Logic change, same interface |
+| `SyncStatusBadge` | Removed | Delete widget, 10 call-sites |
+| `PublicApi.listBandTracks()` | Add optional `searchQuery` param | Backward-compatible |
+| All mutation screens | Replace tri-state gating with dual-gate | UI logic change |
+| `publicapi.yml` | Add `searchQuery` to `/api/track/list` body | Schema extension (client-side) |
+
+### Removed Components
+
+| Component | Why |
+|-----------|-----|
+| `SyncStatusBadge` widget | Replaced by `OfflineFallbackBanner` |
+| `_refresh()` in all cache providers | Online-first eliminates background-refresh race |
+| Tri-state `_isOwner()` pattern (old use) | Replaced by simpler `_isMemberResolved()` + `_isOwnerFromMembers()` |
+
+---
+
+## Feature Build Order & Dependencies
+
+### Phase 1: Foundation (No blocking dependencies)
+
+1. **Change password form** — Isolated, just adds `POST /api/me/password` to PublicApi.
+2. **Band member count + role display** — Read-only, uses existing `Band` fields.
+3. **Icons display** — Read-only, purely UI improvements.
+
+**Risk:** Low. **Duration:** 1–2 days.
+
+### Phase 2: Gating Refactor (Light risk, foundation for Phase 3)
+
+4. **Remove owner-only gates** — Refactor all gating helpers.
+5. **Owner tools** — Add rotate-invite + transfer-ownership endpoints, wire dialogs.
+
+**Risk:** Medium (gating logic touches many screens, but changes are localized). **Duration:** 2–3 days.
+
+### Phase 3: Cache Flip (High-risk, touches all screens)
+
+6. **Online-first cache refactor** — Update all 10 providers, remove `SyncStatusBadge`, add `OfflineFallbackBanner`.
+
+**Risk:** HIGH (every cached screen affected). **Mitigation:** Feature-flag, test offline thoroughly. **Duration:** 3–5 days.
+
+### Phase 4: Search & Polish
+
+7. **Setlist track picker + search** — Add `searchQuery` to PublicApi, build picker screen, local filtering.
+
+**Risk:** Low. **Duration:** 1–2 days.
+
+**Rationale:**
+- Phases 1–2 establish patterns and de-risk via smaller changes.
+- Phase 3 last (cache-flip is highest-touch, do it when team is confident).
+- Phase 4 is independent polish, ship last.
+
+---
+
+## Validation Checklist
+
+**Provider layer:**
+- [ ] All 10 cache providers migrated to online-first pattern.
+- [ ] `isOnlineProvider` watched in each provider's `build()`.
+- [ ] Background `_refresh()` deleted from all providers.
+- [ ] `_version` guard retained for user-initiated `refresh()` only.
+- [ ] `*SyncedAt` providers unchanged (still track cache timestamps).
+
+**UI layer:**
+- [ ] `SyncStatusBadge` widget deleted (10 call-sites).
+- [ ] `OfflineFallbackBanner` added (10 call-sites).
+- [ ] `OfflineNoCacheException` thrown when offline + no cache.
+- [ ] Gating refactored: `_isMemberResolved()` + `_isOwnerFromMembers()`.
+- [ ] Owner-only endpoints gated with `_isOwnerFromMembers() == true`.
+- [ ] Any-member endpoints gated with `_isMemberResolved() == true`.
+
+**API layer:**
+- [ ] `PublicApi.listBandTracks()` accepts optional `searchQuery`.
+- [ ] `publicapi.yml` extended with `searchQuery` field.
+- [ ] `POST /api/me/password` added to PublicApi.
+- [ ] `POST /api/band/{id}/rotate-invite-code` added.
+- [ ] `POST /api/band/{id}/transfer-ownership` added.
+
+**Testing:**
+- [ ] Offline + cache-hit → data + banner.
+- [ ] Offline + cache-miss → error (no banner).
+- [ ] Online → always fresh data (no banner).
+- [ ] Connectivity flip (offline → online) triggers provider re-run.
+- [ ] Member-count and role display correct.
+- [ ] Owner tools hidden for non-owners.
+- [ ] Mutation buttons visible for any authenticated member.
+- [ ] Track picker search filters locally.
+
+---
+
+## Risk & Mitigation
+
+### Risk: Cache Flip Correctness (HIGH)
+
+**Issue:** Online-first flip requires updating all 10 providers. Partial migration (some online-first, some cache-first) causes inconsistency.
+
+**Mitigation:**
+- Feature-flag via provider: `useOnlineFirstProvider` (simple bool).
+- Migrate all 10 in one commit.
+- Test offline via airplane mode + simulator.
+- Add debug screen showing cache mode per provider.
+
+### Risk: Offline Banner Logic (MEDIUM)
+
+**Issue:** Banner shown when offline AND cache exists, but not when cache missing. Requires careful state handling.
+
+**Mitigation:**
+- `OfflineFallbackBanner` checks `isOnline` and `syncedAt != null`.
+- Provider's `.when()` handles error state (no cache, no banner).
+- Test permutations: online-hit, online-miss, offline-hit, offline-miss.
+
+### Risk: Owner-Gating Edge Cases (MEDIUM)
+
+**Issue:** Replacing tri-state with dual-gate could miss an edge case (owner-tool rendered to non-owner).
+
+**Mitigation:**
+- Guard all owner-tool buttons with `_isOwnerFromMembers() == true`.
+- Test: owner can see rotate/transfer, member cannot.
+- Walk through all owner-tool UI before shipping.
+
+### Risk: Backend Not Yet Implementing searchQuery (LOW)
+
+**Issue:** v1.1 uses local filtering; backend `searchQuery` param added in v1.2.
+
+**Mitigation:**
+- v1.1 local filtering is sufficient (acceptable perf for typical band sizes).
+- v1.2 backend change is transparent to client (optional param already in place).
+- No client-side code breakage.
+
+---
+
+## Summary Table
+
+| Question | Answer | Complexity | Risk |
+|----------|--------|------------|------|
+| 1. Cache flip | Online-first guard in `build()`, no schema change | Medium | High (all screens) |
+| 2. Envelope fate | Stays unchanged; SyncStatusBadge removed, OfflineFallbackBanner added | Low | Low |
+| 3. Owner gates | Dual-gate (`_isMemberResolved()` + `_isOwnerFromMembers()`) replaces tri-state | Medium | Medium |
+| 4. searchQuery integration | Optional param to `PublicApi.listBandTracks()`, local filtering in picker | Low | Low |
+
+---
+
+## Architecture Diagram (v1.1)
+
+```
+┌───────────────────────────────────────────────────────┐
+│  UI Layer (features/*)                                │
+│  • Removed: SyncStatusBadge (10 call-sites)           │
+│  • Added: OfflineFallbackBanner (10 call-sites)       │
+│  • Added: SetlistTrackPickerScreen (local search)     │
+│  • Changed: Gating from tri-state to dual-gate        │
+└─────────────────────┬─────────────────────────────────┘
+                      │ watch
+                      ▼
+┌───────────────────────────────────────────────────────┐
+│  Providers Layer (providers/*)                         │
+│  • ProfileData, BandsListData, BandDetailData, etc.   │
+│  • CHANGED: online-first routing in build()           │
+│  • REMOVED: _refresh() + _doRefresh() background      │
+│  • KEPT: _version guard for user-initiated refresh()  │
+│  • KEPT: *SyncedAt providers (offline banner text)    │
+└─────────────────────┬─────────────────────────────────┘
+                      │ read/watch
+                      ▼
+┌───────────────────────────────────────────────────────┐
+│  API + Cache Layer                                    │
+│  • PublicApi: listBandTracks(searchQuery?) added      │
+│  • CacheService: no schema changes                    │
+│  • ApiClient: no changes                              │
+└───────────────────────────────────────────────────────┘
+```
+
+---
 
 ## Sources
 
-- [Flutter official docs — Offline-first design pattern](https://docs.flutter.dev/app-architecture/design-patterns/offline-first) — HIGH confidence, official first-party architecture guidance; repository-as-single-source-of-truth, cache-then-fresh stream pattern, and online-only vs offline-first write tradeoffs are drawn directly from this source.
-- [connectivity_plus package](https://pub.dev/packages/connectivity_plus) — MEDIUM confidence, official package page; confirms `checkConnectivity()`/`onConnectivityChanged` semantics and the explicit caveat that interface-connected ≠ API-reachable.
-- Community comparison articles on Hive/Isar/Drift for local caching (Medium/blog sources aggregated via web search) — LOW confidence, general community opinion, not verified against current maintenance status of each package. Treated only as directional input to the "generic key-value cache, not a relational mirror" recommendation above, which is justified independently by this milestone's explicit read-only/no-relational-query scope (see Anti-Pattern 2) rather than by the package comparison itself.
-- Existing codebase: `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/STRUCTURE.md`, `.planning/PROJECT.md` — HIGH confidence, ground truth for current component boundaries, naming conventions, and milestone scope constraints.
+- **Existing codebase:** `lib/cache/cache_service.dart`, `lib/providers/profile_provider.dart`, `lib/features/bands/band_detail_screen.dart` — HIGH confidence, ground truth for v1.0 patterns.
+- **PROJECT.md:** v1.1 milestone scope and schema changes (commit fe72e78) — HIGH confidence.
+- **Riverpod docs:** Auto-invalidation via `ref.watch()` dependency — HIGH confidence, official docs.
+- **Flutter best practices:** Online-first vs cache-first patterns — MEDIUM confidence, community discussion + official guidance.
 
 ---
-*Architecture research for: Flutter offline-cache + band/track/setlist CRUD milestone*
-*Researched: 2026-08-14*
+
+*Architecture research for: Cadence v1.1 UI Improvements milestone*  
+*Researched: 2026-08-20*

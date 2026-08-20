@@ -1,7 +1,7 @@
 # Pitfalls Research
 
 **Domain:** Flutter offline read-caching + ChangeNotifier→Provider/Riverpod migration (brownfield, band repertoire app)
-**Researched:** 2026-08-14
+**Researched:** 2026-08-14 (v1.0) + 2026-08-20 (v1.1 additions)
 **Confidence:** MEDIUM-HIGH (cross-checked against official Riverpod docs, current Flutter/Drift community guidance, and this repo's own `ARCHITECTURE.md`/`CONCERNS.md`)
 
 ## Critical Pitfalls
@@ -194,6 +194,339 @@ State-management migration phase (build the test harness alongside the migration
 
 ---
 
+## v1.1 UI Improvements: New Pitfalls
+
+**Focus:** Adding cache-first-to-online-first flip, ownership gates removal, ownership mutations, and search integration to the existing Riverpod + Hive architecture.
+
+### Pitfall 10: In-Flight Fetch Overwrites Local Mutation During Online-First Transition
+
+**What goes wrong:**
+The app flips from cache-first (return cached data immediately, refresh in background) to online-first (always fetch fresh when online, fall back to cache when offline). The refactoring changes provider `build()` methods but doesn't update the `_version` guard logic. Result: when transitioning from offline to online, a provider returns cache immediately, kicks off a background fetch, and a concurrent user mutation (e.g., `updateBand()`) succeeds on the server but gets silently overwritten in the UI when the background fetch completes with stale data.
+
+**Root cause:** The `_version` guard is designed to prevent **concurrent** background refreshes from clobbering local edits. But during the online-first transition, the cache read and the user mutation can race without proper sequencing:
+1. `build()` → cache hit → return cached data
+2. `_refresh()` launched (captures `_version = 0`)
+3. User taps Edit Band → mutation captures same `_version = 0`, updates UI immediately
+4. Background fetch completes **before** the mutation's network request, checks `if (_version == capturedVersion)` → passes (both are 0)
+5. Stale data overwrites the local edit in state
+
+**Consequences:**
+- User edits appear in the UI, then silently revert when a background refresh completes
+- "My edit just disappeared" — violates user trust
+- Especially common after app cold-start (lots of cache hits) or on slow networks
+
+**Prevention:**
+1. **Stash in-flight mutations:** Before launching a background refresh, check if there's an in-flight mutation request. If one exists, wait for it to complete before refreshing.
+   ```dart
+   Future<void>? _inFlightMutation;
+   
+   Future<void> updateBand(String bandId, String newName) async {
+     _inFlightMutation = _doUpdate(bandId, newName);
+     await _inFlightMutation;
+     _inFlightMutation = null;
+   }
+   
+   Future<void> _refresh() async {
+     if (_inFlightMutation != null) {
+       await _inFlightMutation;
+       return; // Mutation already refreshed state
+     }
+     // ... proceed with background fetch
+   }
+   ```
+
+2. **Bump `_version` synchronously at mutation start:** Increment before any await, so the background refresh's captured version is always stale by the time it checks.
+   ```dart
+   Future<void> updateBand(String bandId, String newName) async {
+     _version++; // Bump immediately
+     await ref.read(publicApiProvider).updateBand(bandId, newName);
+     // ... update state
+   }
+   ```
+
+3. **Test mutation + refresh race:** Add an integration test with `Future.delayed` to stall the background fetch while a mutation is in-flight. Verify the mutation survives the refresh.
+
+**Detection:**
+- Enable state-change logging in `_refresh()` and mutation methods; watch for mutations being overwritten by fetches
+- QA: edit a band immediately after app launch (cache hit + background refresh in flight) and verify the change persists
+- Test: mock the network to have a 2-second fetch latency; initiate a mutation while a refresh is in progress
+
+**Phase:** v1.1 Feature Dev (address during online-first flip)
+
+---
+
+### Pitfall 11: Removing UI Gate Without Removing Implicit Permission Checks Elsewhere
+
+**What goes wrong:**
+The schema now allows any band member to edit/delete bands, tracks, and setlists (not just owners). You remove the `if (isOwner == true)` UI gates from Edit/Delete buttons. However, other parts of the architecture still assume owner-only writes:
+- Mutation endpoint names or doc comments still say "owner-only"
+- Cache invalidation logic skips refreshing certain data after a non-owner mutation, assuming it couldn't have happened
+- Some screens still render member-vs-owner UI differently based on hardcoded assumptions
+
+**Consequences:**
+- Non-owner edits succeed on the server but don't invalidate the cache
+- Global Tracks/Setlists tabs show stale data after a non-owner mutation
+- Inconsistency: server reflects the change, app's UI/cache doesn't
+
+**Prevention:**
+1. **Audit all mutation endpoints:** Grep for "owner" comments/variable names; update any that assume owner-only behavior.
+2. **Expand cache invalidation:** Any mutation (band, track, setlist) should invalidate global cross-band lists and home page, regardless of who made the mutation.
+   ```dart
+   // Always invalidate, not conditionally
+   ref.invalidate(bandsListDataProvider);
+   ref.invalidate(tracksListDataProvider); // Global list
+   ref.invalidate(setlistsListDataProvider); // Global list
+   ```
+
+3. **Test non-owner mutations:** Add integration tests where a non-owner edits a band/track/setlist and verify the global lists reflect it immediately.
+
+4. **Check UI rendering:** Confirm screens no longer special-case ownership for edit/delete visibility.
+
+**Detection:**
+- Static: grep for `isOwner` usage; each occurrence should be a legitimate gate (e.g., "remove member" is owner-only, but "edit band name" is not)
+- Dynamic: run tests; failures after removing UI gates indicate implicit assumptions elsewhere
+- QA: invite a non-owner to edit something and verify it appears in another member's app without manual refresh
+
+**Phase:** v1.1 Feature Dev (address when removing ownership gates)
+
+---
+
+### Pitfall 12: Transfer Ownership Without Invalidating Current Session's Owner Status
+
+**What goes wrong:**
+User transfers band ownership to Alice via `POST /api/band/{bandId}/transfer-ownership`. The API call succeeds, and the app updates the band detail cache with the new `ownerId`. However, the user's `ProfileData` (from `GET /api/me`) is not invalidated. The UI still shows the old profile (user was an owner), and any owner-gated checks that read profile data fail silently.
+
+**Root cause:** Ownership mutations only invalidate the local band cache, not the global profile provider. If the profile API returns an `isOwnerOfBands` flag or a list of owned-band IDs, those are now stale.
+
+**Consequences:**
+- Stale user session: app believes the user still owns a band after transferring it
+- Future permission checks based on profile data fail silently
+- User confusion: "I transferred ownership but I can still edit?"
+
+**Prevention:**
+1. **Always invalidate profile after ownership mutations:**
+   ```dart
+   Future<void> transferOwnership(String bandId, String newOwnerId) async {
+     await ref.read(publicApiProvider).transferOwnership(bandId, newOwnerId);
+     ref.invalidate(bandDetailDataProvider(bandId));
+     ref.invalidate(bandsListDataProvider);
+     ref.invalidate(profileDataProvider); // Critical
+   }
+   ```
+
+2. **Centralize ownership mutations:** Create a mixin or extension that ensures every ownership-touching mutation invalidates both the band cache AND the profile cache.
+
+3. **Test permission flips:** After transfer-ownership, attempt a future owner-only operation; confirm the server rejects it with 403 (and the client handles it correctly).
+
+**Detection:**
+- Add logging to `ProfileData.build()` to track invalidations vs. loads
+- After transfer-ownership, check that the profile provider's state is `AsyncLoading` or fresh `AsyncData`, not stale `AsyncData`
+- QA: transfer ownership, then attempt an owner-only action; confirm the server rejects with 403
+
+**Phase:** v1.1 Feature Dev (address during ownership mutation implementation)
+
+---
+
+### Pitfall 13: Search Field Unimplemented on Backend During Transition
+
+**What goes wrong:**
+v1.1 extends `publicapi.yml` to add `searchQuery` to `ListBandTracks` and `ListSetlists` endpoints. The client implements the search UI immediately (searchable setlist track picker). But the backend hasn't implemented the field yet. During the transition:
+
+1. Client sends `POST /api/band/{bandId}/track/list` with `{ searchQuery: "Intro" }`
+2. Server doesn't recognize the field: either silently ignores it (returns all tracks) or rejects with 400
+3. User sees all 50 tracks when typing "Intro" (search looks broken) or the app crashes on 400
+
+**Root cause:** Schema extends faster than the backend. The client assumes the field exists and is honored.
+
+**Consequences:**
+- Search UI appears broken (no filtering)
+- App crashes if backend returns 400 with strict validation
+- User frustration; low confidence in the feature
+
+**Prevention:**
+1. **Graceful degradation:** Check API version/capability before sending `searchQuery`. Omit the field if not supported.
+   ```dart
+   final body = {
+     'bandId': bandId,
+     if (searchQuery != null && _supportsSearch) 'searchQuery': searchQuery,
+   };
+   ```
+
+2. **Version negotiation:** Implement a capability check on app startup (e.g., `GET /api/version` or a feature flag in the homepage response). Cache the result.
+
+3. **Catch 400 explicitly:** If the backend may reject the request, fall back gracefully:
+   ```dart
+   try {
+     return await listBandTracks(bandId, searchQuery: searchQuery);
+   } on ApiException catch (e) {
+     if (e.statusCode == 400) {
+       return await listBandTracks(bandId); // No search
+     }
+     rethrow;
+   }
+   ```
+
+4. **Test the transition:** Add a test double simulating the backend without search support. Verify the app degrades gracefully.
+
+5. **Handle empty strings:** Confirm `searchQuery: ""` returns all results, not an error.
+
+**Detection:**
+- Static: check `publicapi.yml` for `searchQuery`; verify client handles missing-field 400s
+- Dynamic: test against a backend that doesn't support the field; confirm no crash
+- QA: type into the search field; if the backend doesn't support it, verify the UI degrades gracefully (shows all results or disables search)
+
+**Phase:** v1.1 Feature Dev (address during search implementation)
+
+---
+
+### Pitfall 14: Cache Invalidation Incomplete During Online-First Flip
+
+**What goes wrong:**
+The app flips from cache-first to online-first. Existing cache invalidation logic (built around staleness assumptions) is not updated. Example: A provider invalidates `bandsListDataProvider` after creating a band. In cache-first mode, invalidation triggered a silent background refresh. In online-first mode, invalidation triggers an **immediate** fetch, which may show a loading spinner where it previously showed stale data. Or: a provider invalidates but doesn't re-validate, leaving a gap.
+
+**Consequences:**
+- Frequent loading spinners during otherwise-fast UX flows (e.g., create band → navigate to it)
+- Inconsistent invalidation: some mutations invalidate, others don't
+- User frustration with perceived slowness
+
+**Prevention:**
+1. **Audit all invalidation calls:**
+   ```bash
+   grep -r "ref.invalidate" lib/providers/ --include="*.dart"
+   ```
+   Confirm each is still the right behavior in online-first mode.
+
+2. **Prefer targeted cache updates:** Instead of invalidating (forces re-fetch), update the cache in place when possible:
+   ```dart
+   // Before (cache-first):
+   Future<void> createBand(String name) async {
+     final newBand = await ref.read(publicApiProvider).createBand(name);
+     ref.invalidate(bandsListDataProvider); // Forces re-fetch
+   }
+
+   // After (online-first):
+   Future<void> createBand(String name) async {
+     final newBand = await ref.read(publicApiProvider).createBand(name);
+     ref.read(bandsListDataProvider.notifier).addBand(newBand);
+   }
+   ```
+
+3. **Test online-first UX:** With network present, mutations shouldn't trigger unnecessary loading spinners. Measure time to navigate after a mutation; if >1s, a cache invalidation may be forcing an unnecessary re-fetch.
+
+**Detection:**
+- QA: create a band, track, or setlist and measure time to navigate to it. Should be <500ms with fast network; if >1s, a cache invalidation is forcing an unnecessary re-fetch.
+
+**Phase:** v1.1 Feature Dev (address during online-first flip)
+
+---
+
+### Pitfall 15: Cache Behavior Flip Without Consistent Refetch Guards
+
+**What goes wrong:**
+The app flips from cache-first to online-first across **all** data providers. But only **some** providers are updated; others continue with cache-first behavior. Result: inconsistency. `BandsListData` fetches fresh when online, but `ProfileData` still returns cache and refreshes in background. User edits their profile (name, password), and the profile provider's background refresh overwrites the change before the mutation request completes.
+
+**Root cause:** The cache-behavior flip is a **systematic** change across 5+ providers. If even one is missed, it continues with the old cache-first behavior.
+
+**Consequences:**
+- Some screens show stale data indefinitely (the ones still using cache-first)
+- Others show fresh data (the ones flipped to online-first)
+- User can't predict whether data is fresh or stale
+- Especially problematic for mutation results
+
+**Prevention:**
+1. **Implement an online-first mixin or base class:**
+   ```dart
+   mixin OnlineFirstProvider {
+     bool shouldFetchFresh(WidgetRef ref) => ref.watch(isOnlineProvider);
+     Future<T?> loadWithOfflineFallback<T>({
+       required Future<T?> Function() readCache,
+       required Future<T> Function() fetchFresh,
+     }) async {
+       if (!shouldFetchFresh(ref)) return await readCache();
+       return await fetchFresh();
+     }
+   }
+   ```
+
+2. **Document the pattern:** Add a comment at the top of each provider explaining its cache behavior (online-first, offline fallback).
+
+3. **Test all providers offline:** Create a test scenario where `isOnlineProvider` returns false. Verify all data providers return cached data (or AsyncError if there's no cache).
+
+4. **Audit the migration:** After flipping all providers, grep for `cache-first` or `_refresh()` patterns to catch any that weren't updated.
+
+**Detection:**
+- Static: audit all `lib/providers/*.dart` files; confirm each implements online-first (checks `isOnlineProvider` or similar)
+- Dynamic: toggle offline mode and verify all screens show consistent data (either all cached or all error states)
+
+**Phase:** v1.1 Feature Dev (address during online-first flip)
+
+---
+
+### Pitfall 16: Ownership Mutations Without Refreshing Sibling Member Lists
+
+**What goes wrong:**
+When transferring ownership, the band's `members` list in the cache may include the previous owner with the old role. The mutation succeeds, but the member list shown on the detail screen is stale: it still shows Alice as an owner, not Bob.
+
+**Root cause:** The API's `GET /api/band/{bandId}` returns both `ownerId` (top-level) and `members` list (nested, with each member's `role`). If the backend update doesn't atomically update both, or if the client doesn't re-fetch soon enough, the list becomes inconsistent.
+
+**Consequences:**
+- Member list shows the wrong owner role
+- UI can render owner-gated actions for the wrong person
+- User confusion
+
+**Prevention:**
+1. **Always re-fetch the full band detail after ownership mutations:**
+   ```dart
+   Future<void> transferOwnership(String bandId, String newOwnerId) async {
+     await ref.read(publicApiProvider).transferOwnership(bandId, newOwnerId);
+     ref.invalidate(bandDetailDataProvider(bandId)); // Force re-fetch
+     ref.invalidate(bandsListDataProvider);
+   }
+   ```
+
+2. **Validate member roles in tests:** After transferring ownership, verify the band detail's `members` list reflects the new owner's role correctly.
+
+**Detection:**
+- QA: transfer ownership and check the member list; confirm the new owner's role is updated immediately
+- Test: mock the API to return inconsistent `ownerId` and `members` roles; verify the app handles it gracefully
+
+**Phase:** v1.1 Feature Dev (address during ownership mutation implementation)
+
+---
+
+### Pitfall 17: Riverpod Invalidation Cascade Without Explicit Family Dependencies
+
+**What goes wrong:**
+After implementing ownership mutations, you invalidate `bandDetailDataProvider(bandId)`. But you forgot that this is a family provider — invalidating a specific key doesn't invalidate all instances. So if the user is an owner of two bands and transfers ownership of one, the other remains stale.
+
+**Root cause:** Riverpod family providers require explicit key invalidation. Invalidating the base provider doesn't cascade.
+
+**Prevention:**
+1. **Invalidate the family base if you need all instances:**
+   ```dart
+   // Invalidates ALL instances of bandDetailDataProvider
+   ref.invalidate(bandDetailDataProvider);
+   ```
+
+2. **Be explicit about which instances to invalidate:**
+   ```dart
+   // Only invalidate the specific band
+   ref.invalidate(bandDetailDataProvider(bandId));
+   
+   // If you need to invalidate all bands:
+   for (final band in ref.watch(bandsListDataProvider).value ?? []) {
+     ref.invalidate(bandDetailDataProvider(band['id'] as String));
+   }
+   ```
+
+**Detection:**
+- Add logging to provider `build()` methods: "Provider built for key: $key"
+- After an ownership mutation, check logs; confirm all affected instances are re-built
+
+**Phase:** v1.1 Feature Dev (address during ownership mutation implementation)
+
+---
+
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
@@ -203,6 +536,7 @@ State-management migration phase (build the test harness alongside the migration
 | Skip cache invalidation on mutations, rely on next `GET` to refresh | Ships CRUD faster | Users see stale data offline right after their own edits (Pitfall 4) | Never — this directly undermines the milestone's core value prop |
 | Delete-and-reinstall app instead of writing DB migrations during dev | Saves time short-term | No migration muscle memory; first real migration is unpracticed and risky (Pitfall 5) | Only in the very first days before any real users/testers install a build |
 | Use `autoDispose` everywhere "because it's the Riverpod default" | Avoids thinking about lifetimes upfront | Defeats caching purpose on IndexedStack tab switches (Pitfall 6) | Fine for screen-local form/UI state, never for cached list/detail data |
+| Don't update provider caching behavior during online-first flip | Faster refactoring | Some providers cache-first, others online-first; inconsistent stale data (Pitfall 15) | Never — consistency is essential for user trust |
 
 ## Integration Gotchas
 
@@ -212,6 +546,7 @@ State-management migration phase (build the test harness alongside the migration
 | connectivity_plus | Treating "has a network interface" as "has internet access" — device on Wi-Fi with no internet reports "connected," so the app tries a live fetch, fails, and shows a generic error instead of falling back to cache | Combine interface-level connectivity with a lightweight reachability check (or simply: always attempt the network call and fall back to cache on failure, rather than gating on connectivity status alone) |
 | `ApiClient` 403 auto-logout + cache | 403-triggered `signOut()` clears the token but leaves cached band/track/setlist data behind for the next login | Wire cache clearing into the same `signOut()` path used by both manual logout and 403 auto-logout (see Pitfall 2) |
 | Riverpod `ProviderScope` placement | `ProviderScope` added below `AuthGate` or per-screen instead of once at the true app root | Single `ProviderScope` wraps `CadenceApp` (or above it in `main.dart`), matching the existing single-root DI pattern already used for `AuthSession`/`ApiClient` |
+| Online-first + in-flight mutations | Flipping to online-first without updating `_version` guard logic or adding `_inFlightMutation` stashing | Implement in-flight mutation guards and/or synchronous `_version` bumping before the online-first flip (Pitfall 10) |
 
 ## Performance Traps
 
@@ -220,13 +555,15 @@ State-management migration phase (build the test harness alongside the migration
 | Parsing large cached JSON/DB result sets synchronously on the UI thread | Jank/frame drops when opening a band with many tracks/setlists after being offline | Keep decode work in the DB layer's async calls; use `compute()`/isolate for genuinely large payloads only if profiling shows it's needed | Noticeable once a band has on the order of hundreds of tracks; low risk at typical band-repertoire scale but worth a note |
 | Unbounded local cache growth | App storage grows every time any band/track/setlist is viewed, never pruned | Evict cache rows for bands the user is no longer a member of; consider a simple TTL/last-accessed prune on app start | Matters more for users who join/leave many bands over time than for a single steady band |
 | `IndexedStack` + per-tab providers all fetching on cold start | All four tabs' data (and their providers) load simultaneously at app launch even though only one tab is visible | Fetch lazily on first build of each tab's provider (still keep-alive afterward, per Pitfall 6), not eagerly at app root | Already flagged in `CONCERNS.md`; will get worse once tabs have real cache+network fetches instead of placeholders |
+| Online-first invalidations trigger unnecessary re-fetches | Frequent loading spinners during UX flows (create → navigate) | Prefer targeted cache updates over full invalidations when mutation response contains the new data (Pitfall 14) | Noticeable after the online-first flip if not addressed |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
-|---------|------|------------|
+|---------|------|-----------|
 | Storing cached band/track/setlist data in plaintext sqflite/Drift while auth token uses `flutter_secure_storage` | Inconsistent security posture — repertoire data is lower-sensitivity than the token, but on a lost/shared device other band members' data is exposed without at-rest protection | Acceptable to leave cache unencrypted for read-only, low-sensitivity repertoire data *if explicitly decided*, but don't accidentally cache anything auth-adjacent (e.g., don't let a `/api/me` response with more fields than expected get cached wholesale without review) |
 | Cache surviving `signOut()` and being readable by the next logged-in user on a shared device | Cross-user data leakage (see Pitfall 2), which is also a privacy issue for band members' data | Clear cache on logout, as prevention for Pitfall 2 already covers |
+| Profile cache stale after ownership transfer | User still sees ownership status even though they transferred it; future permission checks fail silently | Invalidate profile provider after ownership mutations (Pitfall 12) |
 
 ## UX Pitfalls
 
@@ -235,6 +572,7 @@ State-management migration phase (build the test harness alongside the migration
 | No distinction between "offline, showing cache" and "online, request failed" | User can't tell if a blank/error screen means "no signal" (expected, cache should show instead) or "something is actually broken" | Always attempt cache-first or cache-fallback display; reserve error UI for the case where there's no cache to fall back to |
 | Cached data shown with no recency indicator | User at a gig doesn't know if the setlist shown reflects a same-day change by a bandmate | Show "last updated Xm/h ago" per screen/entity, per Pitfall 3 |
 | Mutation UI (edit/delete) available while offline with no clear disabled/explanatory state | User taps "Save" on an edit while offline, gets a confusing network error instead of understanding upfront that edits need connectivity | Since mutations require connectivity this milestone, disable or clearly label mutation actions when offline, rather than letting the user attempt and fail |
+| Search field appears broken (returns all results) during backend transition | User types into search, sees everything, thinks the feature doesn't work | Implement version check or graceful degradation for unimplemented search field (Pitfall 13) |
 
 ## "Looks Done But Isn't" Checklist
 
@@ -244,6 +582,10 @@ State-management migration phase (build the test harness alongside the migration
 - [ ] **State management migration:** Often leaves auth state on two competing reactivity mechanisms — verify 403 auto-logout correctly propagates to every screen, old and new (Pitfall 7)
 - [ ] **State management migration:** Often breaks widget tests silently — verify tests actually mock/override providers rather than hitting real `ApiClient` (Pitfall 9)
 - [ ] **Offline UX:** Often missing a visible "stale/offline" indicator — verify a manual airplane-mode test shows an explicit signal, not data that looks indistinguishable from live (Pitfall 3)
+- [ ] **Online-first flip:** All providers updated consistently to online-first (not a mix of online-first and cache-first); no in-flight mutation race conditions (Pitfalls 10, 15)
+- [ ] **Ownership gates removed:** UI gates gone but cache invalidation and permission checks updated everywhere (Pitfall 11)
+- [ ] **Ownership mutations:** Profile provider invalidated after transfer-ownership or rotate-invite-code (Pitfall 12)
+- [ ] **Search implementation:** Backend-unimplemented field handled gracefully with version check or fallback (Pitfall 13)
 
 ## Recovery Strategies
 
@@ -255,6 +597,13 @@ State-management migration phase (build the test harness alongside the migration
 | Mutations not invalidating cache (Pitfall 4) | LOW–MEDIUM | Add cache-write calls to existing mutation methods; straightforward if the repository pattern from Pitfall 1 was followed, painful if screens call `ApiClient` directly |
 | Missing schema migrations discovered post-launch (Pitfall 5) | HIGH | Requires either a destructive migration (data loss, acceptable pre-1.0) or a careful staged migration; much cheaper to prevent than fix after real users have data |
 | Two competing auth state sources (Pitfall 7) | MEDIUM–HIGH | Requires picking one and re-wiring every screen that reads auth state the "wrong" way; cheaper the earlier it's caught |
+| In-flight mutation race condition (Pitfall 10) | MEDIUM | Add `_inFlightMutation` guard or synchronous `_version` bump; touches mutation methods but is mechanical |
+| Ownership gate removal without full audit (Pitfall 11) | MEDIUM | Audit all cache invalidation, permission checks, and UI logic; update as needed; add non-owner mutation tests |
+| Profile stale after ownership transfer (Pitfall 12) | LOW | Add `ref.invalidate(profileDataProvider)` to ownership mutation methods; mechanical fix |
+| Search field unimplemented transition (Pitfall 13) | LOW | Add version check or 400-handling fallback; toggle-able feature gate if needed |
+| Cache invalidation over-aggressive (Pitfall 14) | LOW | Replace full invalidations with targeted updates where mutation response has new data; touches mutation methods |
+| Inconsistent cache-first/online-first mix (Pitfall 15) | MEDIUM | Audit all providers; ensure all use online-first (or all use cache-first, but that's not the target); systematic refactoring |
+| Family provider invalidation incomplete (Pitfall 17) | LOW | Ensure ownership mutations invalidate both the specific band detail AND the bands list; mechanical fix |
 
 ## Pitfall-to-Phase Mapping
 
@@ -269,6 +618,13 @@ State-management migration phase (build the test harness alongside the migration
 | Two competing auth state sources | State-management migration phase | Test: trigger 403 from any screen, verify all screens (old and new state-management style) reflect logout |
 | `ChangeNotifierProvider` used for new state | State-management migration phase | Code review: new band/track/setlist providers use `Notifier`/`AsyncNotifier` (if Riverpod chosen), not `ChangeNotifierProvider` |
 | Testing regressions from missing provider overrides | State-management migration phase | CI: widget test suite run time doesn't regress; no test reaches real `ApiClient` (verify via a deliberately-broken base URL in test config) |
+| In-flight mutation race (Pitfall 10) | v1.1 Feature Dev (online-first flip) | Test: mutation + background refresh race; verify mutation survives refresh |
+| Ownership gate removal without full audit (Pitfall 11) | v1.1 Feature Dev (gate removal) | Test: non-owner edits band/track/setlist; verify global lists update without manual refresh |
+| Profile stale after ownership transfer (Pitfall 12) | v1.1 Feature Dev (ownership mutations) | Test: transfer ownership; attempt owner-only action; server should reject with 403 |
+| Unimplemented search field (Pitfall 13) | v1.1 Feature Dev (search implementation) | Test against backend without search support; verify graceful degradation |
+| Cache invalidation over-aggressive (Pitfall 14) | v1.1 Feature Dev (online-first flip) | QA: mutation → navigate; measure time; should be <500ms on fast network |
+| Inconsistent cache-first/online-first (Pitfall 15) | v1.1 Feature Dev (online-first flip) | Test: toggle offline mode; verify all screens show consistent data (cached or error) |
+| Family invalidation incomplete (Pitfall 17) | v1.1 Feature Dev (ownership mutations) | Test: transfer ownership of two bands; verify both are refreshed |
 
 ## Sources
 
@@ -285,8 +641,9 @@ State-management migration phase (build the test harness alongside the migration
 - [Provider to Riverpod AsyncNotifier: A Real Migration — DEV Community](https://dev.to/devsnake/provider-to-riverpod-asyncnotifier-a-real-migration-with-before-after-code-ff5) — MEDIUM confidence
 - [Detecting Offline Status in Flutter — Medium](https://mobterest.medium.com/detecting-offline-status-in-flutter-a-guide-to-network-connectivity-monitoring-6025463c815a) — MEDIUM confidence
 - [Flutter Connectivity Done Right — ASOasis](https://asoasis.tech/articles/2026-04-24-2053-flutter-connectivity-check-network-status/) — MEDIUM confidence
-- This repository's `.planning/codebase/ARCHITECTURE.md` and `.planning/codebase/CONCERNS.md` (2026-08-13 codebase map) — HIGH confidence (primary source, this codebase)
+- This repository's `.planning/codebase/ARCHITECTURE.md`, `PROJECT.md`, and v1.0 audit findings — HIGH confidence (primary source, this codebase)
+- This repository's existing providers (`bands_provider.dart`, `tracks_provider.dart`, `setlists_provider.dart`, `profile_provider.dart`) and cache service (`cache_service.dart`) — HIGH confidence (codebase implementation)
 
 ---
-*Pitfalls research for: Flutter offline read-caching + Provider/Riverpod migration (Cadence)*
-*Researched: 2026-08-14*
+*Pitfalls research for: Flutter offline read-caching + Provider/Riverpod migration + v1.1 UI Improvements (Cadence)*
+*Last updated: 2026-08-20 (v1.1 additions)*

@@ -1,168 +1,272 @@
-# Project Research Summary
+# Project Research Summary: Cadence v1.1 UI Improvements
 
-**Project:** Cadence (band repertoire / setlist management app)
-**Domain:** Flutter mobile app (Android/iOS) — REST-backed CRUD + offline read cache + state management migration
-**Researched:** 2026-08-14
-**Confidence:** MEDIUM
+**Project:** Cadence (Flutter mobile app for band repertoire management)  
+**Milestone:** v1.1 UI Improvements  
+**Researched:** 2026-08-20  
+**Confidence:** HIGH (all recommendations grounded in v1.0 production validation, schema finalization)
+
+---
 
 ## Executive Summary
 
-Cadence's next milestone is two things at once: (1) build out the CRUD surface (bands, tracks, setlists, membership) already fully specified in `lib/api/publicapi.yml`, and (2) retrofit two cross-cutting architectural changes underneath it — a state management migration off constructor-injected `ChangeNotifier`/prop-drilling onto Riverpod, and an offline read-cache so band members can view their last-synced setlist with no signal at a venue. Every piece of research (features, architecture, pitfalls) converges on the same sequencing conclusion: the two foundational changes (Riverpod wiring, cache infrastructure) must land before any feature CRUD phase, because every subsequent screen depends on both, and retrofitting either into four already-built feature phases is strictly more expensive than building on top of them once.
+Cadence v1.1 is a 7-feature UI improvement milestone that flips the app from cache-first to online-first offline support, removes owner-only permission gates (schema now allows any member to edit/delete), adds owner-exclusive admin tools (rotate invite code, transfer ownership), and polishes UX with search and metadata icons. The recommended tech stack requires **zero new dependencies**—all features integrate cleanly with Cadence's proven Riverpod + Hive foundation, already shipping in v1.0. The primary risk is the cache-behavior flip (high-touch, affects all 10 data providers), which must be implemented carefully to avoid in-flight mutations being silently overwritten by background fetches. Recommended phase order prioritizes the cache flip first (foundational for all screens), then role/permission gating (enables owner tools), then polish features, completing in ~9–11 developer-days with rigorous testing of offline scenarios.
 
-The recommended approach is a network-first-with-cache-fallback repository pattern: each repository attempts the real API call first, writes successful responses into a cache, and only falls back to cache on network-class failures (never on 403/4xx/5xx, which must still propagate to trigger existing auth behavior). State management moves to Riverpod (not Provider or BLoC) using `Notifier`/`AsyncNotifier` directly, not the legacy `ChangeNotifierProvider` bridge. For local storage, this summary standardizes on a **generic key→JSON-blob cache store**, not a relational schema (see reconciliation below) — this keeps the offline layer honest to the milestone's actual scope (last-fetched snapshot, read-only, no relational queries across cached entities).
-
-The primary risks are UX trust and cross-boundary state bugs, not raw feasibility: (a) cached data that looks identical to fresh data misleads users about staleness at exactly the moment (no signal, at a gig) the feature exists to serve; (b) cache not scoped/cleared per user+band leaks data across accounts or bands on a shared device; (c) a half-migrated auth state (some screens on old `ChangeNotifier`, some on new Riverpod) is the highest-risk failure mode in the whole milestone because it touches the already-working 403 auto-logout behavior. All three are addressed by explicit patterns below and should be non-negotiable acceptance criteria in the phases that touch them.
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-Core additions: **flutter_riverpod ^3.4.2** (non-codegen to start) for state management, replacing constructor-injected `ChangeNotifier`, and **connectivity_plus** as a UI-only "offline" banner hint (never as the gate for whether to attempt a network call — see Architecture Approach below). `sqflite` or an equivalent lightweight embedded store backs the cache layer (see Reconciled Storage Decision). No changes to the existing `ApiClient`/`AuthSession`/`TokenStorage` layer.
+**Summary:** The v1.0 production stack is fully equipped for v1.1 features. No package additions or version upgrades are needed.
 
-**Core technologies:**
-- `flutter_riverpod ^3.4.2` — app-wide reactive state, no `BuildContext` coupling, `AsyncValue` for loading/data/error — directly solves the migration PROJECT.md already flags as required
-- `sqflite` (or equivalent) — backing store for a generic `CacheStore` (key → JSON blob + timestamp), gated behind a conditional-import (web gets a no-op stub, matching the existing `http_client_factory_*` pattern)
-- `connectivity_plus` — optional, UI-hint only (drives an app-wide offline banner); explicitly NOT used to gate repository read/write logic, since an "up" interface doesn't mean the API is reachable
+**Core technologies (unchanged from v1.0, production-validated):**
+- **Flutter 3.12.2+ / Dart 3.12.2+** – Mobile framework with 284 passing tests, zero analysis violations
+- **flutter_riverpod 2.6.1** – State management; AsyncNotifier pattern proven end-to-end for cache + mutations
+- **hive 2.2.3 + hive_flutter 1.1.0** – Local key-value store with 5 cache boxes; {data, syncedAt} envelope supports offline fallback + v1.2 smart sync
+- **connectivity_plus 7.3.1** – Online/offline detection; powers isOnlineProvider used by all v1.1 providers
+- **http 1.6.0** – REST client; ApiClient wraps this with auth header attachment + 403 auto-logout
+- **flutter_secure_storage 11.0.0** – Token persistence across restarts
+- **Material Icons (built-in)** – 4264+ icons cover all v1.1 metadata labels; no font_awesome or extra icon package needed
+- **flutter_lints 6.0.0** – Analysis passes; zero violations
+
+**Implementation highlights:**
+- Password change: Add POST endpoint to PublicApi, reuse ApiException error handling, TextField + validation (built-in)
+- Cache flip: Conditional routing in AsyncNotifier build() based on isOnlineProvider; no schema changes needed
+- Owner tools: New POST endpoints (rotate-invite-code, transfer-ownership), multi-step confirmation dialogs, password confirmation (Material showDialog)
+- Search picker: Riverpod's native debounce via ref.onDispose() + Future.delayed(); no throttle_debounce package needed
+- Member display + icons: Read-only display from schema fields; pure UI work
+
+---
 
 ### Expected Features
 
-Full feature scope is fixed by `lib/api/publicapi.yml` — no invented fields/endpoints. All P1 items below are already committed in PROJECT.md's Active requirements, not speculative.
+**Summary:** 7 features organized by priority and dependency. Total scope: ~1,500–2,250 LOC, ~9–11 developer-days (one dev, full testing).
 
-**Must have (table stakes):**
-- Band CRUD (list/create/view/edit/delete) + join via invite code + member list + remove member (self/owner)
-- Track catalog CRUD within a band (title/artist/duration, optional tempo/key/notes)
-- Setlist CRUD within a band (name, event date/location) + add/remove/reorder tracks (drag-and-drop) + running duration display
-- Offline read cache for all GET-backed screens (profile, homepage, band/track/setlist list & detail)
-- State management migration to Riverpod
-- Empty states and client-side form validation matching API-required fields
+**Table stakes (users expect these):**
+1. **Change Password Form** – Current password, new password, confirm fields; success toast + error feedback
+2. **Band Member Count + Role Display** – Show "3 members" in list items; badge for Owner/Member role
+3. **Remove Owner-Only UI Gates** – Edit/delete buttons now visible to all members (schema permits)
+4. **Cache Behavior Flip: Online-First** – Online always fetches fresh; offline serves cache + warning banner
+5. **Icons for Metadata** – Material icons for duration, musical key, notes, location on track/setlist screens
 
-**Should have (competitive differentiators):**
-- Explicit "last synced" + staleness indicator (this is Cadence's actual differentiator vs. cloud-first competitors that assume connectivity)
-- Persistent offline-mode banner (global, not per-screen)
-- Setlist duration vs. target-slot comparison (pure client-side, no API change)
+**Differentiators (competitive advantage):**
+6. **Owner Tools** – Rotate invite code + transfer ownership with multi-step confirmation + password verification
+7. **Setlist Track Picker with Search** – Replace flat-list dialog with searchable modal; search-as-you-type (debounce 300ms)
 
-**Defer (v2+):**
-- Offline mutation queue / sync-on-reconnect (no conflict resolution strategy exists yet — explicitly out of scope)
-- Real-time collaborative editing (no websocket/push in API)
-- Lyrics/chords/tabs, audio attachments, richer roles, push notifications (all require API changes not sanctioned this milestone)
-- Client-side search/filter and setlist duplication — cheap v1.x candidates, not v1, flag before building
+**Complexity by feature:**
+- #1, #2, #5, #6: LOW (1 day each, 100–200 LOC)
+- #3: LOW (50–100 LOC, remove conditionals)
+- #4, #7: MEDIUM (2–3 days each, 300–500 LOC, higher testing burden)
+
+---
 
 ### Architecture Approach
 
-Three new layers are inserted between the existing (unmodified) `lib/api/` layer and feature screens: a generic **Cache** layer (`lib/cache/`, feature-agnostic key→JSON store), a per-entity **Repository** layer (`lib/repositories/`, owns network-first/cache-fallback policy for reads, online-only for writes), and a **Provider** layer (`lib/providers/`, Riverpod wiring that replaces constructor DI). `ApiClient`, `AuthSession`, and existing 403 auto-logout behavior stay completely untouched.
+**Summary:** v1.1 integrates cleanly with the existing Riverpod + Hive foundation. No infrastructure rewrites needed; changes are localized to provider logic and UI widgets.
 
-**Major components:**
-1. `CacheStore` (new, `lib/cache/`) — generic key→JSON+timestamp store, zero domain knowledge, platform-gated (sqflite on io, no-op on web)
-2. `*Repository` (new, one per entity: Bands/Tracks/Setlists/Profile) — network-first-with-cache-fallback on reads; on writes, online-only, and updates/invalidates the corresponding cache key on success
-3. Riverpod providers (new, `lib/providers/`) — wire `ApiClient`/`AuthSession`/repositories without constructor threading; screen-facing `FutureProvider`/`AsyncNotifierProvider` (non-autoDispose for cached list/detail data, since `RootScaffold`'s `IndexedStack` keeps tabs mounted)
-4. Feature screens (existing dirs, rewritten as `ConsumerWidget`s) — render `AsyncValue`, surface a "fromCache"/"last synced" affordance instead of showing stale data silently
+**Major architectural shifts:**
 
-Key pattern: classify errors before falling back to cache. Only network-class exceptions (no HTTP response reached) trigger cache fallback; 403s and 4xx/5xx business errors always propagate unchanged, so the existing auto-logout behavior is never masked by stale cached data.
+1. **Cache-First → Online-First Pattern** – All 10 data providers change from "return cache immediately + refresh in background" to "check isOnlineProvider in build(); if online, fetch fresh; if offline, serve cache or throw OfflineNoCacheException." The `_version` guard remains for user-initiated refresh() to prevent concurrent background refreshes from clobbering mutations.
 
-**Reconciled Storage Decision:** STACK.md recommends Drift (relational, type-safe SQL, reactive streams) as the general 2026 default for Flutter local persistence; ARCHITECTURE.md recommends a simple generic key→JSON-blob store, arguing the actual v1 scope is read-only with no relational queries or cross-entity joins needed offline. **This summary adopts ARCHITECTURE.md's recommendation: a generic key→JSON-blob cache store (e.g., backed by `sqflite` with a single `cache_entries(key, json, fetched_at)` table), not Drift.** Rationale: the milestone is explicitly "last-fetched response, read-only, no offline mutation queue, no conflict resolution" (PROJECT.md Out of Scope) — the relationship between a band and its tracks is already expressed by the cache *key* (`band:$id:tracks`), not by SQL foreign keys. A relational schema with FK constraints, migrations, and generated code (Drift's `drift_dev`/`build_runner` codegen) solves problems this milestone doesn't have (offline querying/filtering, cross-entity joins while offline) and is meaningfully more moving parts for no v1 benefit — this is exactly the "Anti-Pattern 2" ARCHITECTURE.md calls out. Revisit Drift only if a future milestone needs offline search/filtering across cached entities or a mutation-queue/outbox table; if that happens, migrate the same schema-migration discipline (see Pitfall 5) forward rather than starting over.
+2. **{data, syncedAt} Envelope Persists** – Hive schema unchanged; SyncStatusBadge widget removed (which aged timestamps every minute). New OfflineFallbackBanner shows only when offline AND cache exists, displaying static "Last synced Xm/h ago" text (no timer).
+
+3. **Dual-Gate Permission Pattern** – Replace tri-state ownership check with two separate helpers:
+   - `_isMemberResolved(profileAsync)` → boolean, gates all-member edit/delete
+   - `_isOwnerFromMembers(profileAsync, band)` → tri-state, gates owner-only tools
+
+4. **searchQuery Optional Param** – PublicApi.listBandTracks(bandId, {searchQuery}) backward-compatible; v1.1 uses local filtering.
+
+**Components added:**
+- OfflineFallbackBanner (replaces SyncStatusBadge)
+- SetlistTrackPickerScreen (searchable modal)
+- ChangePasswordScreen, RotateInviteCodeDialog, TransferOwnershipDialog
+
+**Components removed:**
+- SyncStatusBadge widget (10 call-sites)
+- _refresh() method (background silent refresh)
+- Tri-state _isOwner() pattern (replaced with dual-gate)
+
+---
 
 ### Critical Pitfalls
 
-1. **Cache not scoped/cleared per user+band** — every cache key must include `bandId` (and ideally `userId`); wire `CacheStore.clearAll()` into `AuthSession.signOut()` (both manual logout and 403 auto-logout paths), or risk cross-account/cross-band data bleed on a shared device.
-2. **Stale cache indistinguishable from fresh data** — thread `CacheResult{data, fromCache, fetchedAt}` all the way to the UI and always render an explicit "offline — data from {time}" affordance when `fromCache == true`. This is the milestone's core value proposition; silently serving stale data as if fresh defeats the entire feature.
-3. **Successful online mutations don't invalidate the read cache** — "read-only cache" means writes require connectivity, not that writes never touch the cache. Every mutation method must update/invalidate the corresponding cache key as part of its own repository method, or users see their own edits "disappear" the next time they go offline.
-4. **Two competing sources of truth for auth state during migration** — do not leave `AuthSession` on old `ChangeNotifier`/constructor-injection while new screens read auth via Riverpod (or vice versa, ad hoc). Pick one rule for the whole migration window and apply it consistently; this is the highest-risk pitfall because it touches the already-working 403 auto-logout behavior.
-5. **`autoDispose` (Riverpod's typical default) fights the caching goal** — `RootScaffold`'s `IndexedStack` keeps all four tabs mounted; band/track/setlist providers must be `keepAlive` (non-autoDispose), or every tab switch triggers a fresh network/cache read and defeats the point of caching.
+**Top pitfalls requiring prevention:**
+
+1. **Pitfall 10: In-Flight Fetch Overwrites Local Mutation** – When flipping to online-first, if a user mutation completes while a background fetch is in-flight, stale data can overwrite the edit. Prevention: Implement `_inFlightMutation` guard or bump `_version` synchronously before any await. **Test mutation + refresh race explicitly.**
+
+2. **Pitfall 11: Ownership Gate Removal Without Full Audit** – Removing UI gates without updating cache invalidation means non-owner mutations succeed on server but don't refresh global lists. Prevention: Audit all mutation endpoints, expand invalidation to always invalidate global lists, add non-owner mutation tests.
+
+3. **Pitfall 12: Transfer Ownership Without Invalidating Profile** – Transferring ownership updates band cache but not ProfileData. Prevention: Always invalidate profileDataProvider after ownership mutations. **Test: transfer ownership → attempt owner-only action → server rejects with 403.**
+
+4. **Pitfall 4 (v1.0): Mutations Don't Invalidate Cache** – User edits track online, cache still has old title, offline view shows stale data. Prevention: Every successful mutation updates or invalidates cache as part of the same repository method. **Test: edit online → go offline → verify edit is visible.**
+
+5. **Pitfall 2 (v1.0): Cache Not Scoped Per User/Band** – User logs out, another logs in, previous user's cached bands still visible. Prevention: Include bandId in cache keys, call clearAll() during signOut(). **Test: log out → log in as different user → previously cached data not visible.**
+
+---
 
 ## Implications for Roadmap
 
-Based on combined research, the natural phase structure is: two foundational cross-cutting phases first (state management, cache infra), then one vertical CRUD feature slice per phase (each building directly on both foundations), then a dedicated offline-integration/UX pass that verifies staleness/trust signals across all screens.
+Suggested phase structure (roadmapper will refine during planning):
 
-### Phase 1: State Management Migration (Riverpod skeleton)
-**Rationale:** Every subsequent phase (cache infra, repositories, feature screens) is easier to build directly against Riverpod providers than to retrofit later; also the highest-risk single decision (auth-state duality) should be resolved in isolation, not as a side effect of building a feature screen.
-**Delivers:** `ProviderScope` at app root; `authSessionProvider`/`apiClientProvider` bridging the existing unmodified `AuthSession`/`ApiClient` classes; a documented single rule for how auth state is read across the whole migration window; a shared test harness (`pumpCadenceApp`) wiring `ProviderScope` + overrides for all future widget tests.
-**Addresses:** State management migration requirement (PROJECT.md Active requirement).
-**Avoids:** Pitfall 4 (two competing auth sources), Pitfall 5 (`ChangeNotifierProvider` legacy trap — target `Notifier`/`AsyncNotifier` directly), Pitfall (testing regressions from missing provider overrides).
+### Phase 1: Foundation Features
 
-### Phase 2: Cache Infrastructure (generic key→JSON store)
-**Rationale:** Cross-cutting — every list/detail screen in every later phase depends on it; more efficient to build once than bolt onto each feature phase separately. Can build in parallel with new typed `*Api` classes (both depend only on the existing unchanged `ApiClient`).
-**Delivers:** `CacheStore` abstract interface + `sqflite`-backed impl (conditional-import gated, web gets no-op stub) + `clearAll()`/`clearForUser()` wired into `AuthSession.signOut()` + explicit schema-migration discipline from the first version (even if version 1 has no migration yet, the test/pattern exists).
-**Uses:** Generic key→JSON-blob store (reconciled decision above), `sqflite`.
-**Implements:** `CacheStore` component from Architecture Approach.
-**Avoids:** Pitfall (cache not scoped per user/band), Pitfall (skipped/destructive schema migrations), Anti-Pattern 2 (building a full relational offline mirror for v1).
+**Rationale:** Low-risk features de-risk while planning cache-flip logic.
 
-### Phase 3: Bands (CRUD + join + membership) — first vertical feature slice
-**Rationale:** Bands is the root scoping entity — tracks and setlists are always nested under a `bandId` in the API, so band CRUD + band detail must exist before track/setlist screens are buildable at all.
-**Delivers:** `BandsApi`, `BandsRepository` (network-first-with-cache-fallback), band list/create/edit/delete screens as `ConsumerWidget`s, join-via-invite-code flow, member list + remove member (self/owner), offline "fromCache"/"last synced" affordance on band screens.
-**Addresses:** Band CRUD, join via invite code, remove member (FEATURES.md P1 items).
-**Avoids:** Pitfall 1 (collapsed DTO/cache/domain model — keep three distinct types with mappers from the start, since this is the first entity built).
+**Delivers:** Password form, member count + role display, metadata icons
 
-### Phase 4: Tracks (catalog CRUD within a band)
-**Rationale:** Depends on Phase 3 (tracks are scoped under a band) but is otherwise independent of setlists; a clean second vertical slice reusing the Phase 1/2 foundation and the repository pattern established in Phase 3.
-**Delivers:** `TracksApi`, `TracksRepository`, track catalog CRUD screens (title/artist/duration, optional tempo/key/notes), mutation-success cache invalidation.
-**Addresses:** Track catalog CRUD (FEATURES.md P1).
-**Avoids:** Pitfall (mutations not invalidating cache — verify edit-online-then-view-offline shows the edit).
+**Scope:** Features #1, #2, #6 from FEATURES.md
 
-### Phase 5: Setlists (CRUD + track add/remove/reorder + duration)
-**Rationale:** Depends on both Phase 3 (band scoping) and Phase 4 (need tracks to exist before adding them to a setlist) — the natural last vertical slice in the bands→tracks→setlists dependency chain.
-**Delivers:** `SetlistsApi`, `SetlistsRepository`, setlist CRUD screens, add/remove/reorder tracks (`ReorderableListView` + optimistic reorder-then-confirm against `PUT .../tracks/reorder`), running duration display (server-computed, no client math).
-**Addresses:** Setlist CRUD, add/remove/reorder tracks, duration display (FEATURES.md P1/P2).
-**Avoids:** Pitfall (mutations not invalidating cache, same as Phase 4, verified again here since setlist-track membership mutates more frequently).
+**Duration:** 1–2 days
 
-### Phase 6: Offline UX Integration Pass (staleness trust, cross-screen verification)
-**Rationale:** Staleness/trust UX is a cross-cutting requirement (PITFALLS.md treats it as UX acceptance criteria, not a data-layer detail) — best verified once all four entity types have real cache-backed screens to test against, rather than partially verified per-phase.
-**Delivers:** Consistent "last synced Xm ago" + offline banner across all screens; manual airplane-mode verification across bands/tracks/setlists/profile; verification that mutation UI is disabled/clearly labeled offline; verification that tab-switching doesn't trigger redundant fetches (autoDispose check).
-**Addresses:** Last-synced/staleness indicator, offline-mode banner (FEATURES.md differentiators).
-**Avoids:** Pitfall 2 (stale cache indistinguishable from fresh — this is the phase's primary acceptance criterion), Pitfall (`autoDispose` fighting cache goal).
+**Research need:** Standard patterns; skip research-phase
+
+---
+
+### Phase 2: Permission Gating Refactor
+
+**Rationale:** Prerequisite for cache flip and owner tools.
+
+**Delivers:** Edit/delete buttons visible to all members; dual-gate helpers established
+
+**Scope:** Feature #3 from FEATURES.md; foundation for #4
+
+**Addresses pitfalls:** #11 (full audit), #7 (auth consistency)
+
+**Duration:** 1–1.5 days
+
+**Research need:** Code review for all gating removals
+
+---
+
+### Phase 3: Cache-Behavior Flip (Online-First)
+
+**Rationale:** Foundational for v1.1's core value; affects all 10 data providers.
+
+**Delivers:** Online-first fetching, offline-fallback banner, elimination of background-refresh race
+
+**Scope:** Feature #5 from FEATURES.md
+
+**Addresses pitfalls:** #10 (mutation race), #3 (stale data UX), #14 (invalidation), #15 (consistency)
+
+**Duration:** 3–5 days (2 implementation + 2–3 testing)
+
+**Research need:** **HIGH-PRIORITY research-phase** — offline testing strategy, feature-flag rollout, banner accessibility
+
+---
+
+### Phase 4: Ownership Mutations (Owner Tools)
+
+**Rationale:** High-value admin features; depends on Phase 2 gating refactor.
+
+**Delivers:** Rotate invite code, transfer ownership with multi-step dialogs + password confirmation
+
+**Scope:** Feature #4 from FEATURES.md
+
+**Addresses pitfalls:** #12 (profile invalidation), #16 (member list refresh), #17 (family invalidation)
+
+**Duration:** 2–3 days
+
+**Research need:** Confirm API contract for password field, UX validation for multi-step flow
+
+---
+
+### Phase 5: Searchable Track Picker
+
+**Rationale:** High-UX value; independent, low-touch; ship after foundational work.
+
+**Delivers:** Full-screen searchable modal, search-as-you-type (300ms debounce), local filtering
+
+**Scope:** Feature #7 from FEATURES.md
+
+**Addresses pitfalls:** #13 (unimplemented backend field, graceful degradation), #6 (autoDispose)
+
+**Duration:** 1–2 days
+
+**Research need:** Confirmed debounce pattern in v1.0; skip research-phase
+
+---
 
 ### Phase Ordering Rationale
 
-- Foundation-first ordering (Riverpod, then cache infra) is not optional sequencing preference — it's a hard dependency every research file independently converges on: ARCHITECTURE.md's "Suggested Build Order" states it explicitly, FEATURES.md's dependency graph shows both as cross-cutting prerequisites, and PITFALLS.md flags "cache-layer foundation phase" and "state-management migration phase" as the correct prevention point for 7 of 9 critical pitfalls.
-- Bands → Tracks → Setlists ordering follows the API's own resource nesting (`bandId` scopes both tracks and setlists; setlist-track operations require tracks to exist) — this is a hard dependency, not a preference.
-- A dedicated Phase 6 (rather than folding staleness UX into each feature phase) avoids the risk of inconsistent per-screen staleness affordances — PITFALLS.md's "Looks Done But Isn't" checklist treats this as something that's easy to half-implement per-screen and needs a cross-screen verification pass.
+- Phase 1 first: Low-risk, builds confidence
+- Phase 2 before Phase 3: Gating refactor influences cache invalidation strategy
+- Phase 3 mid-timeline: Highest-risk; implement when team warmed up
+- Phase 4 after Phase 3: Owner tools depend on correct gating + invalidation
+- Phase 5 last: Independent; ship after other features stable
 
-### Research Flags
+**Critical dependencies:**
+- Phase 2 → Phase 3 (gating logic influences invalidation)
+- Phase 3 → Phase 4 (ownership mutations rely on cache invalidation)
+- Phase 1, 5 independent; can overlap
 
-Phases likely needing deeper research during planning:
-- **Phase 2 (Cache Infrastructure):** Needs `--research-phase` — schema-migration strategy details (even for a simple key-value table, the migration test pattern from PITFALLS.md Pitfall 5 needs concrete implementation guidance) and the exact conditional-import wiring to mirror `http_client_factory_*.dart`.
-- **Phase 1 (State Management Migration):** Needs `--research-phase` — the specific mechanics of bridging the existing `ChangeNotifier`-based `AuthSession` into Riverpod without creating the dual-source-of-truth trap (Pitfall 4) deserve concrete code-level research, not just the pattern-level guidance already gathered.
+---
 
-Phases with standard patterns (skip research-phase):
-- **Phases 3, 4, 5 (Bands/Tracks/Setlists CRUD):** ARCHITECTURE.md's repository pattern (Pattern 1, with full code example) is directly reusable across all three; each phase is a mechanical repeat of the same shape against a different API resource group. Standard CRUD-over-REST-with-cache-fallback, well-documented in this research.
-- **Phase 6 (Offline UX Integration):** The UX pattern (fromCache/fetchedAt threading to a banner/badge) is fully specified in ARCHITECTURE.md Pattern 1 and PITFALLS.md Pitfall 2 — implementation is additive UI work, not novel research.
+## Research Flags
+
+**Phases requiring deeper research during planning:**
+
+- **Phase 3 (Cache Flip):** HIGH-risk architectural change. Recommend `/gsd-plan-phase --research-phase 3` for:
+  - _version guard interaction modeling
+  - Offline banner accessibility (WCAG AA contrast)
+  - Feature-flag rollout strategy
+  - Real device offline testing (Android/iOS, not just simulator)
+
+- **Phase 4 (Owner Tools):** Recommend `/gsd-plan-phase --research-phase 4` for:
+  - API contract verification (password field, error codes)
+  - Multi-step dialog UX validation (Slack pattern for high-stakes ops)
+  - Permission flip testing (transfer, then immediate next action)
+
+**Phases with standard patterns (skip research-phase):**
+
+- **Phase 1:** Password forms, badges, icons are standard Flutter patterns
+- **Phase 2:** Conditional rendering, dual-gate pattern documented in ARCHITECTURE.md
+- **Phase 5:** Debounce pattern already in v1.0 codebase (ref.onDispose())
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM | Versions verified directly against pub.dev registry listings, but dates are relative not absolute — re-run `flutter pub outdated` before pinning. No curated-docs provider (Context7/Ref) available this session, so confidence defaults to the generic web-fetch tier. Storage-engine recommendation itself was LOW-confidence community opinion, resolved by architecture-scope reasoning (see Reconciled Storage Decision) rather than by re-verifying package facts. |
-| Features | MEDIUM | Cross-referenced against multiple competitor apps (Band Mule, Setlist Helper, BandHelper, etc. — MEDIUM-confidence sources each) but grounded against the HIGH-confidence local `publicapi.yml` and `PROJECT.md` for what's actually buildable — API-boundary filtering reduces risk of scope drift even though individual competitor sources are MEDIUM. |
-| Architecture | MEDIUM-HIGH | Repository/cache-fallback pattern is corroborated by official Flutter first-party architecture docs (HIGH); local-DB package comparison sources are LOW individually but the generic-store recommendation is justified independently by this milestone's explicit read-only scope, not by the package comparison. |
-| Pitfalls | MEDIUM-HIGH | Cross-checked against official Riverpod docs (HIGH) and this repo's own `ARCHITECTURE.md`/`CONCERNS.md` codebase map (HIGH, primary source) for the auth/DI-specific pitfalls; general offline-caching pitfalls draw on MEDIUM-confidence community blog sources. |
+| **Stack** | HIGH | All technologies in v1.0 production; zero new packages; versions stable |
+| **Features** | HIGH | Schema finalized (fe72e78); scope clear; estimates grounded in codebase |
+| **Architecture** | HIGH | Patterns leverage existing Riverpod + Hive; no rewrites; localized changes |
+| **Pitfalls** | MEDIUM–HIGH | Critical pitfalls documented with prevention strategies; recovery costs understood |
 
-**Overall confidence:** MEDIUM
+**Overall: HIGH confidence**
 
-### Gaps to Address
+### Gaps to Address During Implementation
 
-- **Drift vs. generic-store reconciliation:** Resolved in this summary by scope reasoning (see above), but flag explicitly in Phase 2 planning that this was a synthesis-level decision, not independently re-verified against package facts — if a future milestone needs offline search/filtering, revisit rather than assuming the generic store scales to that requirement.
-- **Riverpod codegen (annotations) vs. plain API:** STACK.md recommends starting without codegen given the app's current size (~4 tabs, ~3 resources) and revisiting past ~15-20 providers — this threshold should be tracked informally during Phases 3-5 rather than decided upfront.
-- **Cache encryption/at-rest security posture:** PITFALLS.md flags plaintext cache storage as an explicit, deliberate decision to make (not an oversight) — low-sensitivity repertoire data is likely fine unencrypted, but this should be confirmed as an explicit call in Phase 2 planning, not left implicit.
-- **`ApiException.isNetworkError` classification exact mechanics:** ARCHITECTURE.md sketches this as `statusCode == null`, but the existing `ApiException` type's actual shape needs confirming against the current codebase before Phase 1/2 planning finalizes the pattern.
+1. **Offline banner placement** – Decide during Phase 3: global in RootScaffold vs. per-screen
+2. **Profile invalidation scope** – Confirm GET /api/me returns ownership metadata during Phase 4
+3. **Backend searchQuery timeline** – Clarify v1.2 backend support; implement graceful degradation in Phase 5
+4. **Web build handling** – Scope web for v1.1 (defer? stub cache?); affects Phase 3 testing
+5. **Password confirmation UX** – Validate Slack-style password entry acceptable friction during Phase 4
+
+---
 
 ## Sources
 
-### Primary (HIGH confidence)
-- `lib/api/publicapi.yml` — ground truth for buildable API surface
-- `.planning/PROJECT.md` — ground truth for milestone scope/constraints
-- `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/CONCERNS.md`, `.planning/codebase/STRUCTURE.md` — ground truth for current component boundaries and known anti-patterns
-- Flutter official docs — Offline-first design pattern (docs.flutter.dev/app-architecture/design-patterns/offline-first)
-- Riverpod official docs — Migrating from 2.0 to 3.0, From ChangeNotifier, Provider vs Riverpod (riverpod.dev)
-- pub.dev registry pages for `drift`, `flutter_riverpod`, `riverpod_annotation`, `sqlite3_flutter_libs`, `sqflite`, `provider`, `flutter_riverpod` changelog
+**Research files (primary):**
+- `.planning/research/STACK.md` – Technology stack, no new dependencies
+- `.planning/research/FEATURES.md` – 7 features, complexity, screen mapping
+- `.planning/research/ARCHITECTURE.md` – Online-first flip, dual-gate pattern, searchQuery integration
+- `.planning/research/PITFALLS.md` – 17 pitfalls with prevention/recovery strategies
 
-### Secondary (MEDIUM confidence)
-- drift.simonbinder.eu/setup — official Drift Flutter setup guide
-- connectivity_plus package page (pub.dev)
-- Multiple 2025/2026 Flutter local-DB and Riverpod-vs-Provider-vs-BLoC comparison articles (Luci Studio, Bacancy, Softaims, FlutterFever, StartDebugging, Flutter Studio, Vibe Studio, DEV Community) — treated as directional consensus signal
-- Competitor app research: Band Mule, Band Central, BandHelper, Setlist Helper, Setlistly, SetBook, Set List Maker, All Set — treated as feature-landscape signal, filtered through the API-boundary constraint
+**Official sources:**
+- [Riverpod Debouncing](https://riverpod.dev/docs/how_to/cancel) – ref.onDispose() pattern
+- [Flutter Material Icons](https://api.flutter.dev/flutter/material/Icons-class.html) – 4264+ icons
+- [Riverpod 3.0 Migration](https://riverpod.dev/docs/3.0_migration) – AsyncNotifier, provider lifecycle
 
-### Tertiary (LOW confidence)
-- Individual community blog posts on Hive/Isar/Drift maintenance status — treated as directional input only, not as version/maintenance fact
+**Codebase (PRIMARY, HIGH confidence):**
+- v1.0: 284 tests passing, zero analysis violations
+- Providers: ProfileData, BandsListData, BandDetailData, TracksData, SetlistsData
+- Cache: lib/cache/cache_service.dart (Hive {data, syncedAt})
+- API: lib/api/public_api.dart, lib/api/api_client.dart (auth, 403 logout, error handling)
 
 ---
-*Research completed: 2026-08-14*
-*Ready for roadmap: yes*
+
+**Researched:** 2026-08-20  
+**Ready for roadmap:** YES
+
+Next step: `/gsd-plan-phase --research-phase 3` (cache flip, highest-risk work)

@@ -1,106 +1,320 @@
-# Stack Research
+# Technology Stack: v1.1 UI Improvements
 
-**Domain:** Flutter mobile app (Android/iOS) — offline read-cache for REST data + state management migration
-**Researched:** 2026-08-14
-**Confidence:** MEDIUM (web-sourced findings cross-checked directly against pub.dev package pages and official docs; no curated-docs provider (Context7/Ref) was available in this session, so the generic confidence tier defaults to LOW per the classify-confidence seam — treat the specific version numbers below as verified against the authoritative registry, but re-run `flutter pub outdated` before committing to versions since pub.dev listing dates are relative ("N days/months ago") not absolute)
+**Project:** Cadence (Flutter mobile app for band repertoire management)  
+**Milestone:** v1.1 UI Improvements  
+**Researched:** 2026-08-20  
+**Confidence:** HIGH (all technologies already validated in v1.0 production app; research focuses on v1.1 feature-specific additions only)
 
-## Recommended Stack
+## Verdict: Zero New Dependencies Required
 
-### Core Technologies
+All v1.1 features can be implemented using the validated, shipped v1.0 stack. No package additions are needed.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| **drift** | `^2.34.3` | Type-safe, reactive local database (SQLite under the hood) for the offline read cache | The 2025/2026 consensus pick for Flutter local persistence: SQL-backed, compile-time type-safe, actively maintained, reactive streams out of the box (a `Stream<List<Track>>` query auto-updates the UI when cache is refreshed — no manual `setState`/notify wiring needed), and works on every Flutter target including web (future-proofs the "web excluded this milestone" constraint if that changes later). Multiple independent 2026 sources converge on "default to Drift" language specifically because Hive/Isar lost their maintainer and Realm's sync layer was discontinued by MongoDB — Drift is the one option in this space with no maintenance-risk asterisk. |
-| **drift_flutter** | `^0.3.1` | Flutter-specific helper to open/locate the SQLite database file | Provides `driftDatabase(name: ...)`, which auto-resolves the correct storage path via `path_provider` and loads the native SQLite library correctly per-platform. Replaces the old manual `sqlite3_flutter_libs` + `path_provider` wiring — `sqlite3_flutter_libs` is now published as `0.6.0+eol` and explicitly marked obsolete on pub.dev, so do not add it to a new project. |
-| **flutter_riverpod** | `^3.4.2` | App-wide state management — replaces constructor-injected `ChangeNotifier` + prop-drilling | This is the change PROJECT.md already flags as needed ("app migrates off constructor-injected ChangeNotifier/prop-drilling"). Riverpod is the 2025/2026 default recommendation for new/actively-growing Flutter apps: no `BuildContext` dependency (works in services/repositories, not just widgets), compile-time-safe provider graph, and `AsyncValue` gives loading/data/error states for free — which matters directly here because every band/track/setlist screen is "fetch from API, fall back to cache when offline," i.e. an async-state problem Riverpod is built for. It also composes cleanly with a Drift-backed repository: a `StreamProvider` can wrap a Drift watch-query directly. |
+---
 
-### Supporting Libraries
+## Current Stack (v1.0, Already Shipping)
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| `drift_dev` (dev dependency) | `^2.34.5` | Code generator that turns Drift table/DAO definitions into type-safe Dart classes and query methods | Always, alongside `drift` — required at build time, not runtime. |
-| `build_runner` (dev dependency) | `^2.15.2` | Runs `drift_dev`'s code generation (`dart run build_runner build` / `watch`) | Always, alongside `drift_dev`. Already the standard Dart codegen entrypoint — no new tooling concept for the team. |
-| `connectivity_plus` | latest (`^7.x` as of 2026) | Detect online/offline state to decide "hit network" vs "read from cache" and to gate mutation UI (mutations require connectivity per PROJECT.md) | Needed the moment you implement the read-through-cache pattern (see ARCHITECTURE.md pattern below) and to disable create/edit/delete actions while offline. Simpler and more actively maintained than rolling your own `Socket`/DNS probe. |
-| `riverpod_annotation` + `riverpod_generator` (dev) | `^4.0.6` / matching `riverpod_generator` release | Code-generation flavor of Riverpod (`@riverpod` annotations instead of manually typed `Provider`/`StateNotifierProvider` classes) | **Optional, not required.** Riverpod's own docs present codegen as one of two equally valid starting points, not the default. Given this app is still small (4 tabs, CRUD over ~3 resources) and already uses `build_runner` for Drift, you *can* adopt codegen for consistency — but the plain (non-codegen) `flutter_riverpod` API is less machinery for a codebase migrating off constructor injection for the first time. Recommend starting **without** codegen and revisiting if the provider graph grows past ~15-20 providers. |
-| `riverpod_lint` + `custom_lint` (dev) | latest matching `flutter_riverpod` major | Lint rules that catch common Riverpod misuse (e.g., providers that should be `.autoDispose`, missing `ref.watch` vs `ref.read` misuse) | Add once Riverpod is in and the team wants stricter guardrails; not a blocker for adoption. |
+### Core Framework
+| Technology | Version | Purpose | Status |
+|------------|---------|---------|--------|
+| Flutter | ^3.12.2 | Mobile/web framework | ✓ Shipping Android/iOS |
+| Dart | ^3.12.2 | Language runtime | ✓ Current stable |
+| flutter_riverpod | 2.6.1 | State management | ✓ Proven end-to-end in v1.0; AsyncNotifiers, family providers, disposal hooks working |
+| riverpod_annotation | 2.6.1 | Codegen annotations | ✓ @riverpod macro support for AsyncNotifier |
 
-### Development Tools
+### HTTP & Authentication
+| Technology | Version | Purpose | Status |
+|------------|---------|---------|--------|
+| http | 1.6.0 | REST API client | ✓ ApiClient wraps this; auth header attachment, 403 auto-logout working |
+| flutter_secure_storage | 11.0.0 | Secure token persistence | ✓ Token persists across restarts; tested on Android/iOS |
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| Drift's `NativeDatabase`/`driftDatabase` inspector (via `drift_dev` codegen) | Compile-time verification that SQL queries match table schema | Catches typos in column names and type mismatches at build time instead of at runtime — directly reduces the risk class this migration is meant to avoid (broken offline cache silently returning wrong data). |
-| `flutter pub outdated` | Verify the exact pinned versions above are still current before implementation | Pub.dev version numbers in this report were fetched live but dated relatively ("17 days ago", "2 months ago") — re-check immediately before `pubspec.yaml` edits land. |
+### Offline Cache
+| Technology | Version | Purpose | Status |
+|------------|---------|---------|--------|
+| hive | 2.2.3 | Local key-value store with nested-collection support | ✓ CacheService wraps this; 5 boxes (profile, homepage, bands, tracks, setlists) with {data, syncedAt} envelope |
+| hive_flutter | 1.1.0 | Hive platform integration | ✓ Platform scaffolding; native libs auto-loaded |
+| connectivity_plus | 7.3.1 | Online/offline detection | ✓ isOnlineProvider wired throughout; mutations gated on connectivity |
 
-## Installation
+### UI & Icons
+| Technology | Version | Purpose | Status |
+|------------|---------|---------|--------|
+| cupertino_icons | 1.0.8 | Icon font (iOS-style) | ✓ In use; complemented by Material Icons |
+| Material Icons (built-in) | Flutter SDK | Material Design icons (4264+) | ✓ Available via Icons class; no extra package needed |
 
-```bash
-# Core: offline cache
-flutter pub add drift drift_flutter path_provider
-flutter pub add -d drift_dev build_runner
+### Testing & Linting
+| Technology | Version | Purpose | Status |
+|------------|---------|---------|--------|
+| flutter_test | SDK | Testing framework | ✓ 284 tests passing in v1.0 |
+| flutter_lints | 6.0.0 | Lint rules | ✓ Zero violations; `flutter analyze` passes |
 
-# Core: state management
-flutter pub add flutter_riverpod
+---
 
-# Supporting: connectivity detection for cache/mutation gating
-flutter pub add connectivity_plus
+## v1.1 Feature Integration: What Stays, What Changes
 
-# Optional (only if adopting Riverpod codegen from the start):
-# flutter pub add riverpod_annotation
-# flutter pub add -d riverpod_generator custom_lint riverpod_lint
-```
+### Feature 1: Password Change Form (`POST /api/me/password`)
+
+**Stack Additions:** None.
+
+**Implementation:**
+- **API layer:** Add `changePassword(oldPassword, newPassword) → Future<void>` method to `PublicApi`, wrapping existing `ApiClient.post()`
+- **UI:** Stateful form on ProfileScreen with `TextField` widgets (Flutter built-in)
+- **Error handling:** Reuse existing ApiException pattern; 400/401/403 codes have specific messages
+- **State:** Use Riverpod FutureProvider to track loading/error state
+
+**Why no new dependencies:**
+- Form validation built-in via `TextFormField`
+- ApiClient already handles POST; no changes needed
+- ApiException already parses error responses
+- Riverpod provides loading/error/data states
+
+---
+
+### Feature 2: Band Member Count + Role Display
+
+**Stack Additions:** None.
+
+**Implementation:**
+- **Data model:** Schema (fe72e78) now includes `Band.membersCount` and member `role: "owner" | "member"` enum
+- **Deserialization:** Update Band model's `fromJson()` to parse these fields (already in publicapi.yml)
+- **UI:** Display in BandsScreen list tile and band detail; use existing theme text styles
+
+**Why no new dependencies:**
+- Data already available in API response
+- UI is plain text display; no special widgets needed
+
+---
+
+### Feature 3: Remove Owner-Only UI Gates; Add Owner Tools
+
+**Stack Additions:** None.
+
+**Implementation:**
+- **Schema changes:** Endpoints relax from owner-only mutations to any-member mutations; new POST endpoints for invite rotation and ownership transfer
+- **API layer:** Add `rotateInviteCode(bandId) → Future<Band>` and `transferOwnership(bandId, newOwnerId) → Future<Band>` to PublicApi
+- **UI logic:** Gate owner-only actions on `Band.ownerId == currentUser.id` check; show confirmation dialogs before destructive operations
+- **State:** Wire Riverpod notifiers to refetch band data after mutations
+
+**Why no new dependencies:**
+- Conditional rendering: Flutter's `if` statements and ternary operators
+- Dialogs: `showDialog()` built-in to Material
+- Mutations: Existing ApiClient + Riverpod pattern
+
+---
+
+### Feature 4: Cache Behavior Flip — Online-Fresh / Offline-Cached
+
+**Stack Additions:** None; **major refactor of CacheService**.
+
+**Current (v1.0):**
+- CacheService stores `{data, syncedAt}` envelope
+- UI displays staleness badge (10min/30min thresholds) on every screen
+- Mutations blocked while offline
+
+**New (v1.1):**
+- **Online:** Always fetch fresh from server; bypass cache entirely
+- **Offline:** Serve cached data with warning banner ("You are offline — data may be outdated")
+- **Removes:** SyncStatusBadge widget, staleness thresholds, per-screen sync logic
+
+**Implementation:**
+1. **CacheService.get():** Check `isOnline` (from connectivity_plus) before deciding behavior
+   ```dart
+   if (isOnline) {
+     // Fetch fresh, update cache, return new data
+     final fresh = await fetchFromServer();
+     await cache.write(key, fresh);
+     return fresh;
+   } else {
+     // Return cached or error if empty
+     return cache.read(key) ?? throw CacheEmptyError();
+   }
+   ```
+
+2. **Riverpod providers:** Simplify from checking `syncedAt` timestamps to checking `isOnline` flag
+   - Before: `if (cacheTime.difference(now) > 10mins) refetch()`
+   - After: `if (!isOnline) serveCached(); else fetchFresh()`
+
+3. **UI:**
+   - Remove all staleness indicators from screens
+   - Add global offline banner at RootScaffold level using `MaterialBanner` or persistent `SnackBar`
+   - Keep mutations gated on `isOnline` (already working)
+
+4. **Hive envelope:** Retain `{data, syncedAt}` in storage for potential v1.2 smart sync, but stop *using* syncedAt for staleness decisions
+
+**Why no new dependencies:**
+- Binary online/offline check: Already have `connectivity_plus`
+- Cache bypass logic: Existing CacheService.get() can be extended with conditional
+- Offline banner: Flutter's `MaterialBanner` or `SnackBar` (built-in)
+- Removal of staleness logic: Pure refactor; no new pattern needed
+
+**Why this is safe:**
+- Offline detection proven in v1.0 via `connectivity_plus`
+- Cache layer proven in v1.0 (25,000+ LOC tested, 284 tests passing)
+- Removing staleness logic *simplifies* the codebase (removes one state dimension)
+- No API changes; no schema updates needed
+
+---
+
+### Feature 5: Icons for Metadata (Location, Duration, Musical Key, Notes)
+
+**Stack Additions:** None.
+
+**Implementation:**
+- **Icon choices (all Material Design, built-in):**
+  - Location: `Icons.location_on` or `Icons.place`
+  - Duration: `Icons.timer` or `Icons.schedule`
+  - Musical key: `Icons.music_note` (or `Icons.key`, `Icons.music_note_outlined`)
+  - Notes: `Icons.notes` or `Icons.description`
+
+- **UI placement:** Track detail/list screens and Setlist detail/list screens
+- **Styling:** Use `Theme.of(context).iconTheme.color` for light/dark mode consistency
+
+**Why no new icon package:**
+- Flutter's Material Icons provides 4264+ icons (as of 2026-08-20)
+- All needed metadata icons are built-in with multiple variants (outlined, filled, rounded, sharp)
+- `cupertino_icons` (already included) provides iOS variants
+- No dependency bloat; use what ships with Flutter
+
+---
+
+### Feature 6: Setlist Track Picker — Searchable List (Replace Dialog)
+
+**Stack Additions:** None; **use Riverpod's native debounce pattern**.
+
+**Current:** Bottom-sheet dialog with flat list of tracks.
+
+**New:** Full-screen searchable list with search-as-you-type, optional server-side filtering.
+
+**Implementation:**
+
+1. **UI Components:**
+   - `TextField` for search input (Flutter built-in)
+   - `ListView` of Track tiles with checkbox or tap-to-select
+   - Replace existing bottom-sheet dialog
+
+2. **Riverpod state:**
+   - Create `searchQueryProvider = StateProvider<String>((ref) => '')`
+   - Create `filteredBandTracksProvider = FutureProvider.family<List<Track>, String>((ref, bandId) async { ... })`
+
+3. **Debounce using Riverpod's native `ref.onDispose()`:**
+   ```dart
+   @riverpod
+   Future<List<Track>> filteredBandTracks(Ref ref, String bandId) async {
+     var cancelled = false;
+     ref.onDispose(() => cancelled = true);
+     
+     // Debounce: wait 300ms before fetching
+     await Future.delayed(const Duration(milliseconds: 300));
+     if (cancelled) throw Exception('Cancelled/debounced');
+     
+     // Fetch or filter
+     final query = ref.watch(searchQueryProvider);
+     return await ref.watch(publicApiProvider).bandTracks(
+       bandId,
+       searchQuery: query, // Optional—backend provides this in later update
+     );
+   }
+   ```
+
+4. **Widget binding:**
+   - TextField updates `searchQueryProvider`
+   - ListView watches `filteredBandTracksProvider`
+   - Rebuilds happen automatically as provider changes (debounce in provider logic)
+
+5. **Client-side fallback (v1.1):**
+   - If server hasn't yet added `searchQuery` param to `ListBandTracks`, filter locally:
+     ```dart
+     List<Track> filtered = tracks
+       .where((t) => t.name.toLowerCase().contains(query.toLowerCase()))
+       .toList();
+     ```
+
+**Why no new debounce package:**
+- Riverpod's `ref.onDispose()` + `Future.delayed()` provides native debounce without external dependencies
+- Pattern documented in official Riverpod guide: [riverpod.dev/docs/how_to/cancel](https://riverpod.dev/docs/how_to/cancel)
+- Already used in v1.0 codebase for cleanup (e.g., `ref.onDispose()` in AsyncNotifiers)
+- Keeps bundle lean and self-contained
+
+**Why no new list UI library:**
+- `ListView` (built-in) sufficient for this use case
+- No need for `flutter_typeahead` or `search_tiles`
+- Checkbox or tap-to-select via `GestureDetector` or `ListTile.onTap` (built-in)
+
+---
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|--------------------------|
-| drift | **sqflite** (raw) | If the cache schema is truly trivial (one or two flat tables, no joins) and the team wants zero codegen. `sqflite` (`^2.4.3`, still a "Flutter Favorite," actively maintained, published ~2 months ago) is fine for hand-written SQL, but you lose compile-time query safety and get no built-in reactive streams — you'd have to bolt those on yourself. Given this milestone caches four related resources (bands, tracks, setlists, setlist-track join data) with real relationships, Drift's type safety and joins pay for themselves quickly. |
-| drift | **Hive** / **Isar** | Only if the team already has deep Hive/Isar experience and the data is purely key-value/document-shaped with no relational queries. Both lost their original maintainer in 2025; Isar in particular has had long-running "is this still maintained?" community threads. Not a place to start a new dependency in 2026 — existing apps that already use them have no urgency to migrate, but greenfield code (this cache layer is greenfield) should avoid them. |
-| drift | **shared_preferences + manual JSON** | Never for structured relational data like this milestone's (bands → tracks → setlists → setlist_tracks). `shared_preferences` is a flat key-value store; you'd be reimplementing a database's serialization/query logic by hand for every screen. Reasonable only for tiny singleton blobs (e.g., "last selected band ID," a single feature flag) — keep using it for exactly that if it's already in the app, but not for the offline dataset. |
-| flutter_riverpod (non-codegen) | **flutter_riverpod + riverpod_generator (codegen)** | Once the provider graph grows (many async providers, families, complex dependency chains) or the team wants stricter lint-enforced discipline. Revisit after this milestone ships; don't front-load the extra generator/lint setup for a first migration off prop-drilling. |
-| flutter_riverpod | **Provider** (`^6.1.5+1`) | Only if you want the absolute smallest conceptual jump from the current `ChangeNotifier`+`ListenableBuilder` pattern already in the codebase (Provider is essentially "ChangeNotifier + InheritedWidget, formalized"). It's still maintained (Flutter Favorite, verified publisher, ~1M+ downloads) and viable for small/legacy apps, but 2025/2026 guidance is consistent: no reason to *start* new work on Provider when Riverpod removes its main pain points (BuildContext coupling, no compile-time provider-type safety) at a modest learning cost. Since PROJECT.md explicitly names "Provider or Riverpod" as the two options and this is new state (bands/tracks/setlists, not a refactor of existing AuthSession), Riverpod is the better default. |
-| flutter_riverpod | **BLoC/flutter_bloc** | If the team anticipates needing a highly auditable, ceremony-heavy state pattern (common in larger/regulated teams) or already has BLoC expertise. Overkill for a 4-tab CRUD app at this stage — steeper boilerplate than Riverpod for the same async-data-fetching problem this milestone actually has. |
+| Feature | Proposed Addition | Recommended | Why Not |
+|---------|-------------------|-------------|---------|
+| Search debounce | Add `throttle_debounce` package | ✓ Use Riverpod's native `ref.onDispose()` | External package not needed; pattern already in v1.0 codebase; keeps dependencies lean |
+| Metadata icons | Add `font_awesome_flutter` or `material_design_icons_flutter` | ✓ Use built-in Material Icons | Flutter's Icons class has 4264+ icons; all needed metadata icons are built-in |
+| Form validation | Add `form_validator` package | ✓ Use Flutter's `TextFormField` + validator callbacks | Built-in validators cover most needs; custom validator lambdas handle special cases |
+| Offline banner | Add overlay or UI component library | ✓ Use Flutter's built-in `MaterialBanner` or `SnackBar` | Both are Material design standard; no special library needed |
+| Cache simplification | Keep staleness-badge system + add online/offline toggle | ✓ Remove staleness logic entirely | Online-first/offline-cached is simpler mental model; removes one state dimension; easier to test and reason about |
 
-## What NOT to Use
+---
 
-| Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| `sqlite3_flutter_libs` | Published as `0.6.0+eol` on pub.dev and explicitly documented as obsolete — it targeted `sqlite3` 2.x and serves no purpose once you're on `sqlite3` 3.x, which `drift_flutter` already pulls in transitively. | `drift_flutter` (handles native library loading internally) |
-| Hive / Isar for new tables | Original maintainer stepped away in 2025; community forks (e.g. `hive_ce`) exist but add a second layer of "will this be maintained" risk on top of a milestone whose whole point is reliability of the offline cache. | `drift` |
-| GetIt / service-locator pattern as the *only* fix for prop-drilling | Solves dependency access but not reactive UI updates — you'd still need a separate mechanism (ChangeNotifier, Riverpod, etc.) to make widgets rebuild when band/track/setlist data changes. ARCHITECTURE.md's own "Anti-Patterns" section already names this class of problem. | `flutter_riverpod` (handles both DI *and* reactive rebuilds in one abstraction) |
-| Rolling a custom retry-queue / mutation-sync layer this milestone | PROJECT.md explicitly scopes this out ("Offline writes / mutation queue with sync-on-reconnect — deferred"). Building it now is scope creep beyond what was researched/decided. | Read-only cache: fetch-then-cache-then-serve-from-cache-when-offline; mutations simply require connectivity and surface a clear error via the existing `ApiException` pattern when offline. |
+## Stack Installation
 
-## Stack Patterns by Variant
+**No new packages to add.** Existing pubspec.yaml is complete for v1.1 features.
 
-**If the read-cache needs to survive app reinstall or be shared across the phone/tablet split (not this milestone, but worth flagging for later):**
-- Drift's `NativeDatabase` file lives in app-private storage by default via `drift_flutter` — this is already the correct, sandboxed location for Android/iOS. No extra work needed for this milestone's stated scope.
+Verify the current setup:
+```bash
+flutter pub get
+flutter analyze
+flutter test
+```
 
-**If offline writes/sync are added in a future milestone:**
-- Keep the same Drift schema; add a `pending_mutation` outbox table and a sync worker. Riverpod's `AsyncNotifier` is the natural place to own "is there a pending sync" state. Do not build this now — it's explicitly out of scope for this milestone, called out above.
+---
 
-**Given the existing `ApiClient`/`AuthSession`/`TokenStorage` layer must be preserved as-is (per milestone constraint):**
-- Introduce a `Repository` layer (e.g., `BandRepository`, `TrackRepository`) between the UI/Riverpod providers and `ApiClient`. Repository methods do: try network via existing `ApiClient` → on success, write result into Drift tables → on failure/offline, read last-cached rows from Drift and return those. This is the standard "single source of truth" repository pattern for offline-capable apps and keeps `ApiClient`/`AuthSession` completely untouched, satisfying "minimize churn on already-working auth."
-- Wrap repository methods in Riverpod `FutureProvider`/`StreamProvider` (e.g., a `StreamProvider<List<Track>>` that watches the Drift table directly for UI, refreshed by a repository-triggered network fetch) — this gives automatic UI updates when the cache is written to, without extra plumbing.
+## Integration Checklist
 
-## Version Compatibility
+- [ ] **Password change:** Add `changePassword()` to PublicApi; wire form on ProfileScreen
+- [ ] **Member display:** Ensure Band model deserializes `membersCount` and member `role`; display in BandsScreen
+- [ ] **Owner gates:** Update BandsScreen, TrackDetailScreen, SetlistDetailScreen to gate actions on `ownerId == currentUser.id` only
+- [ ] **Owner tools:** Add `rotateInviteCode()` and `transferOwnership()` to PublicApi; add dialogs to BandDetailScreen
+- [ ] **Cache layer:** Refactor CacheService.get() to check `isOnline` flag; remove staleness (syncedAt) logic
+- [ ] **Offline banner:** Add MaterialBanner to RootScaffold conditional on `isOnlineProvider` state
+- [ ] **Icons:** Replace placeholder text with Material Icons on Track detail/list, Setlist detail/list
+- [ ] **Search picker:** Implement `filteredBandTracksProvider` with debounce via `ref.onDispose()`; replace dialog with ListView; wire `searchQueryProvider` to TextField
 
-| Package A | Compatible With | Notes |
-|-----------|------------------|-------|
-| `drift ^2.34.3` | `drift_dev ^2.34.5`, `drift_flutter ^0.3.1` | Drift's own setup docs (drift.simonbinder.eu) pin these together as of the current release line; keep `drift` and `drift_dev` on matching minor lines to avoid codegen/runtime mismatches. |
-| `flutter_riverpod ^3.4.2` | `riverpod ^3.4.2` (transitive), `riverpod_annotation ^4.0.6` (if codegen adopted) | Riverpod 3.x is the current major generation as of this research; `riverpod_annotation` 4.x is the version line that targets Riverpod 3.x — don't mix `riverpod_annotation` 2.x docs/examples (common in older tutorials) with `flutter_riverpod` 3.x, the annotation API changed across the 2→3 major bump. |
-| Dart `^3.12.2` (existing project SDK constraint) | `drift ^2.34.x`, `flutter_riverpod ^3.4.2` | Both packages' current release lines target modern Dart 3.x SDKs; no constraint conflict expected with the existing `pubspec.yaml` SDK floor. |
+---
+
+## Notes for Implementation
+
+### CacheService Refactor Pattern
+When refactoring CacheService, the envelope structure `{data, syncedAt}` can remain in Hive storage (for future smart sync in v1.2), but the *logic* changes:
+- Stop reading `syncedAt` for staleness decisions
+- Start checking `isOnline` flag instead
+- Remove all staleness threshold constants (10min, 30min, etc.)
+
+### Riverpod Provider Dependencies
+All providers depending on the cache already watch `isOnlineProvider`. Simplify their logic:
+- **Before:** `if (cache.syncedAt.difference(now) > 10mins && isOnline) refetch()`
+- **After:** `if (isOnline) { fetch and update cache } else { return cached data }`
+
+### Testing Implications
+- Remove tests that verify "staleness badge appears at 10 min"; no such logic remains
+- Add tests for "offline banner appears when isOnline = false"
+- Existing cache population tests remain unchanged (still write {data, syncedAt})
+
+---
+
+## Confidence Assessment
+
+| Area | Level | Rationale |
+|------|-------|-----------|
+| Stack recommendations | HIGH | All technologies already shipping in v1.0 production app; no new packages needed |
+| API integration | HIGH | publicapi.yml schema (fe72e78) fully defined; no ambiguity |
+| Cache layer refactor | HIGH | Existing Hive+CacheService proven; refactor is logic simplification, not architectural change |
+| Riverpod debounce pattern | HIGH | Pattern documented in official Riverpod docs; already used in v1.0 for disposal cleanup |
+| Icon availability | HIGH | Material Design Icons verified in Flutter SDK; all needed icons confirmed present |
+| Dependencies | HIGH | No new packages required; no version conflicts expected |
+
+---
 
 ## Sources
 
-- pub.dev/packages/drift — version (2.34.3), dependency list — fetched directly, MEDIUM confidence (official registry, but generic web-fetch tooling tier)
-- pub.dev/packages/flutter_riverpod — version (3.4.2), dependencies — fetched directly
-- pub.dev/packages/riverpod_annotation — version (4.0.6), riverpod 3.x dependency confirmed
-- pub.dev/packages/sqlite3_flutter_libs — confirmed `0.6.0+eol`/obsolete status
-- pub.dev/packages/sqflite — version (2.4.3), maintenance signals (Flutter Favorite, recent publish)
-- pub.dev/packages/provider — version (6.1.5+1), maintenance signals
-- drift.simonbinder.eu/setup — official Drift Flutter setup guide (dependency list, `drift_flutter` role)
-- riverpod.dev/docs/introduction/getting_started — confirms codegen is optional, not the default, in official docs
-- General web search (multiple 2025/2026 comparison articles: Luci Studio "Flutter Local Database Landscape in 2026," Bacancy/Softaims/FlutterFever/StartDebugging Riverpod-vs-Provider-vs-BLoC 2026 pieces) — cross-checked consensus on Drift-as-default and Riverpod-as-default-for-new-projects; treated as directional/consensus signal (LOW-tier individually), not as version source of truth
-
----
-*Stack research for: Flutter offline caching + state management migration (Cadence, band repertoire app)*
-*Researched: 2026-08-14*
+- [Riverpod Debouncing and Cancellation Documentation](https://riverpod.dev/docs/how_to/cancel)
+- [Flutter Material Icons Reference](https://api.flutter.dev/flutter/material/Icons-class.html)
+- [Material Symbols Icons 2026 Updates](https://pub.dev/packages/material_symbols_icons/changelog)
+- Cadence v1.0 PROJECT.md (current production state: Riverpod 2.6.1, Hive 2.2.3, connectivity_plus 7.3.1)
+- Cadence v1.0 pubspec.yaml (validated stack as of 2026-08-20)
