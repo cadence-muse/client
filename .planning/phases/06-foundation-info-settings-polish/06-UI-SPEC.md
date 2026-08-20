@@ -36,12 +36,12 @@ Declared values (multiples of 4, consistent with existing codebase):
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px | Icon-to-text gaps in inline rows |
 | sm | 8px | Compact element spacing, dialog padding |
-| md | 16px | Default field spacing, list item padding |
-| lg | 24px | Screen/section padding, major spacing |
-| xl | 32px | Layout gaps, header spacing |
-| 2xl | 48px | Top spacing for large sections |
+| md | 12px | Small gaps between form elements, list items |
+| lg | 16px | Default field spacing, list item padding, form rows |
+| xl | 24px | Screen/section padding, major spacing |
+| 2xl | 32px | Layout gaps, header spacing |
+| 3xl | 48px | Top spacing for large sections |
 
 Exceptions: None (all hardcoded spacing in existing code already respects multiples of 4).
 
@@ -77,10 +77,14 @@ Exceptions: None (all hardcoded spacing in existing code already respects multip
 | Accent (10%) | `ColorScheme.primary` (green-derived) | Primary buttons, active selections, highlights |
 | Destructive | `ColorScheme.error` | Logout button, destructive actions, error messages |
 
-**Accent reserved for:**
+**Accent (primary) reserved for:**
 - Primary action buttons (Save, Change Password, Add, Create)
 - Active navigation selection
-- Error state text/borders (red)
+- Icon indicators (metadata icons, role badges)
+
+**Destructive (error) reserved for:**
+- Error state text/borders
+- Destructive action buttons (Delete, Remove)
 - Logout/sign-out action
 
 **Rationale:**
@@ -120,11 +124,17 @@ Exceptions: None (all hardcoded spacing in existing code already respects multip
 
 **Location:** Profile screen (`lib/features/profile/profile_screen.dart`)
 
+**Visual Hierarchy:**
+- Focal point: full-width submit button (`FilledButton` in accent color)
+- Visual flow: form title (larger, bold) → stacked inputs (secondary prominence) → submit button (primary action)
+- Form title uses `textTheme.headlineMedium` (28px, 400 weight)
+- Input fields use `textTheme.bodyMedium` labels (14px, 400 weight)
+
 **Layout:**
 - Three TextFormField inputs stacked vertically
 - 16px spacing between fields (`const SizedBox(height: 16)`)
 - Each field uses `OutlineInputBorder()` (matches existing LoginScreen pattern)
-- Submit button: `FilledButton` spanning full width (matches LoginScreen pattern)
+- Submit button: `FilledButton` spanning full width (matches LoginScreen pattern), colored with `colorScheme.primary` (green)
 - Disabled while submitting (loading spinner on button)
 
 **Fields:**
@@ -282,11 +292,11 @@ Tonight's Show (title)     📍 The Fillmore   ⏱ 45:30
 
 ## Spacing Checklist
 
-Verify all hardcoded spacing values respect the 4-point scale:
+Verify all hardcoded spacing values respect the 4-point scale (8, 12, 16, 24, 32, 48):
 
 - [ ] Form field vertical spacing: 16px ✓
 - [ ] Form section padding: 24px ✓
-- [ ] List item trailing icon spacing: 4px (icon-to-text), 8px (pair-to-pair) ✓
+- [ ] List item trailing icon spacing: 8px (icon-to-text), 8px (pair-to-pair) ✓
 - [ ] Button vertical spacing: 8px (below form), 16px (form to button) ✓
 - [ ] Modal/dialog padding: 8-16px ✓
 - [ ] SizedBox heights in lists: 8px, 12px, 16px, 24px, 32px ✓
