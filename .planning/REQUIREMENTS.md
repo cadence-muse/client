@@ -51,27 +51,25 @@ None yet.
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| USER-03 | TBD | Pending |
-| BAND-10 | TBD | Pending |
-| BAND-11 | TBD | Pending |
-| BAND-12 | TBD | Pending |
-| HOME-01 | TBD | Pending |
-| HOME-02 | TBD | Pending |
-| OFFL-07 | TBD | Pending |
-| OFFL-08 | TBD | Pending |
-| TRACK-07 | TBD | Pending |
-| SETL-11 | TBD | Pending |
-| SETL-12 | TBD | Pending |
+| USER-03 | Phase 6 | Pending |
+| BAND-10 | Phase 6 | Pending |
+| TRACK-07 | Phase 6 | Pending |
+| SETL-11 | Phase 6 | Pending |
+| OFFL-07 | Phase 7 | Pending |
+| OFFL-08 | Phase 7 | Pending |
+| BAND-11 | Phase 8 | Pending |
+| BAND-12 | Phase 8 | Pending |
+| HOME-01 | Phase 9 | Pending |
+| HOME-02 | Phase 9 | Pending |
+| SETL-12 | Phase 10 | Pending |
 
 **Coverage:**
 - v1 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11 ⚠️ (filled by roadmapper)
+- Mapped to phases: 11
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-20*
-*Last updated: 2026-08-20 after initial v1.1 definition*
+*Last updated: 2026-08-20 after v1.1 roadmap creation (Phases 6-10)*
