@@ -15,11 +15,13 @@ A band member can open the app without signal — at a venue, in a basement, on 
 **Target features:**
 - Change password form on Profile screen (`POST /api/me/password`)
 - Band member count + role (owner/member) shown in Bands UI
-- Remove owner-only UI gates on band/track/setlist edit+delete — schema now allows any member
 - Owner tools: rotate invite code, transfer ownership
+- Homepage quick actions: add band (direct), add song / add setlist (via band-picker dialog first)
 - Cache behavior flip: online → always fetch fresh; offline → serve cache + warning, dropping the `SyncStatusBadge`/staleness-badge system entirely
 - Icons for location, duration, musical key, notes on Track and Setlist detail/list screens
 - Setlist track picker: replace dialog with a searchable list; extend `publicapi.yml`'s `ListBandTracks` with a `searchQuery` field (client adds the spec, backend to follow) and wire the picker to it
+
+**Confirmed out of scope:** removing owner-only UI gates — verified against code, already compliant with the new schema (Delete-band stays owner-gated; Track/Setlist edit/delete and Band rename already have zero owner gate).
 
 ## Requirements
 
