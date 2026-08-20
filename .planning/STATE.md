@@ -5,11 +5,11 @@ milestone_name: UI Improvements
 current_phase: 6
 current_phase_name: Foundation Info & Settings Polish
 status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-08-20T16:57:56.121Z"
+stopped_at: Phase 06 UI-SPEC approved
+last_updated: "2026-08-20T17:11:30.152Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created for v1.1 milestone (Phases 6-10)
-state_head: ab21ee82bcd057b94e8a7eef03a50c850c340a93
+state_head: ad02ddad8d697ba958a6dd02eeac234d08c5f7a6
 progress:
   total_phases: 10
   completed_phases: 0
@@ -117,9 +117,9 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-20T16:57:56.108Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-foundation-info-settings-polish/06-CONTEXT.md
+Last session: 2026-08-20T17:11:30.141Z
+Stopped at: Phase 06 UI-SPEC approved
+Resume file: /home/bulat.khafizov/projects/personal/cadence/cadence-client/.planning/phases/06-foundation-info-settings-polish/06-UI-SPEC.md
 
 ## Operator Next Steps
 
