@@ -118,6 +118,66 @@ Exceptions: None (all hardcoded spacing in existing code already respects multip
 
 ---
 
+## UI Considerations
+
+> Populated by the ui-phase UI-consideration probe (Step 9.5) and lifted by plan-phase's
+> `## UI Considerations` lift rule. Shape-rooted UI *state* coverage (empty / loading / error /
+> populated / partial / overflow / zero-one-many / long-text). Empty-state and error-state COPY
+> live in `## Copywriting Contract` above — this section covers state coverage and REFERENCES
+> those rows rather than restating the copy.
+
+Applicable state considerations resolved: 30 covered, 0 backstop, 0 unresolved (8 dismissed as not applicable — see below).
+
+| Category | Element(s) | Status | Resolution / Reason |
+|----------|------------|--------|---------------------|
+| empty | Password Change Form | ✅ covered | Initially all fields empty, submit button enabled (see Password Change Form → State) |
+| loading | Password Change Form | ✅ covered | Form/submit disabled until page loads (see Password Change Form → State) |
+| error | Password Change Form | ✅ covered | 401 → "Current password is incorrect"; validation → inline field errors; network error → generic message; fields preserved for retry (see Password Change Form → Error Handling) |
+| partial | Password Change Form | ✅ covered | Submit only if all 3 fields pass validation; per-field validators block incomplete submission (see Form Validation Rules) |
+| overflow | Password Change Form | ⏭ dismissed | Fixed 3-field obscured-text form; no content overflow risk |
+| long-text | Password Change Form | ⏭ dismissed | Fields are `obscureText: true`; no visible long-text rendering |
+| empty | Band member count/role (list) | ✅ covered | References existing Bands list empty state (Copywriting Contract) |
+| loading | Band member count/role (list) | ✅ covered | Reuses Bands list screen-level loading; no per-row skeleton (user decision) |
+| error | Band member count/role (list) | ✅ covered | Reuses Bands list screen-level error handling; no per-row error UI (user decision) |
+| populated | Band member count/role (list) | ✅ covered | ListTile trailing: "{count} member{s} • Owner/Member" |
+| partial | Band member count/role (list) | ✅ covered | Owner ID missing → role display omitted until backend provides it (see State Coverage) |
+| overflow | Band member count/role (list) | ⏭ dismissed | Two fixed short strings ("Owner"/"Member") + short count number; no overflow risk |
+| zero-one-many | Band member count/role (list) | ✅ covered | "{count} member{s}" pluralization (see Copywriting Contract) |
+| empty | Band member count/role (detail) | ⏭ dismissed | Detail screen only renders after band data is loaded; not reachable empty |
+| loading | Band member count/role (detail) | ✅ covered | Reuses Band detail screen-level loading; no per-field skeleton (user decision) |
+| error | Band member count/role (detail) | ✅ covered | Reuses Band detail screen-level error handling (user decision) |
+| populated | Band member count/role (detail) | ✅ covered | Role badge + member count row below band name/avatar, e.g. "Owner • 3 members" |
+| empty | Track list metadata icons | ✅ covered | References existing Track list empty state (Copywriting Contract) |
+| loading | Track list metadata icons | ✅ covered | Reuses Track list screen-level loading (user decision) |
+| error | Track list metadata icons | ✅ covered | Reuses Track list screen-level error handling (user decision) |
+| populated | Track list metadata icons | ✅ covered | Happy path row: "Track Title  🎵 C  ⏱ 3:45" |
+| partial | Track list metadata icons | ✅ covered | Optional fields missing → icon row omits gracefully (see State Coverage) |
+| overflow | Track list metadata icons | ⏭ dismissed | Key values are 1-2 char codes, duration is fixed mm:ss; no overflow risk |
+| zero-one-many | Track list metadata icons | ⏭ dismissed | Concerns parent list's item count, already covered by list's own empty/populated states |
+| empty | Track detail notes | ✅ covered | Notes missing/null → section omitted entirely, never a placeholder (see Graceful Degradation) |
+| loading | Track detail notes | ✅ covered | Reuses Track detail screen-level loading (user decision) |
+| error | Track detail notes | ✅ covered | Reuses Track detail screen-level error handling (user decision) |
+| populated | Track detail notes | ✅ covered | Notes icon + text shown as section header or inline on detail screen |
+| partial | Track detail notes | ⏭ dismissed | Single optional text field, either present or absent — no partial state |
+| overflow | Track detail notes | ✅ covered | Long notes truncate with ellipsis (maxLines + `TextOverflow.ellipsis`); tap expands to full text — exact widget left to executor (user decision) |
+| long-text | Track detail notes | ✅ covered | Same as overflow row above — identical user decision covers both |
+| empty | Setlist list metadata icons | ✅ covered | References existing Setlist list empty state (Copywriting Contract) |
+| loading | Setlist list metadata icons | ✅ covered | Reuses Setlist list screen-level loading (user decision) |
+| error | Setlist list metadata icons | ✅ covered | Reuses Setlist list screen-level error handling (user decision) |
+| populated | Setlist list metadata icons | ✅ covered | Happy path row: "Tonight's Show  📍 The Fillmore  ⏱ 45:30" |
+| partial | Setlist list metadata icons | ✅ covered | eventLocation missing → location icon/value omitted (see State Coverage) |
+| overflow | Setlist list metadata icons | ✅ covered | Long venue/location names truncate with ellipsis; tap expands to full text (user decision, same pattern as track notes) |
+| zero-one-many | Setlist list metadata icons | ⏭ dismissed | Concerns parent list's item count, already covered by list's own empty/populated states |
+
+<!-- Status vocabulary:
+     ✅ covered    → a plain truth string lifted into must_haves.truths
+     🧪 backstop   → a flat scalar { statement, verification: backstop }
+     ⚠ unresolved  → an explicit planner assumption (none in this phase)
+     ⏭ dismissed   → not applicable to this element; reason is the audit trail (not lifted)
+     Rows are REPLACED (not appended) on a probe re-run — idempotent. -->
+
+---
+
 ## UI Components & Patterns
 
 ### Password Change Form
