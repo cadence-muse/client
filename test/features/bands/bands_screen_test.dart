@@ -15,14 +15,24 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  // Routes `/api/me` to [profile] before delegating to [handler] for
+  // everything else (band-list GET, mutations, etc.) -- since BandsScreen
+  // now watches `profileDataProvider`, every mock handler must be able to
+  // answer `GET /api/me` or the profile provider will error/hang.
   ApiClient buildApiClient(
-    Future<http.Response> Function(http.Request) handler,
-  ) {
+    Future<http.Response> Function(http.Request) handler, {
+    Map<String, dynamic> profile = const {'id': 'u1', 'username': 'tester'},
+  }) {
     return ApiClient(
       baseUrl: 'http://localhost',
       getToken: () => 'test-token',
       onUnauthorized: () async {},
-      httpClient: MockClient(handler),
+      httpClient: MockClient((request) async {
+        if (request.url.path == '/api/me') {
+          return http.Response(jsonEncode(profile), 200);
+        }
+        return handler(request);
+      }),
     );
   }
 
@@ -52,14 +62,14 @@ void main() {
   ) async {
     final cacheService = CacheService.inMemory();
     await cacheService.writeBands([
-      {'id': 'a', 'name': 'The Testers'},
+      {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
     ]);
 
     final apiClient = buildApiClient((request) async {
       return http.Response(
         jsonEncode({
           'items': [
-            {'id': 'a', 'name': 'The Testers'},
+            {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
           ],
         }),
         200,
@@ -128,14 +138,14 @@ void main() {
       const longName = 'A Band Name That Is Definitely Over Thirty Chars';
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([
-        {'id': 'a', 'name': longName},
+        {'id': 'a', 'name': longName, 'membersCount': 1},
       ]);
 
       final apiClient = buildApiClient((request) async {
         return http.Response(
           jsonEncode({
             'items': [
-              {'id': 'a', 'name': longName},
+              {'id': 'a', 'name': longName, 'membersCount': 1},
             ],
           }),
           200,
@@ -158,16 +168,16 @@ void main() {
     (tester) async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([
-        {'id': 'a', 'name': 'Same'},
-        {'id': 'b', 'name': 'Same'},
+        {'id': 'a', 'name': 'Same', 'membersCount': 1},
+        {'id': 'b', 'name': 'Same', 'membersCount': 1},
       ]);
 
       final apiClient = buildApiClient((request) async {
         return http.Response(
           jsonEncode({
             'items': [
-              {'id': 'a', 'name': 'Same'},
-              {'id': 'b', 'name': 'Same'},
+              {'id': 'a', 'name': 'Same', 'membersCount': 1},
+              {'id': 'b', 'name': 'Same', 'membersCount': 1},
             ],
           }),
           200,
@@ -188,13 +198,13 @@ void main() {
   ) async {
     final cacheService = CacheService.inMemory();
     await cacheService.writeBands([
-      {'id': 'a', 'name': 'The Testers'},
+      {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
     ]);
     final apiClient = buildApiClient((request) async {
       return http.Response(
         jsonEncode({
           'items': [
-            {'id': 'a', 'name': 'The Testers'},
+            {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
           ],
         }),
         200,
@@ -328,6 +338,119 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(CreateBandScreen), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a band whose ownerId matches the current profile shows '
+    '"N member(s) • Owner" in trailing (BAND-10)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 1, 'ownerId': 'u1'},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 'a',
+                'name': 'The Testers',
+                'membersCount': 1,
+                'ownerId': 'u1',
+              },
+            ],
+          }),
+          200,
+        );
+      }, profile: {'id': 'u1', 'username': 'tester'});
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 member • Owner'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a band whose ownerId does not match the current profile shows '
+    '"N member(s) • Member" in trailing (BAND-10)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 1, 'ownerId': 'u1'},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 'a',
+                'name': 'The Testers',
+                'membersCount': 1,
+                'ownerId': 'u1',
+              },
+            ],
+          }),
+          200,
+        );
+      }, profile: {'id': 'u2', 'username': 'tester'});
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 member • Member'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a band with no ownerId key shows just the member count, with no '
+    'bullet or role (BAND-10 graceful degradation)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 member'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a band with membersCount 5 shows the plural "5 members" (BAND-10)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 5},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'The Testers', 'membersCount': 5},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('5 members'), findsOneWidget);
     },
   );
 }
