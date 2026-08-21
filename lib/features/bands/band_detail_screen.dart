@@ -24,20 +24,20 @@ class BandDetailScreen extends ConsumerWidget {
   /// values, never a client-supplied id (D-01/D-02). Returns `false` (not a
   /// crash) for a `null` [currentUserId], which happens while the profile is
   /// still loading — callers must additionally gate on profile-loaded state
-  /// via [_ownershipStatus] so a `false` here (unresolved) isn't confused
+  /// via [ownershipStatus] so a `false` here (unresolved) isn't confused
   /// with a definite "not the owner" (RESEARCH.md Pitfall 2).
-  static bool _isOwner(String? currentUserId, String? ownerId) =>
+  static bool isOwner(String? currentUserId, String? ownerId) =>
       currentUserId != null && ownerId != null && currentUserId == ownerId;
 
   /// Tri-state ownership: `true` (owner), `false` (member, resolved), or
   /// `null` (profile hasn't loaded yet — owner-only/member-only actions must
   /// stay hidden, never optimistically rendered then hidden).
-  static bool? _ownershipStatus(
+  static bool? ownershipStatus(
     AsyncValue<Map<String, dynamic>> profileAsync,
     String? ownerId,
   ) {
     return profileAsync.maybeWhen(
-      data: (profile) => _isOwner(profile['id'] as String?, ownerId),
+      data: (profile) => isOwner(profile['id'] as String?, ownerId),
       orElse: () => null,
     );
   }
@@ -101,7 +101,7 @@ class BandDetailScreen extends ConsumerWidget {
     final ownerId = band['ownerId'] as String?;
     final members = (band['members'] as List).cast<Map<String, dynamic>>();
     final inviteCode = (band['inviteCode'] as String).trim();
-    final isOwner = _ownershipStatus(profileAsync, ownerId);
+    final isOwner = ownershipStatus(profileAsync, ownerId);
 
     return ListView(
       children: [
@@ -121,6 +121,15 @@ class BandDetailScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 24),
+        if (isOwner != null) ...[
+          Center(
+            child: Text(
+              '${isOwner ? 'Owner' : 'Member'} • ${members.length} '
+              'member${members.length == 1 ? '' : 's'}',
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
         const Divider(height: 1),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

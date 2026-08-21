@@ -13,7 +13,7 @@ Requirements for the v1.1 UI Improvements milestone. Each maps to a roadmap phas
 
 ### Bands
 
-- [ ] **BAND-10**: User sees each band's member count and their own role (owner/member) in the Bands list and band detail screen
+- [x] **BAND-10**: User sees each band's member count and their own role (owner/member) in the Bands list and band detail screen
 - [ ] **BAND-11**: Band owner can rotate the band's invite code
 - [ ] **BAND-12**: Band owner can transfer ownership to another band member
 
@@ -54,7 +54,7 @@ None yet.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | USER-03 | Phase 6 | Complete |
-| BAND-10 | Phase 6 | Pending |
+| BAND-10 | Phase 6 | Complete |
 | TRACK-07 | Phase 6 | Pending |
 | SETL-11 | Phase 6 | Pending |
 | OFFL-07 | Phase 7 | Pending |
@@ -66,6 +66,7 @@ None yet.
 | SETL-12 | Phase 10 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 11 total
 - Mapped to phases: 11
 - Unmapped: 0 ✓

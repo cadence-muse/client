@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../widgets/sync_status_badge.dart';
 import 'band_avatar.dart';
 import 'band_detail_screen.dart';
 import 'create_band_screen.dart';
 import 'join_band_dialog.dart';
+
+String _membersLabel(int count) => '$count member${count == 1 ? '' : 's'}';
 
 class BandsScreen extends ConsumerWidget {
   const BandsScreen({super.key});
@@ -17,6 +20,7 @@ class BandsScreen extends ConsumerWidget {
     final bandsAsync = ref.watch(bandsListDataProvider);
     final syncedAt = ref.watch(bandsListSyncedAtProvider);
     final isOnline = ref.watch(isOnlineProvider);
+    final profileAsync = ref.watch(profileDataProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bands')),
@@ -24,7 +28,7 @@ class BandsScreen extends ConsumerWidget {
         data: (bands) => Column(
           children: [
             SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(child: _buildContent(context, bands)),
+            Expanded(child: _buildContent(context, bands, profileAsync)),
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -73,6 +77,7 @@ class BandsScreen extends ConsumerWidget {
   Widget _buildContent(
     BuildContext context,
     List<Map<String, dynamic>> bands,
+    AsyncValue<Map<String, dynamic>> profileAsync,
   ) {
     if (bands.isEmpty) {
       return Center(
@@ -111,10 +116,20 @@ class BandsScreen extends ConsumerWidget {
       itemBuilder: (context, index) {
         final band = bands[index];
         final name = band['name'] as String;
+        final ownerId = band['ownerId'] as String?;
+        final membersCount = band['membersCount'] as int;
+        final isOwner = ownerId == null
+            ? null
+            : BandDetailScreen.ownershipStatus(profileAsync, ownerId);
         return ListTile(
           leading: BandAvatar(bandName: name),
           title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: Text(
+            isOwner == null
+                ? _membersLabel(membersCount)
+                : '${_membersLabel(membersCount)} • '
+                      '${isOwner ? 'Owner' : 'Member'}',
+          ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => BandDetailScreen(bandId: band['id'] as String),
