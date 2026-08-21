@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/homepage_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../providers/navigation_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import '../bands/bands_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -10,8 +12,15 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // D-01: this tab screen is kept alive by RootScaffold's IndexedStack, so
+    // build() only runs once per app session by default — re-selecting the
+    // Home tab must explicitly invalidate the provider to fetch fresh data
+    // rather than silently showing whatever was last in state.
+    ref.listen<int>(selectedTabIndexProvider, (previous, current) {
+      if (current == 0) ref.invalidate(homepageDataProvider);
+    });
+
     final homeAsync = ref.watch(homepageDataProvider);
-    final syncedAt = ref.watch(homepageSyncedAtProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -23,17 +32,28 @@ class HomeScreen extends ConsumerWidget {
             onPressed: () => ref.read(homepageDataProvider.notifier).refresh(),
           ),
         ],
+        // D-08: a subtle in-flight indicator while a refetch is running with
+        // data already present, instead of blanking the screen; D-09's
+        // cold-start spinner is the `loading:` branch below, unaffected.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: homeAsync.isLoading && homeAsync.hasValue
+              ? const LinearProgressIndicator()
+              : const SizedBox.shrink(),
+        ),
       ),
       body: homeAsync.when(
-        data: (data) => Column(
-          children: [
-            SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(child: _buildContent(context, data)),
-          ],
-        ),
+        data: (data) => _buildContent(context, data),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            _buildError(context, () => ref.invalidate(homepageDataProvider)),
+        error: (error, stackTrace) {
+          if (error is OfflineNoCacheException) {
+            return const OfflineNoCacheView();
+          }
+          return _buildError(
+            context,
+            () => ref.invalidate(homepageDataProvider),
+          );
+        },
       ),
     );
   }

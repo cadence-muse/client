@@ -4,7 +4,9 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/api/api_exception.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/homepage_provider.dart';
+import 'package:cadence/providers/offline_no_cache_exception.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -24,12 +26,14 @@ void main() {
 
   ProviderContainer buildContainer(
     ApiClient apiClient,
-    CacheService cacheService,
-  ) {
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     final container = ProviderContainer(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
     );
     addTearDown(container.dispose);
@@ -37,7 +41,57 @@ void main() {
   }
 
   test(
-    'cache-hit returns cached data immediately with a silent background refresh',
+    'online + no cache: build() fetches directly from the API and returns '
+    'the fetched data',
+    () async {
+      final cacheService = CacheService.inMemory();
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response(
+          jsonEncode({'username': 'freshuser', 'bandsCount': 2}),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      final data = await container.read(homepageDataProvider.future);
+
+      expect(data, {'username': 'freshuser', 'bandsCount': 2});
+      expect(callCount, 1);
+    },
+  );
+
+  test(
+    'online + stale cache present: build() returns the FRESH network data, '
+    'not the cache (online-first ignores a populated cache on the happy '
+    'path, not just on a cache miss)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({
+        'username': 'staleuser',
+        'bandsCount': 1,
+      });
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'username': 'freshuser', 'bandsCount': 2}),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      final data = await container.read(homepageDataProvider.future);
+
+      expect(data, {'username': 'freshuser', 'bandsCount': 2});
+    },
+  );
+
+  test(
+    'online + fetch throws + cache present: build() returns the cached data '
+    'silently, no AsyncError surfaced (D-03)',
     () async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeHomepage({
@@ -47,8 +101,8 @@ void main() {
 
       final apiClient = buildApiClient((request) async {
         return http.Response(
-          jsonEncode({'username': 'cacheduser', 'bandsCount': 2}),
-          200,
+          jsonEncode({'code': 'server_error', 'message': 'boom'}),
+          500,
         );
       });
 
@@ -57,26 +111,86 @@ void main() {
       final data = await container.read(homepageDataProvider.future);
 
       expect(data, {'username': 'cacheduser', 'bandsCount': 2});
+      expect(container.read(homepageDataProvider).hasError, isFalse);
     },
   );
 
-  test('no cache and network failure yields AsyncError', () async {
-    final cacheService = CacheService.inMemory();
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({'code': 'network_error', 'message': 'offline'}),
-        500,
+  test(
+    'online + fetch throws + no cache: build() rethrows as an AsyncError',
+    () async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'network_error', 'message': 'offline'}),
+          500,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      await expectLater(
+        container.read(homepageDataProvider.future),
+        throwsA(isA<ApiException>()),
       );
-    });
+      expect(container.read(homepageDataProvider).hasError, isTrue);
+    },
+  );
 
-    final container = buildContainer(apiClient, cacheService);
+  test(
+    'offline + cache present: build() returns cached data with zero network '
+    'calls',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({
+        'username': 'cacheduser',
+        'bandsCount': 2,
+      });
 
-    await expectLater(
-      container.read(homepageDataProvider.future),
-      throwsA(isA<ApiException>()),
-    );
-    expect(container.read(homepageDataProvider).hasError, isTrue);
-  });
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response(
+          jsonEncode({'username': 'shouldnotbe', 'bandsCount': 99}),
+          200,
+        );
+      });
+
+      final container = buildContainer(
+        apiClient,
+        cacheService,
+        isOnline: false,
+      );
+
+      final data = await container.read(homepageDataProvider.future);
+
+      expect(data, {'username': 'cacheduser', 'bandsCount': 2});
+      expect(callCount, 0);
+    },
+  );
+
+  test(
+    'offline + no cache: build() throws OfflineNoCacheException (D-06)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'username': 'unused', 'bandsCount': 0}),
+          200,
+        );
+      });
+
+      final container = buildContainer(
+        apiClient,
+        cacheService,
+        isOnline: false,
+      );
+
+      await expectLater(
+        container.read(homepageDataProvider.future),
+        throwsA(isA<OfflineNoCacheException>()),
+      );
+    },
+  );
 
   test('two rapid refresh() calls trigger exactly one network call', () async {
     final cacheService = CacheService.inMemory();
@@ -96,10 +210,9 @@ void main() {
     // Keep the (autoDispose) provider alive across the gaps below, mirroring
     // the persistent subscription a widget's ref.watch would hold.
     container.listen(homepageDataProvider, (_, _) {});
-    // Drain the initial background refresh fired from build()'s cache hit
-    // before measuring refresh()'s own dedup behavior.
+    // Drain build()'s own online-first fetch before measuring refresh()'s
+    // own dedup behavior.
     await container.read(homepageDataProvider.future);
-    await Future<void>.delayed(const Duration(milliseconds: 100));
     callCount = 0;
 
     final notifier = container.read(homepageDataProvider.notifier);
@@ -111,9 +224,8 @@ void main() {
   });
 
   test(
-    'on a cache hit, homepageSyncedAtProvider resolves to the pre-seeded '
-    "cache's syncedAt before the background refresh settles, then updates "
-    'to a later value once the background refresh completes',
+    'online build() sets homepageSyncedAtProvider from the fresh fetch, '
+    'later than the stale seeded cache value',
     () async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeHomepage({
@@ -123,7 +235,6 @@ void main() {
       final seededSyncedAt = await cacheService.readHomepageSyncedAt();
 
       final apiClient = buildApiClient((request) async {
-        await Future<void>.delayed(const Duration(milliseconds: 50));
         return http.Response(
           jsonEncode({'username': 'freshuser', 'bandsCount': 3}),
           200,
@@ -131,22 +242,14 @@ void main() {
       });
 
       final container = buildContainer(apiClient, cacheService);
-      // Keep both (autoDispose) providers alive across the gaps below,
-      // mirroring the persistent subscription a widget's ref.watch would
-      // hold in production (HomeScreen watches both).
       container.listen(homepageDataProvider, (_, _) {});
       container.listen(homepageSyncedAtProvider, (_, _) {});
 
       await container.read(homepageDataProvider.future);
 
-      expect(container.read(homepageSyncedAtProvider), seededSyncedAt);
-
-      // Drain the background refresh fired from build()'s cache hit.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-
-      final refreshedSyncedAt = container.read(homepageSyncedAtProvider);
-      expect(refreshedSyncedAt, isNotNull);
-      expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+      final syncedAt = container.read(homepageSyncedAtProvider);
+      expect(syncedAt, isNotNull);
+      expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
     },
   );
 }
