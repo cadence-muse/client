@@ -397,17 +397,38 @@ AlertDialog(
 
 ## UI Considerations
 
+Domain/offline coverage (below) is prose-owned per phase decisions D-01–D-12. Shape-rooted state
+coverage (loading/error/overflow/long-text) was verified via the UI-consideration probe against four
+elements: **E1** member action menu (PopupMenuButton), **E2** invite code row (Copy/Rotate icons),
+**E3** ConfirmTransferOwnershipDialog, **E4** ConfirmRotateInviteCodeDialog. Copy for empty/error
+states lives in [Copywriting Contract](#copywriting-contract); rows below reference it rather than
+restate it.
+
 | Category | Element(s) | Status | Resolution |
 |----------|----------|--------|-----------|
 | Owner gating | Member list "Make owner" + Rotate icon | ✅ covered | Visible/enabled only when `isOwner == true` and profile loaded; tri-state ownership check reuses `BandDetailScreen.ownershipStatus()` |
 | Offline gating | All owner controls + Copy icon | ✅ covered | All disabled when `!isOnline`; Tooltips show "Requires connection"; dialogs show same message on confirm button |
 | Self-row edge case | "Make owner" + "Remove" on owner's own row | ✅ covered | Never shown; member-list rendering skips "Make owner"/"Remove" when `memberUserId == ownerId` |
-| Error state | API failure in dialogs | ✅ covered | `_errorMessage` displayed inline; dialog stays open; button re-enabled for retry |
-| Loading state | Confirm button during submission | ✅ covered | Spinner replaces button text; button disabled during submit |
+| Error state (E3, E4) | Transfer/Rotate dialogs | ✅ resolved (explicit) | `_errorMessage` displayed inline in error color below body text; dialog stays open; button re-enabled for retry |
+| Loading state (E3, E4) | Transfer/Rotate dialogs, confirm button | ✅ resolved (explicit) | `CircularProgressIndicator(strokeWidth: 2)` replaces button text; button disabled while `_isSubmitting` |
 | Success feedback | After rotate/transfer | ✅ covered | Snackbar shown; dialog closes; screen re-renders with updated state (via invalidate/patch) |
 | Code display | Invite code monospace rendering | ✅ covered | Uses `fontFamily: 'monospace'` (existing pattern) |
 | Menu styling | PopupMenuButton internal structure | ✅ covered | Material defaults; icons + text labels per item; divider between Make/Remove |
 | Empty response body | TransferBandOwnership returns 200 with no body | ✅ covered | No response parsing; invalidate detail + patch list via known `userId` (D-09/D-10) |
+| Menu loading (E1) | Member action menu | ✅ resolved (explicit) | Menu (and its trigger) hidden entirely while ownership tri-state is `null` (profile still loading); no optimistic render-then-hide |
+| Menu error (E1) | Member action menu | ✅ resolved (explicit) | The menu makes no network call and has no error state of its own; each item opens a dialog (E3/E4) that owns its own error handling |
+| Menu overflow (E1) | Member action menu | ✅ resolved (backstop) | { statement: "Fixed 2-item menu with short static Material-default labels; PopupMenuButton auto-sizes to content.", verification: backstop — widget test asserting unclipped render at default text scale } |
+| Menu long-text (E1) | Member action menu | ✅ resolved (backstop) | { statement: "Labels ('Make owner', 'Remove') are fixed app strings, never user-generated.", verification: backstop — widget test asserting unclipped render at max OS text-scale } |
+| Invite row loading (E2) | Copy/Rotate icon row | ✅ resolved (explicit) | Row only renders once `BandDetailData` has loaded; the screen's own loading state (Phase 6) precedes it, unchanged by Phase 8 |
+| Copy error (E2) | Copy icon | ⊘ dismissed | Reason: `Clipboard.setData` is a synchronous local platform call with no meaningful failure path on Android/iOS; no error UI needed for Copy |
+| Invite code overflow (E2) | Invite code display | ✅ resolved (explicit) | Invite code is a fixed-length backend-generated token, not free text; `Expanded()` wrapping the `Text` prevents layout overflow regardless |
+| Invite code long-text (E2) | Invite code display | ⊘ dismissed | Reason: Invite code is fixed-length and backend-generated, never user-authored free text — no long-text scenario is possible |
+| Dialog overflow (E3) | ConfirmTransferOwnershipDialog | ✅ resolved (backstop) | { statement: "Body Column uses mainAxisSize.min inside default AlertDialog sizing.", verification: backstop — widget test with a long member/band name asserting unclipped render } |
+| Dialog long-text (E3) | ConfirmTransferOwnershipDialog | ✅ resolved (backstop) | { statement: "Title/body interpolate memberUsername and bandName; Text widgets wrap by default. No app-wide max-length is defined in this UI-SPEC.", verification: backstop — widget test with a long name asserting text wraps rather than clips } |
+| Dialog overflow (E4) | ConfirmRotateInviteCodeDialog | ✅ resolved (backstop) | { statement: "Body is a fixed two-sentence warning with no interpolated variable content.", verification: backstop — widget test at max OS text-scale } |
+| Dialog long-text (E4) | ConfirmRotateInviteCodeDialog | ⊘ dismissed | Reason: Rotate dialog body is fixed static copy with no interpolated user data (unlike Transfer) — no long-text risk from user input |
+
+**Probe coverage:** 16/16 applicable considerations resolved (8 explicit, 5 backstop, 3 dismissed with reason). 0 unresolved.
 
 ---
 
