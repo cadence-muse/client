@@ -160,7 +160,12 @@ Plans:
   2. User can tap "Add song" on the Homepage, is shown a picker dialog listing their bands, and lands on the chosen band's create-track screen after picking one.
   3. User can tap "Add setlist" on the Homepage, is shown a picker dialog listing their bands, and lands on the chosen band's create-setlist screen after picking one.
 
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+**Wave 1**
+
+- [ ] 09-01-PLAN.md — Home quick-actions layout + shared band-picker, end-to-end (HOME-01, HOME-02)
+
 **UI hint**: yes
 
 ### Phase 10: Searchable Setlist Track Picker
@@ -193,5 +198,5 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 6. Foundation Info & Settings Polish | v1.1 | 4/4 | Complete    | 2026-08-21 |
 | 7. Cache Behavior Flip — Online-First | v1.1 | 0/5 | Not started | - |
 | 8. Band Owner Tools | v1.1 | 1/1 | Complete    | 2026-08-21 |
-| 9. Homepage Quick Actions | v1.1 | 0/TBD | Not started | - |
+| 9. Homepage Quick Actions | v1.1 | 0/1 | Not started | - |
 | 10. Searchable Setlist Track Picker | v1.1 | 0/TBD | Not started | - |
