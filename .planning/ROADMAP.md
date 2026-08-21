@@ -93,7 +93,7 @@ Plans:
 **Goal:** `public_api.dart`'s `removeSetlistTrack`, `listUserTracks`, and `listUserSetlists` methods match the current `publicapi.yml` wire contract (post `fe72e78`), so setlist track removal and the cross-band track/setlist lists succeed against the live API instead of failing on stale GET/DELETE-path assumptions.
 **Requirements**: None — inserted urgent catch-up phase, no `REQUIREMENTS.md` IDs apply (see STATE.md's "Roadmap Evolution" entry).
 **Depends on:** Phase 6
-**Plans:** 1/1 plans executed
+**Plans:** 1/1 plans complete
 
 Plans:
 
