@@ -140,7 +140,10 @@ void main() {
       expect(find.byType(BandAvatar), findsOneWidget);
       expect(find.text('alice'), findsOneWidget);
       expect(find.text('abc-123-def'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Copy'), findsOneWidget);
+      expect(
+        find.widgetWithIcon(IconButton, Icons.content_copy),
+        findsOneWidget,
+      );
     },
   );
 
@@ -177,7 +180,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Copy'));
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.content_copy));
       await tester.pump();
 
       expect(copiedTexts, ['abc-123-def']);

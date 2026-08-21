@@ -13,6 +13,7 @@ import 'band_avatar.dart';
 import 'confirm_delete_band_dialog.dart';
 import 'confirm_leave_band_dialog.dart';
 import 'confirm_remove_member_dialog.dart';
+import 'confirm_rotate_invite_code_dialog.dart';
 import 'edit_band_screen.dart';
 
 class BandDetailScreen extends ConsumerWidget {
@@ -196,10 +197,31 @@ class BandDetailScreen extends ConsumerWidget {
                   style: const TextStyle(fontFamily: 'monospace'),
                 ),
               ),
-              TextButton(
-                onPressed: () => _copyInviteCode(context, inviteCode),
-                child: const Text('Copy'),
+              Tooltip(
+                message: isOnline ? 'Copy' : 'Requires connection',
+                child: IconButton(
+                  icon: const Icon(Icons.content_copy),
+                  onPressed: isOnline
+                      ? () => _copyInviteCode(context, inviteCode)
+                      : null,
+                ),
               ),
+              if (isOwner == true)
+                Tooltip(
+                  message: isOnline ? 'Rotate' : 'Requires connection',
+                  child: IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: isOnline
+                        ? () => showDialog<void>(
+                            context: context,
+                            builder: (_) => ConfirmRotateInviteCodeDialog(
+                              bandId: bandId,
+                              bandName: name,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
             ],
           ),
         ),

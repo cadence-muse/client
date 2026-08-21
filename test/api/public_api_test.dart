@@ -71,6 +71,55 @@ void main() {
     });
   });
 
+  group('rotateInviteCode', () {
+    test(
+      'sends POST to /api/band/{bandId}/rotate-invite-code with an empty '
+      'body',
+      () async {
+        String? capturedMethod;
+        String? capturedPath;
+        String? capturedBody;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedMethod = request.method;
+            capturedPath = request.url.path;
+            capturedBody = request.body;
+            return http.Response(
+              jsonEncode({'newInviteCode': 'new-code-123'}),
+              200,
+            );
+          }),
+        );
+
+        await api.rotateInviteCode('b1');
+
+        expect(capturedMethod, 'POST');
+        expect(capturedPath, '/api/band/b1/rotate-invite-code');
+        expect(capturedBody, isEmpty);
+      },
+    );
+
+    test(
+      'a 200 response with {newInviteCode} resolves to that map without '
+      'throwing',
+      () async {
+        final api = PublicApi(
+          buildApiClient(
+            (request) async => http.Response(
+              jsonEncode({'newInviteCode': 'new-code-123'}),
+              200,
+            ),
+          ),
+        );
+
+        final result = await api.rotateInviteCode('b1');
+
+        expect(result, {'newInviteCode': 'new-code-123'});
+      },
+    );
+  });
+
   group('listUserTracks', () {
     test(
       'calling with bandIdFilter sends POST to /api/track/list with '
