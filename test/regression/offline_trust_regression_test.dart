@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// OFFL-02/OFFL-03/OFFL-04/OFFL-05 cross-cutting regression guard (05-05).
+/// OFFL-02/OFFL-03/OFFL-04/OFFL-05/OFFL-07/OFFL-08 cross-cutting regression
+/// guard (05-05, rewritten 07-05).
 ///
 /// Mirrors `test/providers/auth_provider_test.dart`'s OFFL-06 regression
 /// guard's approach — a plain `dart:io` file-content scan, no widget pumping,
@@ -10,15 +11,22 @@ import 'package:flutter_test/flutter_test.dart';
 /// `lib/` recursively, since the property under test ("this specific file
 /// contains this specific substring") is per-file, not tree-wide.
 ///
-/// This guard exists to make the phase's aggregate claim ("every cached
-/// screen has the staleness badge, every mutation control has the
-/// connectivity gate") independently re-runnable and loud-failing, instead of
-/// resting on each entity plan's (05-01 through 05-04) own isolated test
-/// coverage.
+/// This guard exists to make the phase's aggregate claim independently
+/// re-runnable and loud-failing, instead of resting on each entity plan's
+/// own isolated test coverage. The first test below originally asserted
+/// Phase 5's "every cached screen renders SyncStatusBadge" (OFFL-04) claim;
+/// Phase 7 (07-01 through 07-04) removed `SyncStatusBadge` from all 10 call
+/// sites and replaced per-screen staleness badges with the online-first
+/// cache-behavior model (OFFL-07) plus a shared `OfflineNoCacheException`
+/// offline-empty-state branch (OFFL-08), so that assertion is rewritten here
+/// to match the phase's actual final state instead of the retired claim.
 void main() {
-  /// Every cached screen that must render `SyncStatusBadge` (05-01 D-08/D-09
-  /// staleness indicator, wired per-entity in 05-01 through 05-04).
-  const screensWithBadge = [
+  /// The same 10 screens Phase 5's staleness-badge guard covered — now
+  /// asserted against Phase 7's OFFL-07/OFFL-08 aggregate claim: no
+  /// lingering `SyncStatusBadge` reference, and every one wires the shared
+  /// `OfflineNoCacheException` offline-no-cache branch (07-01 through
+  /// 07-04).
+  const cachedScreens = [
     'lib/features/profile/profile_screen.dart',
     'lib/features/home/home_screen.dart',
     'lib/features/bands/bands_screen.dart',
@@ -72,21 +80,30 @@ void main() {
   ];
 
   test(
-    'every cached screen renders SyncStatusBadge (OFFL-04 regression guard)',
+    'every cached screen has removed SyncStatusBadge and wires '
+    'OfflineNoCacheException (OFFL-07/OFFL-08 regression guard)',
     () {
-      for (final path in screensWithBadge) {
+      for (final path in cachedScreens) {
         final file = File(path);
         expect(
           file.existsSync(),
           isTrue,
           reason: 'Expected screen file to exist: $path',
         );
+        final contents = file.readAsStringSync();
         expect(
-          file.readAsStringSync().contains('SyncStatusBadge'),
+          contents.contains('SyncStatusBadge'),
+          isFalse,
+          reason:
+              '$path still references SyncStatusBadge (OFFL-08 requires the '
+              'badge system fully removed).',
+        );
+        expect(
+          contents.contains('OfflineNoCacheException'),
           isTrue,
           reason:
-              '$path is expected to render SyncStatusBadge (OFFL-04 '
-              'staleness indicator) but the string was not found.',
+              '$path is expected to wire the offline-no-cache error branch '
+              '(OFFL-07/OFFL-08) but OfflineNoCacheException was not found.',
         );
       }
     },

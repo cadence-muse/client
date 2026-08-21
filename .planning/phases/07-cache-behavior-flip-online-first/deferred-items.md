@@ -35,3 +35,21 @@ out of scope per the Scope Boundary rule:
 
 Plan 07-02's own `<verification>` block (the 4 homepage/profile test files +
 full-tree `flutter analyze`) passes cleanly — see 07-02-SUMMARY.md.
+
+## Update — 07-05 (wave 3)
+
+Item 1 above is now resolved: `offline_trust_regression_test.dart` was
+rewritten in 07-05 Task 2 to assert the OFFL-07/OFFL-08 aggregate claim
+(badge absence + `OfflineNoCacheException` presence across the 10 cached
+screens) instead of the retired OFFL-04 badge-presence claim. All 4 tests in
+that file pass.
+
+Items 2 and 3 remain pre-existing, unrelated to 07-05's files
+(`lib/widgets/sync_status_badge.dart` deletion,
+`test/widgets/sync_status_badge_test.dart` deletion, and
+`test/regression/offline_trust_regression_test.dart` rewrite). They belong to
+07-01's Bands scope (band detail offline-disabled-tiles wiring and the
+full-`CadenceApp` widget_test's missing `isOnlineProvider` override) and are
+explicitly out of scope for this plan per the Scope Boundary rule. Full-suite
+`flutter test` after 07-05: 368 total, 3 failing (items 2 and 3 above; item 1
+now green), 0 new failures introduced by this plan.
