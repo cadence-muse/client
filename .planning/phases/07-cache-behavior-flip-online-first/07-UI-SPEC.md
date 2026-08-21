@@ -1,7 +1,7 @@
 ---
 phase: 7
 slug: cache-behavior-flip-online-first
-status: draft
+status: approved
 shadcn_initialized: false
 preset: not_applicable
 created: 2026-08-21
@@ -219,15 +219,47 @@ created: 2026-08-21
 
 ## UI Considerations
 
-Applicable state considerations resolved: **5 covered, 0 backstop, 0 unresolved**
+Post-verification state-coverage probe (ui-consideration-probe engine, run after checker approval): **17 resolved (10 explicit, 7 backstop), 1 unclassified — 18 applicable**
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| Empty (no-cache) | All tab & detail screens | ✅ covered | Offline-no-cache state (D-06) renders dedicated "No cached data — Connect to the internet" message via `OfflineNoCacheException` branch in error handler |
-| Loading (cold start) | All tab screens (5) + detail screens (5) | ✅ covered | D-09: Cold start shows full-screen centered `CircularProgressIndicator`; no old data to keep visible |
-| Loading (refresh) | All tab screens (5) + detail screens (5) | ✅ covered | D-08: Refresh with cached data shows old content + subtle `LinearProgressIndicator` in AppBar.bottom (no blank flash on tab switch) |
-| Offline | All screens (all 5 tab + all detail variants) | ✅ covered | D-04: Global `OfflineBanner` ("Showing cached data — may be out of date") visible when `isOnlineProvider` is false, regardless of which screen is active |
-| Error (fetch failed) | All screens with API dependency | ✅ covered | D-03: Online-but-fetch-failed silently falls back to cache; only surfaces error if no cache exists (`OfflineNoCacheException`) |
+### E1 — OfflineBanner
+
+| Category | Status | Truth |
+|----------|--------|-------|
+| Empty | ✅ resolved (explicit) | No empty-data state — always renders the fixed cloud_off icon + "Showing cached data — may be out of date" text whenever `isOnlineProvider` is false; no underlying collection can be empty. |
+| Loading | ✅ resolved (explicit) | Not loading-dependent — renders instantly from `isOnlineProvider`'s synchronous value; no skeleton/loading state for the banner itself. |
+| Error | ✅ resolved (explicit) | No error state of its own — connectivity_plus stream failures are not surfaced through the banner; it only reflects the boolean `isOnlineProvider` value. |
+| Populated | ✅ resolved (explicit) | The single populated state is the row already specified in the Copywriting Contract (cloud_off icon + banner text, errorContainer background, top of `RootScaffold.body`). |
+| Overflow | ⚠ resolved (backstop) | Fixed short string fits one line under Material defaults on all supported widths — needs a visual check on the smallest supported screen width. |
+| Long-text | ⚠ resolved (backstop) | Fixed, non-localized string authored to fit one line; Material `Text` wraps by default if a future localized translation is longer — needs verification once localization is added. |
+
+### E2 — Offline-no-cache error state
+
+| Category | Status | Truth |
+|----------|--------|-------|
+| Loading | ✅ resolved (explicit) | No loading sub-state — this branch renders only after offline+no-cache is already known; no async fetch inside it. |
+| Error | ✅ resolved (explicit) | This element IS the terminal error/empty state: heading "No cached data", body "Connect to the internet to load this", `cloud_off_outlined` icon, no retry button, automatic recovery on reconnect. |
+| Overflow | ⚠ resolved (backstop) | Short, center-aligned body copy under Material defaults — needs a visual check on the smallest supported screen width. |
+| Long-text | ⚠ resolved (backstop) | Fixed short strings; wrapping falls to Material `Text` default wrap — needs verification if a localized string is longer. |
+
+### E3 — In-flight refresh indicator
+
+| Category | Status | Truth |
+|----------|--------|-------|
+| Empty | ✅ resolved (explicit) | Not applicable to the indicator itself — visibility is driven by `AsyncValue.isLoading`, not by whether the underlying list is empty; an empty list can still show the `LinearProgressIndicator` while refreshing. |
+| Loading | ✅ resolved (explicit) | This element IS the loading-state contract: `LinearProgressIndicator` in `AppBar.bottom` when `isLoading && hasValue` (refresh), full-screen `CircularProgressIndicator` when `isLoading && !hasValue` (cold start). |
+| Error | ✅ resolved (explicit) | If refresh fails, `AsyncValue` moves to `AsyncError` while cached content stays visible (D-03 silent fallback to cache) — indicator disappears with no separate error UI drawn over stale content. |
+| Populated | ✅ resolved (explicit) | Populated state during refresh is the pre-existing screen content (e.g. old cached band list) rendered underneath the thin progress bar, per the "Refresh with cached data present" layout example. |
+| Partial | ⚠ resolved (backstop) | Partial/incomplete row data during a refresh is governed by each screen's own list-item rendering, not this indicator — needs verification per screen's data model (outside Phase 7 scope). |
+| Overflow | ⚠ resolved (backstop) | Fixed 2px bar spanning the full AppBar width — no text-overflow surface applies. |
+| Zero-one-many | ⚠ resolved (backstop) | Indicator behavior is identical regardless of underlying item count — it only reflects loading state, not row count; needs a quick visual check against an empty cached list. |
+
+### E4 — SyncStatusBadge removal
+
+| Category | Status | Truth |
+|----------|--------|-------|
+| Unclassified | ⚠ unresolved — planner must treat as assumption | A pure deletion (10 call-sites, no replacement widget) isn't a stateful UI surface, so the probe found no state cues to classify — manual-review nudge only, not a defect. Removal scope is fully specified in the "Removed: SyncStatusBadge" section above. |
+
+**De-dup note:** empty/error copy strings live in `## Copywriting Contract` above; this section covers shape-rooted STATE coverage and references those rows rather than restating the copy.
 
 ---
 
@@ -257,14 +289,14 @@ Applicable state considerations resolved: **5 covered, 0 backstop, 0 unresolved*
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending (awaiting gsd-ui-checker verification)
+**Approval:** APPROVED (gsd-ui-checker, 6/6 dimensions PASS, no recommendations)
 
 ---
 
