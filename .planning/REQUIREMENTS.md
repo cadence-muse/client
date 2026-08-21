@@ -29,7 +29,7 @@ Requirements for the v1.1 UI Improvements milestone. Each maps to a roadmap phas
 
 ### Tracks
 
-- [ ] **TRACK-07**: Track list/detail screens show icons for musical key, duration, and notes
+- [x] **TRACK-07**: Track list/detail screens show icons for musical key, duration, and notes
 
 ### Setlists
 
@@ -55,7 +55,7 @@ None yet.
 |-------------|-------|--------|
 | USER-03 | Phase 6 | Complete |
 | BAND-10 | Phase 6 | Complete |
-| TRACK-07 | Phase 6 | Pending |
+| TRACK-07 | Phase 6 | Complete |
 | SETL-11 | Phase 6 | Complete |
 | OFFL-07 | Phase 7 | Pending |
 | OFFL-08 | Phase 7 | Pending |

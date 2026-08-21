@@ -89,18 +89,48 @@ class TrackDetailScreen extends ConsumerWidget {
         const SizedBox(height: 16),
         Text(artist),
         const SizedBox(height: 16),
-        Text('Duration: ${durationSeconds?.asMinutesSeconds ?? '—'}'),
+        Row(
+          children: [
+            Icon(Icons.timer, size: 20, color: colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(durationSeconds?.asMinutesSeconds ?? '—'),
+          ],
+        ),
         if (tempo != null) ...[
           const SizedBox(height: 16),
           Text('Tempo: $tempo BPM'),
         ],
         if (key != null) ...[
           const SizedBox(height: 16),
-          Text('Key: $key'),
+          Row(
+            children: [
+              Icon(Icons.music_note, size: 20, color: colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(key),
+            ],
+          ),
         ],
         if (notes != null && notes.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text('Notes: $notes'),
+          GestureDetector(
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(notes)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.notes, size: 20, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    notes,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
         const SizedBox(height: 24),
         const Divider(height: 1),

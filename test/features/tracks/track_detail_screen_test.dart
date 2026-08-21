@@ -110,10 +110,52 @@ void main() {
       // Appears twice: once in the AppBar title, once in the body heading.
       expect(find.text('Full Track'), findsNWidgets(2));
       expect(find.text('Full Artist'), findsOneWidget);
-      expect(find.text('Duration: 3:45'), findsOneWidget);
+      expect(find.text('3:45'), findsOneWidget);
       expect(find.text('Tempo: 120 BPM'), findsOneWidget);
-      expect(find.text('Key: C'), findsOneWidget);
-      expect(find.text('Notes: Some notes'), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
+      expect(find.text('Some notes'), findsOneWidget);
+      expect(find.byIcon(Icons.timer), findsOneWidget);
+      expect(find.byIcon(Icons.music_note), findsOneWidget);
+      expect(find.byIcon(Icons.notes), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping the notes row shows the full untruncated notes text in a '
+    'SnackBar',
+    (tester) async {
+      final longNotes =
+          'This is a very long notes string that goes on and on and on '
+          'and on and on and on and on and on and on and on and on and '
+          'on and on and on and on and on to exceed two hundred '
+          'characters in total length for the truncation test case.';
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 't1',
+            'title': 'Full Track',
+            'artist': 'Full Artist',
+            'durationSeconds': 225,
+            'notes': longNotes,
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.notes));
+      await tester.pump();
+
+      expect(
+        find.descendant(
+          of: find.byType(SnackBar),
+          matching: find.text(longNotes),
+        ),
+        findsOneWidget,
+      );
     },
   );
 
