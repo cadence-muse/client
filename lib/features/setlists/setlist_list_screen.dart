@@ -90,13 +90,57 @@ class SetlistListScreen extends ConsumerWidget {
       itemBuilder: (context, index) {
         final setlist = setlists[index];
         final name = setlist['name'] as String;
-        final tracksCount = setlist['tracksCount'] as int;
         final durationSeconds = setlist['durationSeconds'] as int;
         final eventDate = setlist['eventDate'] as String?;
+        final eventLocation = setlist['eventLocation'] as String?;
+        final colorScheme = Theme.of(context).colorScheme;
         return ListTile(
           title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(formatEventDate(eventDate)),
-          trailing: Text(tracksAndDuration(tracksCount, durationSeconds)),
+          trailing: SizedBox(
+            width: 150,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (eventLocation != null) ...[
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(eventLocation)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 18,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              eventLocation,
+                              style: const TextStyle(fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Icon(Icons.timer, size: 18, color: colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  durationSeconds.asMinutesAndSeconds,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => SetlistDetailScreen(
