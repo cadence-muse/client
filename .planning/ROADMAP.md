@@ -141,7 +141,12 @@ Plans:
   3. Band owner can transfer ownership to another member via a confirmation flow, after which the new owner sees owner-only controls and the previous owner sees only member controls.
   4. Non-owner members never see the rotate-invite-code or transfer-ownership controls.
 
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+**Wave 1**
+
+- [ ] 08-01-PLAN.md — Rotate invite code + transfer ownership, end-to-end (BAND-11, BAND-12)
+
 **UI hint**: yes
 
 ### Phase 9: Homepage Quick Actions
@@ -187,6 +192,6 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 5. Offline Trust & Connectivity UX | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 6. Foundation Info & Settings Polish | v1.1 | 4/4 | Complete    | 2026-08-21 |
 | 7. Cache Behavior Flip — Online-First | v1.1 | 0/5 | Not started | - |
-| 8. Band Owner Tools | v1.1 | 0/TBD | Not started | - |
+| 8. Band Owner Tools | v1.1 | 0/1 | Not started | - |
 | 9. Homepage Quick Actions | v1.1 | 0/TBD | Not started | - |
 | 10. Searchable Setlist Track Picker | v1.1 | 0/TBD | Not started | - |
