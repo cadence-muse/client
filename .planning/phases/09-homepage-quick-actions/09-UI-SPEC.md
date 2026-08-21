@@ -1,7 +1,7 @@
 ---
 phase: 9
 slug: homepage-quick-actions
-status: draft
+status: approved
 tool: Flutter Material Design
 preset: none
 created: 2026-08-22
@@ -135,18 +135,61 @@ This phase adds no delete/confirm dialogs. Navigation is one-way (Home → Creat
 
 ### Applicable State Probe Categories
 
-State coverage for Phase 9's UI elements (resolved per ui-consideration-probe):
+State coverage for Phase 9's UI elements, resolved via `ui-consideration-probe` (4 elements × 8-category shape-rooted taxonomy = 32 applicable items; 32/32 resolved — 12 explicit, 2 backstop, 18 dismissed as inapplicable to the element's shape).
 
-| Category | Element(s) | Status | Resolution |
-|----------|------------|--------|-----------|
-| **empty** | Quick Actions button row (zero bands case) | ✅ covered | "Add Song" and "Add Setlist" buttons render in disabled state; "Add Band" remains enabled. No conditional hiding per D-10. |
-| **populated** | Quick Actions button row (1+ bands) | ✅ covered | All 3 buttons render enabled. Tapping "Add Song"/"Add Setlist" opens band-picker; tapping "Add Band" navigates directly. |
-| **loading** | Band-picker list (bottom sheet) | ✅ covered | Band-picker uses existing `bandsListDataProvider` (AsyncValue.when pattern). While picker is building, bottom sheet may show a loading spinner; once open, picker shows the cached/fresh band list synchronously (no per-sheet loading state needed). |
-| **error** | Band-picker (network failure while picker is open) | ✅ covered | Picker inherits bandsListDataProvider's error state. If error occurs before picker opens, user remains on Home (normal homepage error handling applies). If error occurs after picker is open, sheet still shows last-cached band list per Phase 7 (online-first cache model). |
-| **long-text** | Welcome card title | ✅ covered | Username text uses `maxLines: 1, overflow: TextOverflow.ellipsis` per home_screen.dart D-03. Band names in picker use standard ListTile text truncation. |
-| **overflow** | Band-picker list (many bands) | 🧪 backstop | Band-picker bottom sheet uses standard Flutter `showModalBottomSheet` which allows scroll within the sheet's max height. Visual test required to confirm scrolling behavior matches Material guidelines for lists in sheets. |
-| **zero-one-many** | Band-picker list | ✅ covered | Picker always shows (no auto-skip for single band per D-07). List rendering logic is identical regardless of band count (1 band = 1 ListTile, 5 bands = 5 ListTiles, etc.). No singular/plural copy variation needed (ListTile doesn't pluralize). |
-| **partial** | Quick Actions section (zero bands) | ✅ covered | "Add Band" enabled, "Add Song"/"Add Setlist" disabled — this is the intended partial interaction state per D-09. |
+**Welcome Card (E1 — single dynamic text field)**
+
+| Category | Status | Resolution |
+|----------|--------|-----------|
+| empty | ⛔ dismissed | Username field is always populated post-auth; no unfilled state is reachable for this element. |
+| loading | ⛔ dismissed | Welcome card renders only after home data resolves; home-level loading spinner (existing pattern) covers the pre-render window, not a per-element skeleton. |
+| error | ⛔ dismissed | Home-level error screen (existing pattern) blocks the whole content area on failure; no separate error state for the welcome card. |
+| populated | ✅ resolved | Renders `Welcome, $username` in headlineMedium, centered, per Component Spec 1. |
+| partial | ⛔ dismissed | Single scalar text field; no multi-field partial-data state is possible. |
+| overflow | ⛔ dismissed | Single-line text with fixed card width; long-text category (ellipsis) already covers the only overflow risk. |
+| zero-one-many | ⛔ dismissed | Single text field, not a collection; zero/one/many cardinality does not apply. |
+| long-text | ✅ resolved | `maxLines: 1, overflow: TextOverflow.ellipsis` for long usernames, per Copywriting Contract. |
+
+**Quick Actions Section Header (E2 — static label)**
+
+| Category | Status | Resolution |
+|----------|--------|-----------|
+| empty | ⛔ dismissed | Static label "Quick Actions"; no data-driven empty state applies to a fixed heading. |
+| loading | ⛔ dismissed | Static text, not data-driven; renders immediately with no loading state. |
+| error | ⛔ dismissed | Static text, not data-driven; no error state possible. |
+| populated | ✅ resolved | Always renders static text "Quick Actions" in titleMedium. |
+| partial | ⛔ dismissed | Static single-string label; no partial-data rendering applies. |
+| overflow | ⛔ dismissed | Short fixed static copy ("Quick Actions"); no realistic overflow risk. |
+| zero-one-many | ⛔ dismissed | Single static heading, not a collection. |
+| long-text | ⛔ dismissed | Copy is fixed and short ("Quick Actions"); not dynamic or user-supplied text. |
+
+**Quick-Action Button Row (E3 — 3 interactive controls)**
+
+| Category | Status | Resolution |
+|----------|--------|-----------|
+| empty | ✅ resolved | bandsCount == 0: "Add Song"/"Add Setlist" render disabled (grayed-out, `onPressed: null`); "Add Band" stays enabled, per D-09 and Component Spec 3. |
+| loading | ⛔ dismissed | Button enabled/disabled state derives from `bandsListDataProvider` already resolved for the Home screen; no separate per-button loading state needed. |
+| error | ⛔ dismissed | A home-level data error blocks the whole content area (existing pattern) before the button row would render; no per-button error state. |
+| populated | ✅ resolved | bandsCount > 0: all three buttons render enabled, per Component Spec 3. |
+| partial | ✅ resolved | Mixed enabled/disabled state (Add Band enabled, Add Song/Setlist disabled) is the intended partial-interaction state at bandsCount == 0, per D-09. |
+| overflow | 🧪 backstop | Fixed 3-button set may wrap (`Wrap` widget) or stay in a single row on narrow screens; visual test required to confirm readable/tappable layout at minimum mobile widths, per Component Spec 3 layout notes. |
+| zero-one-many | ⛔ dismissed | Fixed set of exactly 3 buttons, not a variable-count collection; cardinality axis does not apply. |
+| long-text | ⛔ dismissed | Button labels are fixed short static strings ("Add Band", "Add Song", "Add Setlist"); not dynamic or user-supplied text. |
+
+**Band-Picker Bottom Sheet (E4 — scrollable list/collection)**
+
+| Category | Status | Resolution |
+|----------|--------|-----------|
+| empty | ✅ resolved | Sheet is only reachable when bandsCount > 0 ("Add Song"/"Add Setlist" are disabled otherwise, per D-09), so a zero-band picker list is unreachable by design. |
+| loading | ✅ resolved | Picker reuses `bandsListDataProvider` already resolved on Home; sheet shows the cached/fresh list synchronously with no additional per-sheet loading state, per Component Spec 4. |
+| error | ✅ resolved | If `bandsListDataProvider` errors before the sheet opens, Home's existing error screen applies and the picker never opens; if it errors after opening, the sheet shows the last-cached list per Phase 7's online-first cache model. |
+| populated | ✅ resolved | Renders one ListTile per band (name only, no subtitle/trailing), per Component Spec 4. |
+| partial | ⛔ dismissed | Band records come complete from the existing `bandsListDataProvider`; no partial/incomplete-field rendering path exists. |
+| overflow | 🧪 backstop | Modal bottom sheet scrolls within its max height for long band lists per Material guidelines; visual test required to confirm scroll behavior, per Component Spec 4 and Design Verification Checklist. |
+| zero-one-many | ✅ resolved | Picker always shows (no auto-skip for a single band, per D-07); identical ListTile rendering logic for N=1 through N=many. |
+| long-text | ✅ resolved | Long band names truncate via standard ListTile text truncation, matching existing app patterns. |
+
+**Coverage:** 32/32 applicable items resolved — 0 unresolved, 0 unclassified. 12 explicit (verifiable acceptance criteria in this spec), 2 backstop (visual tests flagged in the Design Verification Checklist), 18 dismissed as inapplicable to the element's shape (with reason).
 
 ### Open-Ended Considerations (domain-probes)
 
@@ -407,11 +450,11 @@ Home Tab (with bandsCount == 0)
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: FLAG (non-blocking — recommend adding an explicit focal-point statement: Welcome Card is primary visual anchor, Quick-Action row is secondary interactive anchor)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved
