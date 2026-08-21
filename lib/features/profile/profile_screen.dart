@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/navigation_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/profile_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import '../settings/settings_screen.dart';
 import 'change_password_screen.dart';
 
@@ -12,8 +14,15 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // D-01: this tab screen is kept alive by RootScaffold's IndexedStack, so
+    // build() only runs once per app session by default — re-selecting the
+    // Profile tab must explicitly invalidate the provider to fetch fresh
+    // data rather than silently showing whatever was last in state.
+    ref.listen<int>(selectedTabIndexProvider, (previous, current) {
+      if (current == 4) ref.invalidate(profileDataProvider);
+    });
+
     final profileAsync = ref.watch(profileDataProvider);
-    final syncedAt = ref.watch(profileSyncedAtProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,17 +34,28 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () => ref.read(profileDataProvider.notifier).refresh(),
           ),
         ],
+        // D-08: a subtle in-flight indicator while a refetch is running with
+        // data already present, instead of blanking the screen; D-09's
+        // cold-start spinner is the `loading:` branch below, unaffected.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: profileAsync.isLoading && profileAsync.hasValue
+              ? const LinearProgressIndicator()
+              : const SizedBox.shrink(),
+        ),
       ),
       body: profileAsync.when(
-        data: (profile) => Column(
-          children: [
-            SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(child: _buildContent(context, ref, profile)),
-          ],
-        ),
+        data: (profile) => _buildContent(context, ref, profile),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            _buildError(context, () => ref.invalidate(profileDataProvider)),
+        error: (error, stackTrace) {
+          if (error is OfflineNoCacheException) {
+            return const OfflineNoCacheView();
+          }
+          return _buildError(
+            context,
+            () => ref.invalidate(profileDataProvider),
+          );
+        },
       ),
     );
   }
