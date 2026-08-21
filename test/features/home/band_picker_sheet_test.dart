@@ -200,4 +200,52 @@ void main() {
       expect(screen.bandId, 'a');
     },
   );
+
+  testWidgets(
+    'a band name longer than the picker ListTile width truncates to one '
+    'line with ellipsis',
+    (tester) async {
+      const longName = 'A Band Name That Is Definitely Over Thirty Chars';
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': longName},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': longName},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await openSheet(tester);
+
+      final textWidget = tester.widget<Text>(find.text(longName));
+      expect(textWidget.maxLines, 1);
+      expect(textWidget.overflow, TextOverflow.ellipsis);
+    },
+  );
+
+  testWidgets(
+    'with isOnline false and bands pre-seeded in the cache, opening the '
+    'picker still lists the cached bands (Phase 7 online-first fallback)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'Cached Band'},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        throw StateError('Unexpected network call while offline');
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+      await openSheet(tester);
+
+      expect(find.text('Cached Band'), findsOneWidget);
+    },
+  );
 }

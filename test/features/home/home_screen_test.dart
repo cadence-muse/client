@@ -384,4 +384,66 @@ void main() {
       expect(screen.bandId, 'b');
     },
   );
+
+  testWidgets('bandsCount == 1 still opens the band-picker sheet rather than '
+      'auto-navigating straight to the create screen (D-07)', (tester) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 1});
+    final apiClient = buildApiClient(
+      (request) async {
+        return http.Response(
+          jsonEncode({'username': 'alice', 'bandsCount': 1}),
+          200,
+        );
+      },
+      bands: [
+        {'id': 'a', 'name': 'The Testers'},
+      ],
+    );
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add Song'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('The Testers'), findsOneWidget);
+    expect(find.byType(CreateTrackScreen), findsNothing);
+  });
+
+  testWidgets(
+    'dismissing the band-picker without selecting closes it, leaves the '
+    'user on Home, with no error or SnackBar (D-08)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 2});
+      final apiClient = buildApiClient(
+        (request) async {
+          return http.Response(
+            jsonEncode({'username': 'alice', 'bandsCount': 2}),
+            200,
+          );
+        },
+        bands: [
+          {'id': 'a', 'name': 'The Testers'},
+        ],
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Add Setlist'));
+      await tester.pumpAndSettle();
+      expect(find.text('The Testers'), findsOneWidget);
+
+      // Tap the barrier outside the sheet's content to dismiss it.
+      await tester.tapAt(const Offset(20, 20));
+      await tester.pumpAndSettle();
+
+      expect(find.text('The Testers'), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
