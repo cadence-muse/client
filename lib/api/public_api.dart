@@ -341,7 +341,14 @@ class PublicApi {
     );
   }
 
-  /// Removes a single track from a setlist (D-13). `'204'` no content.
+  /// Removes a single track from a setlist via the batch `RemoveSetlistTracks`
+  /// endpoint (`DELETE .../tracks`, `RemoveSetlistTracksRequestBody` —
+  /// `fe72e78` schema update consolidated the old single-track `DELETE
+  /// .../track/{trackId}` route into this bulk endpoint). There is no
+  /// multi-select UI today (see `setlist_detail_screen.dart`'s `_removeTrack`,
+  /// this method's only caller), so this method's public signature stays
+  /// single-track — it always sends a 1-element `trackIds` array internally.
+  /// `'204'` no content.
   Future<void> removeSetlistTrack({
     required String bandId,
     required String setlistId,
@@ -349,7 +356,10 @@ class PublicApi {
   }) async {
     await _client.send(
       'DELETE',
-      '/api/band/$bandId/setlist/$setlistId/track/$trackId',
+      '/api/band/$bandId/setlist/$setlistId/tracks',
+      body: {
+        'trackIds': [trackId],
+      },
     );
   }
 
