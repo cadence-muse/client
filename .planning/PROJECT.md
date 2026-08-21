@@ -89,6 +89,7 @@ _(v1.1 UI Improvements — see Current Milestone above; REQ-IDs defined in `.pla
 | Recursive `_deepConvert()` at the Hive store boundary rather than per-call-site casting | Phase 2's initial verification (02-VERIFICATION.md) found Hive returns untyped `Map<dynamic,dynamic>`/`List<dynamic>` for nested collections; a shallow top-level conversion missed it, only catchable by a real Hive close+reopen test (in-memory test double hid it entirely) | ✓ Good — Phase 2 gap-closure (02-06); pattern reused for free by every later Hive-backed box |
 | Monotonic `_version` counter guard on AsyncNotifier background refreshes | Unawaited background `_refresh()` on cache-hit could silently overwrite a local mutation (rename, setBands) that landed first, with no ordering guarantee | ✓ Good — Phase 2 gap-closure (02-06); reused as-is for Tracks/Setlists providers |
 | `ref.exists()` guard before reading a sibling provider's `.notifier` from an unrelated screen | Reading `.notifier` on a never-watched provider instantiates it and fires an unplanned network call as a side effect — broke 3 pre-existing tests when first hit in Phase 2 | ✓ Good — established as the standing pattern for any cross-provider notifier read |
+| Owner-gated mutations use a local-patch pattern: optimistic patch for responses with a usable body (rotate), invalidate+refetch plus a separate list-patch for responses without one (transfer) | Rotate's response returns the new code directly; transfer's 200-with-no-body can't be trusted as a source of truth, so the detail screen refetches while the bands-list badge is patched from the known target userId | ✓ Good — Phase 8; established alongside `updateName()`/`renameBand()` for future owner-gated mutations |
 
 ## Evolution
 
@@ -108,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-20 after starting v1.1 milestone*
+*Last updated: 2026-08-21 after Phase 8*

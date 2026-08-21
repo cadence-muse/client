@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-20)
+See: .planning/PROJECT.md (updated 2026-08-21)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 08 — Band Owner Tools
+**Current focus:** Phase 9 — Homepage Quick Actions
 
 ## Current Position
 
@@ -101,8 +101,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 8 (Band Owner Tools) is flagged in `.planning/research/SUMMARY.md` for deeper phase-research before planning (`_version` guard interaction, multi-step destructive-action UX, profile-invalidation-on-transfer) — consider `/gsd-plan-phase --research-phase`.
 - Phase 10 (Searchable Setlist Track Picker): backend does not implement the new `searchQuery` field this milestone — client extends `publicapi.yml` now, but the picker must degrade gracefully (e.g. client-side filtering) until backend support ships.
+- Phase 08 code review (WR-01): Copy-invite-code on `band_detail_screen.dart:248-256` is now gated behind `isOnline`, regressing the pre-Phase-8 always-tappable behavior — clipboard copy needs no network and this contradicts both `08-CONTEXT.md` D-07 ("Copy stays visible to everyone as today") and the app's offline-first Core Value. Non-blocking, but worth a quick follow-up fix. See `.planning/phases/08-band-owner-tools/08-REVIEW.md`.
 
 ### Quick Tasks Completed
 
@@ -131,5 +131,5 @@ Resume file: /home/bulat.khafizov/projects/personal/cadence/cadence-client/.plan
 
 ## Operator Next Steps
 
-- Run `/gsd-plan-phase 8` (Band Owner Tools) — consider `--research-phase` per the flagged concerns above
-- Phase 07 closed clean: flutter analyze 0 issues, flutter test 371/371 passing
+- Run `/gsd-plan-phase 9` (Homepage Quick Actions)
+- Phase 08 closed clean: flutter analyze 0 issues, flutter test 396/396 passing; 1 non-blocking code-review warning (WR-01, offline Copy regression) — see Blockers/Concerns above
