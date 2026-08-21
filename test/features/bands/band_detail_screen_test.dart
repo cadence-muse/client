@@ -1155,4 +1155,66 @@ void main() {
       expect(find.text('Remove'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'confirming Transfer invalidates and refetches the band detail; the '
+    'demoted owner remains a member (not removed) after a successful '
+    'transfer (BAND-12 safety)',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      var currentOwnerId = 'u1';
+      Map<String, dynamic> currentBand() => {
+        'id': 'b1',
+        'name': 'The Testers',
+        'ownerId': currentOwnerId,
+        'members': members,
+        'inviteCode': 'abc-123-def',
+      };
+
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', currentBand());
+
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/me') {
+          return http.Response(
+            jsonEncode({'id': 'u1', 'username': 'owner'}),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/transfer-ownership') {
+          currentOwnerId = 'u2';
+          return http.Response('', 200);
+        }
+        return http.Response(jsonEncode(currentBand()), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('owner'), findsOneWidget);
+      expect(find.text('member'), findsOneWidget);
+
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Make owner'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.pumpAndSettle();
+
+      // Post-transfer: both members still present. The client never
+      // computes membership changes itself — it only reflects the
+      // server's authoritative refetched state (D-09) — so the demoted
+      // owner ('owner') must still show in the member list, never
+      // disappear as a side effect of the transfer (BAND-12 prohibition,
+      // mirrors T-08-05).
+      expect(find.byType(BandDetailScreen), findsOneWidget);
+      expect(find.text('owner'), findsOneWidget);
+      expect(find.text('member'), findsOneWidget);
+    },
+  );
 }
