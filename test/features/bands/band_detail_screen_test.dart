@@ -383,8 +383,8 @@ void main() {
   );
 
   testWidgets(
-    'Delete and Leave tiles are disabled while offline (owner sees Delete, '
-    'member sees Leave)',
+    'owner sees an enabled Delete tile online, member sees an enabled Leave '
+    'tile online; offline shows OfflineNoCacheView instead',
     (tester) async {
       final ownerCacheService = CacheService.inMemory();
       await ownerCacheService.writeBandDetail('b1', band());
@@ -393,16 +393,23 @@ void main() {
         band: band,
       );
 
-      await tester.pumpWidget(
-        wrap(ownerApiClient, ownerCacheService, isOnline: false),
-      );
+      await tester.pumpWidget(wrap(ownerApiClient, ownerCacheService));
       await tester.pumpAndSettle();
 
       final deleteTile = tester.widget<ListTile>(
         find.widgetWithText(ListTile, 'Delete'),
       );
-      expect(deleteTile.enabled, isFalse);
-      expect(deleteTile.onTap, isNull);
+      expect(deleteTile.enabled, isTrue);
+      expect(deleteTile.onTap, isNotNull);
+
+      final ownerOfflineCacheService = CacheService.inMemory();
+      await tester.pumpWidget(
+        wrap(ownerApiClient, ownerOfflineCacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Delete'), findsNothing);
 
       final memberCacheService = CacheService.inMemory();
       await memberCacheService.writeBandDetail('b1', band());
@@ -411,22 +418,29 @@ void main() {
         band: band,
       );
 
-      await tester.pumpWidget(
-        wrap(memberApiClient, memberCacheService, isOnline: false),
-      );
+      await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
       await tester.pumpAndSettle();
 
       final leaveTile = tester.widget<ListTile>(
         find.widgetWithText(ListTile, 'Leave'),
       );
-      expect(leaveTile.enabled, isFalse);
-      expect(leaveTile.onTap, isNull);
+      expect(leaveTile.enabled, isTrue);
+      expect(leaveTile.onTap, isNotNull);
+
+      final memberOfflineCacheService = CacheService.inMemory();
+      await tester.pumpWidget(
+        wrap(memberApiClient, memberOfflineCacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Leave'), findsNothing);
     },
   );
 
   testWidgets(
-    'Remove icon on a member row is disabled while offline, enabled while '
-    'online',
+    'Remove icon appears on a member row while online; offline shows '
+    'OfflineNoCacheView instead',
     (tester) async {
       final members = [
         {'id': 'u1', 'username': 'owner'},
@@ -439,25 +453,22 @@ void main() {
         band: () => band(members: members),
       );
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: false),
-      );
-      await tester.pumpAndSettle();
-
-      final offlineRemoveButton = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.person_remove),
-      );
-      expect(offlineRemoveButton.onPressed, isNull);
-
-      final onlineCacheService = CacheService.inMemory();
-      await onlineCacheService.writeBandDetail('b1', band(members: members));
-      await tester.pumpWidget(wrap(apiClient, onlineCacheService));
+      await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
       final onlineRemoveButton = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.person_remove),
       );
       expect(onlineRemoveButton.onPressed, isNotNull);
+
+      final offlineCacheService = CacheService.inMemory();
+      await tester.pumpWidget(
+        wrap(apiClient, offlineCacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.byIcon(Icons.person_remove), findsNothing);
     },
   );
 
