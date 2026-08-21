@@ -387,8 +387,8 @@ void main() {
   );
 
   test(
-    'patchBandOwner() patches only the matching entry\'s ownerId in-place '
-    'and persists it',
+    'patchBandOwner() patches only the matching entry\'s ownerId in-place, '
+    'persists it, and triggers no additional network fetch',
     () async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([
@@ -396,7 +396,9 @@ void main() {
         {'id': 'b', 'name': 'Band B', 'ownerId': 'u1'},
       ]);
 
+      var listCallCount = 0;
       final apiClient = buildApiClient((request) async {
+        listCallCount++;
         return http.Response(
           jsonEncode({
             'items': [
@@ -411,6 +413,7 @@ void main() {
       final container = buildContainer(apiClient, cacheService);
       container.listen(bandsListDataProvider, (_, _) {});
       await container.read(bandsListDataProvider.future);
+      final baselineCallCount = listCallCount;
 
       container
           .read(bandsListDataProvider.notifier)
@@ -427,6 +430,9 @@ void main() {
         {'id': 'a', 'name': 'Band A', 'ownerId': 'newOwnerId'},
         {'id': 'b', 'name': 'Band B', 'ownerId': 'u1'},
       ]);
+      // patchBandOwner() itself triggered no additional GET /api/band/list
+      // fetch beyond build()'s own online-first fetch.
+      expect(listCallCount, baselineCallCount);
     },
   );
 
