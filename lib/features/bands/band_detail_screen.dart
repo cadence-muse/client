@@ -172,12 +172,19 @@ class BandDetailScreen extends ConsumerWidget {
                                 bandName: name,
                               ),
                             ),
+                            // No mainAxisSize.min here (unlike a typical
+                            // fixed-content Row) — the PopupMenu overlay
+                            // caps its own width well below what "Make
+                            // owner" needs at large OS text-scale settings,
+                            // so the label is wrapped in Expanded to let it
+                            // wrap onto a second line instead of
+                            // overflowing horizontally (UI-SPEC E1 backstop
+                            // truths).
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: const [
                                 Icon(Icons.workspace_premium),
                                 SizedBox(width: 8),
-                                Text('Make owner'),
+                                Expanded(child: Text('Make owner')),
                               ],
                             ),
                           ),
@@ -192,18 +199,23 @@ class BandDetailScreen extends ConsumerWidget {
                                 bandName: name,
                               ),
                             ),
+                            // Same wrap-not-overflow reasoning as the "Make
+                            // owner" item above.
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   Icons.person_remove,
                                   color: Theme.of(context).colorScheme.error,
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  'Remove',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
+                                Expanded(
+                                  child: Text(
+                                    'Remove',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ),
                                   ),
                                 ),
                               ],

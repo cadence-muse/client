@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/confirm_transfer_ownership_dialog.dart';
@@ -25,6 +27,8 @@ void main() {
     ApiClient apiClient, {
     CacheService? cacheService,
     bool isOnline = true,
+    String memberUsername = 'bob',
+    String bandName = 'The Testers',
   }) {
     return ProviderScope(
       overrides: [
@@ -47,11 +51,11 @@ void main() {
                         child: ElevatedButton(
                           onPressed: () => showDialog<void>(
                             context: detailContext,
-                            builder: (_) => const ConfirmTransferOwnershipDialog(
+                            builder: (_) => ConfirmTransferOwnershipDialog(
                               bandId: 'b1',
                               memberUserId: 'u2',
-                              memberUsername: 'bob',
-                              bandName: 'The Testers',
+                              memberUsername: memberUsername,
+                              bandName: bandName,
                             ),
                           ),
                           child: const Text('Open dialog'),
@@ -140,6 +144,122 @@ void main() {
       expect(requestBody, '{"userId":"u2"}');
       expect(find.byType(ConfirmTransferOwnershipDialog), findsNothing);
       expect(find.text('Detail'), findsOneWidget);
+    },
+  );
+
+  testWidgets('the Transfer button is disabled while offline', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 200);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, isOnline: false));
+    await openDialog(tester);
+
+    final button = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(button.onPressed, isNull);
+  });
+
+  testWidgets(
+    'the Transfer button shows a spinner and is disabled while submitting',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openDialog(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.pump();
+
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNull);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'an ApiException on transfer shows an inline error inside the dialog, '
+    'keeps it open, and re-enables the Transfer button',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'bad_request', 'message': 'Transfer failed'}),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openDialog(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Transfer failed'), findsOneWidget);
+      expect(find.byType(ConfirmTransferOwnershipDialog), findsOneWidget);
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'the dialog renders without an overflow exception at max OS '
+    'text-scale (backstop)',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(3.0)),
+            child: wrap(apiClient),
+          ),
+        ),
+      );
+
+      await openDialog(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ConfirmTransferOwnershipDialog), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'a long memberUsername/bandName renders without an overflow exception '
+    'and the interpolated text is findable, wrapping rather than clipping '
+    '(backstop)',
+    (tester) async {
+      const longUsername =
+          'a-very-long-member-username-that-is-definitely-over-sixty-chars';
+      const longBandName =
+          'A Very Long Band Name That Is Definitely Over Sixty Characters '
+          'Long Indeed';
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          memberUsername: longUsername,
+          bandName: longBandName,
+        ),
+      );
+      await openDialog(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.textContaining('You will no longer be the owner of'),
+        findsOneWidget,
+      );
+      expect(find.byType(ConfirmTransferOwnershipDialog), findsOneWidget);
     },
   );
 }

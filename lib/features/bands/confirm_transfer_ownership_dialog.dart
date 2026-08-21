@@ -84,22 +84,29 @@ class _ConfirmTransferOwnershipDialogState
 
     return AlertDialog(
       title: Text('Transfer ownership to ${widget.memberUsername}?'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${widget.memberUsername} will become the owner of this '
-            'band.\n\nYou will no longer be the owner of ${widget.bandName}.',
-          ),
-          if (_errorMessage != null) ...[
-            const SizedBox(height: 16),
+      content: SingleChildScrollView(
+        // Wrapped in a scroll view so the interpolated body text (which can
+        // grow arbitrarily with a long member/band name) doesn't overflow
+        // the dialog's default (non-scrollable) AlertDialog sizing (UI-SPEC
+        // E3 backstop truths — dialog overflow and long-text).
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              _errorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              '${widget.memberUsername} will become the owner of this '
+              'band.\n\nYou will no longer be the owner of '
+              '${widget.bandName}.',
             ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
       actions: [
         TextButton(

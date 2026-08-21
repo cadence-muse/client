@@ -73,22 +73,27 @@ class _ConfirmRotateInviteCodeDialogState
 
     return AlertDialog(
       title: const Text('Rotate invite code?'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "The current invite code will stop working immediately. Any "
-            "member who hasn't joined yet will need the new code.",
-          ),
-          if (_errorMessage != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+      content: SingleChildScrollView(
+        // Wrapped in a scroll view so the fixed body text doesn't overflow
+        // the dialog's default (non-scrollable) AlertDialog sizing at large
+        // OS text-scale settings (UI-SPEC E4 backstop truth).
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "The current invite code will stop working immediately. Any "
+              "member who hasn't joined yet will need the new code.",
             ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
       actions: [
         TextButton(

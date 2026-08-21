@@ -387,6 +387,50 @@ void main() {
   );
 
   test(
+    'patchBandOwner() patches only the matching entry\'s ownerId in-place '
+    'and persists it',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'Band A', 'ownerId': 'u1'},
+        {'id': 'b', 'name': 'Band B', 'ownerId': 'u1'},
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'Band A', 'ownerId': 'u1'},
+              {'id': 'b', 'name': 'Band B', 'ownerId': 'u1'},
+            ],
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      container.listen(bandsListDataProvider, (_, _) {});
+      await container.read(bandsListDataProvider.future);
+
+      container
+          .read(bandsListDataProvider.notifier)
+          .patchBandOwner('a', 'newOwnerId');
+
+      final state = container.read(bandsListDataProvider).valueOrNull;
+      expect(state, [
+        {'id': 'a', 'name': 'Band A', 'ownerId': 'newOwnerId'},
+        {'id': 'b', 'name': 'Band B', 'ownerId': 'u1'},
+      ]);
+
+      final cached = await cacheService.readBands();
+      expect(cached, [
+        {'id': 'a', 'name': 'Band A', 'ownerId': 'newOwnerId'},
+        {'id': 'b', 'name': 'Band B', 'ownerId': 'u1'},
+      ]);
+    },
+  );
+
+  test(
     'online build() sets bandsListSyncedAtProvider from the fresh fetch, '
     'later than the stale seeded cache value',
     () async {

@@ -549,4 +549,55 @@ void main() {
       expect(find.text('5 members'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'patchBandOwner() flips the trailing Owner/Member badge immediately, '
+    'without a tab-switch or additional network fetch (D-10)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 1, 'ownerId': 'u1'},
+      ]);
+      var bandListCallCount = 0;
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          bandListCallCount++;
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 'a',
+                'name': 'The Testers',
+                'membersCount': 1,
+                'ownerId': 'u1',
+              },
+            ],
+          }),
+          200,
+        );
+      }, profile: {'id': 'u1', 'username': 'tester'});
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 member • Owner'), findsOneWidget);
+      final callCountBeforePatch = bandListCallCount;
+
+      // Simulates the exact patch a real ConfirmTransferOwnershipDialog
+      // triggers (D-10) — invoked directly on the already-alive notifier
+      // rather than via a real transfer flow, since that flow lives on
+      // BandDetailScreen, not BandsScreen.
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(BandsScreen)),
+      );
+      container
+          .read(bandsListDataProvider.notifier)
+          .patchBandOwner('a', 'someOtherUserId');
+      await tester.pump();
+
+      expect(find.text('1 member • Member'), findsOneWidget);
+      expect(bandListCallCount, callCountBeforePatch);
+    },
+  );
 }

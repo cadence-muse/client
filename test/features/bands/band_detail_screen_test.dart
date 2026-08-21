@@ -1048,4 +1048,111 @@ void main() {
       expect(removeButton.onPressed, isNotNull);
     },
   );
+
+  testWidgets(
+    'a null ownership tri-state (profile still loading) hides both the '
+    'member-row menu and the Rotate icon, avoiding a render-then-hide '
+    'flicker',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final profileGate = Completer<void>();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/me') {
+          await profileGate.future;
+          return http.Response(
+            jsonEncode({'id': 'u1', 'username': 'owner'}),
+            200,
+          );
+        }
+        return http.Response(jsonEncode(band(members: members)), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      // Profile hasn't resolved yet -> tri-state null -> both owner-gated
+      // controls stay hidden, never optimistically rendered then hidden.
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
+      expect(find.byIcon(Icons.refresh), findsNothing);
+
+      profileGate.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PopupMenuButton<void>), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'owner sees the Rotate icon (refresh) next to Copy on the invite-code '
+    'row; non-owner sees only Copy',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+      final ownerApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(ownerApiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.content_copy), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
+
+      final memberCacheService = CacheService.inMemory();
+      await memberCacheService.writeBandDetail('b1', band());
+      final memberApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.content_copy), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'opening the member-row menu under max OS text-scale renders "Make '
+    'owner"/"Remove" without an overflow exception (backstop)',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(members: members),
+      );
+
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(3.0)),
+            child: wrap(apiClient, cacheService),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Make owner'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
+    },
+  );
 }
