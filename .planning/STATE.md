@@ -3,19 +3,19 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Improvements
 current_phase: 07
-current_phase_name: cache-behavior-flip-online-first
+current_phase_name: Cache Behavior Flip — Online-First
 status: executing
-stopped_at: Phase 07 UI-SPEC approved
-last_updated: "2026-08-21T11:43:50.550Z"
+stopped_at: Phase 07 plans 01-04 merged (wave 1-2 complete), 07-05 (wave 3) remaining
+last_updated: "2026-08-21T16:11:05.000Z"
 last_activity: 2026-08-21
-last_activity_desc: Phase 06.1 complete, transitioned to Phase 7
-state_head: 74f065c0d92f1987ccc873fd951cce86d0d73380
+last_activity_desc: Resumed session — merged 3 worktree branches (07-02, 07-03, 07-04) left unmerged by a dead parallel-execute session, cleaned stale lock/sentinel/orphan worktree
+state_head: 1035c246b59a062cae0c07ec487c0bad4900b5d8
 progress:
   total_phases: 11
   completed_phases: 2
   total_plans: 10
-  completed_plans: 5
-  percent: 18
+  completed_plans: 8
+  percent: 33
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 06.1 — API contract catch-up
+**Current focus:** Phase 07 — Cache Behavior Flip — Online-First
 
 ## Current Position
 
-Phase: 07 (cache-behavior-flip-online-first) — READY TO EXECUTE
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-08-21 — Phase 06.1 complete, transitioned to Phase 7
+Phase: 07 (Cache Behavior Flip — Online-First) — EXECUTING
+Plan: 4 of 5 done (07-01, 07-02, 07-03, 07-04 merged; 07-05 wave-3 sync-badge plan remaining)
+Status: Executing Phase 07
+Last activity: 2026-08-21 — merged 3 stranded worktree branches, ready for 07-05
 
-Progress: [█░░░░░░░░░] 9%
+Progress: [████░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -123,10 +123,11 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-21T11:17:05.328Z
-Stopped at: Phase 07 UI-SPEC approved
-Resume file: /home/bulat.khafizov/projects/personal/cadence/cadence-client/.planning/phases/07-cache-behavior-flip-online-first/07-UI-SPEC.md
+Last session: 2026-08-21T16:11:05.000Z
+Stopped at: 07-01..07-04 merged to main, 07-05 (wave 3, sync badge) ready to execute
+Resume file: none — proceed to /gsd-execute-phase 07
 
 ## Operator Next Steps
 
-- Run `/gsd-plan-phase 6` to plan Foundation Info & Settings Polish
+- Run `/gsd-execute-phase 07` to run 07-05 (sync_status_badge wiring, OFFL-07/OFFL-08) — last plan in phase 07
+- Note: 4 pre-existing test failures unrelated to this session's merges (band_detail_screen_test.dart x2, widget_test.dart bottom-nav) plus 1 expected-red offline_trust_regression_test guard that 07-05 will fix
