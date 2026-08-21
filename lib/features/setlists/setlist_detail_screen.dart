@@ -260,14 +260,30 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
               ),
               if (eventLocation != null) ...[
                 const SizedBox(height: 16),
-                Text(eventLocation),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on,
+                      size: 20,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(eventLocation)),
+                  ],
+                ),
               ],
               if (eventDate != null) ...[
                 const SizedBox(height: 16),
                 Text(formatEventDate(eventDate)),
               ],
               const SizedBox(height: 16),
-              Text('Duration: ${durationSeconds.asMinutesAndSeconds}'),
+              Row(
+                children: [
+                  Icon(Icons.timer, size: 20, color: colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(durationSeconds.asMinutesAndSeconds),
+                ],
+              ),
               const SizedBox(height: 16),
               Align(
                 alignment: Alignment.centerLeft,

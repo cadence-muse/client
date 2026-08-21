@@ -136,7 +136,9 @@ void main() {
       expect(find.text('Full Setlist'), findsNWidgets(2));
       expect(find.text('The Venue'), findsOneWidget);
       expect(find.text('Sep 1, 2026'), findsOneWidget);
-      expect(find.text('Duration: 42m 35s'), findsOneWidget);
+      expect(find.text('42m 35s'), findsOneWidget);
+      expect(find.byIcon(Icons.location_on), findsOneWidget);
+      expect(find.byIcon(Icons.timer), findsOneWidget);
       expect(find.text('Tracks (2)'), findsOneWidget);
       expect(find.text('Song One'), findsOneWidget);
       expect(find.text('Song Two'), findsOneWidget);
@@ -173,7 +175,7 @@ void main() {
   );
 
   testWidgets(
-    'zero tracks shows "No tracks in this setlist" and "Duration: 0m 0s"',
+    'zero tracks shows "No tracks in this setlist" and "0m 0s" duration',
     (tester) async {
       final cacheService = CacheService.inMemory();
       final apiClient = buildApiClient((request) async {
@@ -192,7 +194,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No tracks in this setlist'), findsOneWidget);
-      expect(find.text('Duration: 0m 0s'), findsOneWidget);
+      expect(find.text('0m 0s'), findsOneWidget);
     },
   );
 
