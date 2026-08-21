@@ -183,6 +183,89 @@ void main() {
   );
 
   testWidgets(
+    'a cached track with a key shows the music_note icon, key value, and '
+    'timer icon',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', [
+        {
+          'id': 't1',
+          'title': 'Cached Song',
+          'artist': 'Cached Artist',
+          'durationSeconds': 225,
+          'key': 'C',
+        },
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 't1',
+                'title': 'Cached Song',
+                'artist': 'Cached Artist',
+                'durationSeconds': 225,
+                'key': 'C',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.music_note), findsOneWidget);
+      expect(find.text('C'), findsOneWidget);
+      expect(find.byIcon(Icons.timer), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'a cached track with no key entry omits the music_note icon but '
+    'still shows the timer icon',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', [
+        {
+          'id': 't1',
+          'title': 'Cached Song',
+          'artist': 'Cached Artist',
+          'durationSeconds': 225,
+        },
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 't1',
+                'title': 'Cached Song',
+                'artist': 'Cached Artist',
+                'durationSeconds': 225,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.music_note), findsNothing);
+      expect(find.byIcon(Icons.timer), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
     'the Add-track FAB is enabled with an "Add track" tooltip while online',
     (tester) async {
       final cacheService = CacheService.inMemory();

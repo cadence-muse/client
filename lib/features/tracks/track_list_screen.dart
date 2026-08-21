@@ -92,6 +92,8 @@ class TrackListScreen extends ConsumerWidget {
         final title = track['title'] as String;
         final artist = track['artist'] as String;
         final durationSeconds = track['durationSeconds'] as int?;
+        final key = track['key'] as String?;
+        final colorScheme = Theme.of(context).colorScheme;
         return ListTile(
           title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(
@@ -99,7 +101,32 @@ class TrackListScreen extends ConsumerWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: Text(durationSeconds?.asMinutesSeconds ?? '—'),
+          trailing: SizedBox(
+            width: 130,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (key != null) ...[
+                  Icon(Icons.music_note, size: 18, color: colorScheme.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    key,
+                    style: const TextStyle(fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Icon(Icons.timer, size: 18, color: colorScheme.primary),
+                const SizedBox(width: 4),
+                Text(
+                  durationSeconds?.asMinutesSeconds ?? '—',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+          ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => TrackDetailScreen(
