@@ -442,8 +442,8 @@ void main() {
   );
 
   testWidgets(
-    'Remove icon appears on a member row while online; offline shows '
-    'OfflineNoCacheView instead',
+    'the member-row menu (PopupMenuButton) appears while online; offline '
+    'shows OfflineNoCacheView instead',
     (tester) async {
       final members = [
         {'id': 'u1', 'username': 'owner'},
@@ -459,10 +459,10 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      final onlineRemoveButton = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.person_remove),
+      final onlineMenu = tester.widget<PopupMenuButton<void>>(
+        find.byType(PopupMenuButton<void>),
       );
-      expect(onlineRemoveButton.onPressed, isNotNull);
+      expect(onlineMenu.enabled, isTrue);
 
       final offlineCacheService = CacheService.inMemory();
       await tester.pumpWidget(
@@ -471,7 +471,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
-      expect(find.byIcon(Icons.person_remove), findsNothing);
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
     },
   );
 
@@ -712,8 +712,9 @@ void main() {
   );
 
   testWidgets(
-    'owner sees a "Remove" icon on other members\' rows but never on their '
-    'own row; non-owner never sees it (remove-member)',
+    'owner sees "Make owner" and "Remove" in the menu on other members\' '
+    'rows but never on their own row; non-owner never sees the menu '
+    '(remove-member)',
     (tester) async {
       final members = [
         {'id': 'u1', 'username': 'owner'},
@@ -729,7 +730,16 @@ void main() {
       await tester.pumpWidget(wrap(ownerApiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.person_remove), findsOneWidget);
+      // Only one member row (not the owner's own) has a menu.
+      expect(find.byType(PopupMenuButton<void>), findsOneWidget);
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Make owner'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
+
+      await tester.tapAt(const Offset(0, 0));
+      await tester.pumpAndSettle();
 
       final memberCacheService = CacheService.inMemory();
       await memberCacheService.writeBandDetail('b1', band(members: members));
@@ -741,7 +751,7 @@ void main() {
       await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.person_remove), findsNothing);
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
     },
   );
 
@@ -773,7 +783,9 @@ void main() {
 
       expect(find.text('member'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
@@ -878,7 +890,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
@@ -1016,7 +1030,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));

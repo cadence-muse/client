@@ -150,6 +150,30 @@ class BandsListData extends _$BandsListData {
     unawaited(ref.read(cacheServiceProvider).writeBands(updated));
     ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
   }
+
+  /// Patches [bandId]'s `ownerId` in-place in the cached list after a
+  /// successful `transferOwnership()` call (D-10), using the known target
+  /// [newOwnerId] — `TransferBandOwnership`'s `'200'` response has no body
+  /// to trust, but the transfer already succeeded server-side by the time
+  /// this is called, so patching the list optimistically here is safe even
+  /// though the detail-side change (D-09) separately triggers a refetch.
+  /// Mirrors [renameBand]'s exact shape. No-ops if there's no data to patch
+  /// into.
+  void patchBandOwner(String bandId, String newOwnerId) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = [
+      for (final band in current)
+        if (band['id'] == bandId)
+          {...band, 'ownerId': newOwnerId}
+        else
+          band,
+    ];
+    _version++;
+    state = AsyncData(updated);
+    unawaited(ref.read(cacheServiceProvider).writeBands(updated));
+    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+  }
 }
 
 /// Online-first `GET /api/band/{bandId}` data (D-01/D-03/D-06), keyed per

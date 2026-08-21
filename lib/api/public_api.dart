@@ -148,6 +148,22 @@ class PublicApi {
     return response!;
   }
 
+  /// Transfers band ownership to one of its members
+  /// (`TransferBandOwnership` — server-enforced owner-only, see
+  /// `publicapi.yml`). `'200'` has no response body — callers must
+  /// invalidate+refetch the band detail (D-09) rather than trust an echoed
+  /// value.
+  Future<void> transferOwnership({
+    required String bandId,
+    required String userId,
+  }) async {
+    await _client.send(
+      'POST',
+      '/api/band/$bandId/transfer-ownership',
+      body: {'userId': userId},
+    );
+  }
+
   /// Returns a band's tracks (`TrackListItem` — id/title/artist +
   /// optional durationSeconds).
   Future<List<Map<String, dynamic>>> listBandTracks(String bandId) async {

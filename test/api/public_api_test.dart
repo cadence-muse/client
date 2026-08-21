@@ -120,6 +120,44 @@ void main() {
     );
   });
 
+  group('transferOwnership', () {
+    test(
+      'sends POST to /api/band/{bandId}/transfer-ownership with body '
+      '{userId: value}',
+      () async {
+        String? capturedMethod;
+        String? capturedPath;
+        Map<String, dynamic>? capturedBody;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedMethod = request.method;
+            capturedPath = request.url.path;
+            capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
+            return http.Response('', 200);
+          }),
+        );
+
+        await api.transferOwnership(bandId: 'b1', userId: 'u2');
+
+        expect(capturedMethod, 'POST');
+        expect(capturedPath, '/api/band/b1/transfer-ownership');
+        expect(capturedBody, {'userId': 'u2'});
+      },
+    );
+
+    test('a 200 response resolves without throwing', () async {
+      final api = PublicApi(
+        buildApiClient((request) async => http.Response('', 200)),
+      );
+
+      await expectLater(
+        api.transferOwnership(bandId: 'b1', userId: 'u2'),
+        completes,
+      );
+    });
+  });
+
   group('listUserTracks', () {
     test(
       'calling with bandIdFilter sends POST to /api/track/list with '

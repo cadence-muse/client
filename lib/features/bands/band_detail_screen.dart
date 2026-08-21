@@ -14,6 +14,7 @@ import 'confirm_delete_band_dialog.dart';
 import 'confirm_leave_band_dialog.dart';
 import 'confirm_remove_member_dialog.dart';
 import 'confirm_rotate_invite_code_dialog.dart';
+import 'confirm_transfer_ownership_dialog.dart';
 import 'edit_band_screen.dart';
 
 class BandDetailScreen extends ConsumerWidget {
@@ -147,33 +148,68 @@ class BandDetailScreen extends ConsumerWidget {
             final memberUserId = member['id'] as String?;
             final memberUsername = member['username'] as String;
             // Owner-only, and never shown on the owner's own row — that's
-            // what "Delete"/"Leave" are for (D-02, D-08 edge probe:
+            // what "Delete"/"Leave" are for (D-01/D-02, D-08 edge probe:
             // adjacency — targets member['id'], never a username match).
-            final showRemove =
+            final showMenu =
                 isOwner == true &&
                 memberUserId != null &&
                 memberUserId != ownerId;
             return ListTile(
               title: Text(memberUsername),
-              trailing: showRemove
+              trailing: showMenu
                   ? Tooltip(
-                      message: isOnline ? 'Remove' : 'Requires connection',
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.person_remove,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        onPressed: isOnline
-                            ? () => showDialog<void>(
-                                context: context,
-                                builder: (_) => ConfirmRemoveMemberDialog(
-                                  bandId: bandId,
-                                  memberUserId: memberUserId,
-                                  memberUsername: memberUsername,
-                                  bandName: name,
+                      message: isOnline ? '' : 'Requires connection',
+                      child: PopupMenuButton<void>(
+                        enabled: isOnline,
+                        itemBuilder: (context) => [
+                          PopupMenuItem<void>(
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => ConfirmTransferOwnershipDialog(
+                                bandId: bandId,
+                                memberUserId: memberUserId,
+                                memberUsername: memberUsername,
+                                bandName: name,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.workspace_premium),
+                                SizedBox(width: 8),
+                                Text('Make owner'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem<void>(
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => ConfirmRemoveMemberDialog(
+                                bandId: bandId,
+                                memberUserId: memberUserId,
+                                memberUsername: memberUsername,
+                                bandName: name,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.person_remove,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
-                              )
-                            : null,
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Remove',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     )
                   : null,
