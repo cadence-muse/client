@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Improvements
-current_phase: 7
-current_phase_name: Cache Behavior Flip — Online-First
-status: planning
+current_phase: 06.1
+current_phase_name: "API contract catch-up: migrate RemoveSetlistTrack to RemoveSetlistTracks batch endpoint and ListUserTracks/ListUserSetlists from GET to POST with searchQuery body, per fe72e78 schema update (INSERTED)"
+status: executing
 stopped_at: Phase 06 complete, ready to plan Phase 7
-last_updated: "2026-08-21T06:41:35.503Z"
+last_updated: "2026-08-21T07:10:20.985Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 06 complete, transitioned to Phase 7
-state_head: 1251581ec29aca0b3cabc5f2f743a96ea1b8f0f0
+state_head: da6bedb62f15b8bc1a13619aaed87a71947bd43e
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 1
-  total_plans: 4
+  total_plans: 5
   completed_plans: 4
-  percent: 10
+  percent: 9
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-08-20)
 
 ## Current Position
 
-Phase: 7 — Cache Behavior Flip — Online-First
+Phase: 06.1 (API contract catch-up: migrate RemoveSetlistTrack to RemoveSetlistTracks batch endpoint and ListUserTracks/ListUserSetlists from GET to POST with searchQuery body, per fe72e78 schema update (INSERTED)) — READY TO EXECUTE
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-21 — Phase 06 complete, transitioned to Phase 7
 
 Progress: [░░░░░░░░░░] 0%
@@ -107,6 +107,10 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260819-v0u | add /api/logout call when user logs out on profile screen | 2026-08-19 | 6a55de3 | [260819-v0u-add-api-logout-call-when-user-logs-out-o](./quick/260819-v0u-add-api-logout-call-when-user-logs-out-o/) |
+
+### Roadmap Evolution
+
+- Phase 06.1 inserted after Phase 6: API contract catch-up: RemoveSetlistTrack->RemoveSetlistTracks migration, ListUserTracks/ListUserSetlists GET->POST migration, per fe72e78 schema update missed by v1.1 roadmap (URGENT)
 
 ## Deferred Items
 
