@@ -5,7 +5,8 @@ import '../../providers/homepage_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../widgets/offline_no_cache_view.dart';
-import '../bands/bands_screen.dart';
+import '../bands/create_band_screen.dart';
+import 'band_picker_sheet.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -43,7 +44,7 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       body: homeAsync.when(
-        data: (data) => _buildContent(context, data),
+        data: (data) => _buildContent(context, ref, data),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) {
           if (error is OfflineNoCacheException) {
@@ -58,60 +59,96 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, Map<String, dynamic> data) {
+  // Phase 9 (D-01/D-02/D-03/D-09/D-10): one unified layout for both the
+  // zero-bands and populated states — a welcome card, a "Quick Actions"
+  // header, and a 3-button row where "Add Song"/"Add Setlist" are disabled
+  // until bandsCount > 0. Replaces the old bandsCount==0-only empty-state
+  // block and the old populated-state band-count display text entirely.
+  Widget _buildContent(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> data,
+  ) {
     final username = data['username'] as String;
     final bandsCount = data['bandsCount'] as int;
 
-    if (bandsCount == 0) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'No bands yet',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Create or join a band to get started. Tap the '+' icon to "
-                'create one or ask a bandmate for an invite code.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const BandsScreen()),
-                ),
-                child: const Text('Create Band'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Center(
+    return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Welcome, $username',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineMedium,
+            // D-01: welcome card, room reserved in the Row for a future
+            // avatar widget (not built this phase).
+            Card(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              elevation: 1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        'Welcome, $username',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            Text('Your bands', style: Theme.of(context).textTheme.bodyLarge),
-            const SizedBox(height: 4),
+            // D-02: "Quick Actions" section header.
             Text(
-              _formatBandsCount(bandsCount),
-              style: Theme.of(context).textTheme.headlineSmall,
+              'Quick Actions',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            // D-10: all 3 buttons always render; only enabled/disabled
+            // state of Add Song/Add Setlist changes with bandsCount.
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const CreateBandScreen()),
+                  ),
+                  icon: const Icon(Icons.group_add),
+                  label: const Text('Add Band'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: bandsCount > 0
+                      ? () => showBandPickerSheet(context, ref, forTrack: true)
+                      : null,
+                  icon: const Icon(Icons.music_note),
+                  label: const Text('Add Song'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: bandsCount > 0
+                      ? () => showBandPickerSheet(context, ref, forTrack: false)
+                      : null,
+                  icon: const Icon(Icons.playlist_add),
+                  label: const Text('Add Setlist'),
+                ),
+              ],
             ),
           ],
         ),
@@ -143,11 +180,4 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
-
-  String _formatBandsCount(int n) =>
-      n == 1 ? '1 band' : '${_withThousandsSeparator(n)} bands';
-
-  String _withThousandsSeparator(int n) => n
-      .toString()
-      .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',');
 }

@@ -3,7 +3,10 @@ import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
+import 'package:cadence/features/bands/create_band_screen.dart';
 import 'package:cadence/features/home/home_screen.dart';
+import 'package:cadence/features/setlists/create_setlist_screen.dart';
+import 'package:cadence/features/tracks/create_track_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/homepage_provider.dart';
@@ -16,14 +19,25 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  // Routes `/api/band/list` to [bands] before delegating to [handler] for
+  // everything else (`/api/homepage`, etc.) — since Task 1 wires "Add
+  // Song"/"Add Setlist" to a band-picker backed by bandsListDataProvider,
+  // any test that opens the picker needs the mock handler to answer that
+  // path too, mirroring bands_screen_test.dart's per-path routing.
   ApiClient buildApiClient(
-    Future<http.Response> Function(http.Request) handler,
-  ) {
+    Future<http.Response> Function(http.Request) handler, {
+    List<Map<String, dynamic>> bands = const [],
+  }) {
     return ApiClient(
       baseUrl: 'http://localhost',
       getToken: () => 'test-token',
       onUnauthorized: () async {},
-      httpClient: MockClient(handler),
+      httpClient: MockClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(jsonEncode({'items': bands}), 200);
+        }
+        return handler(request);
+      }),
     );
   }
 
@@ -48,83 +62,73 @@ void main() {
     );
   }
 
-  testWidgets('bandsCount 0 shows "No bands yet" + "Create Band"', (
-    tester,
-  ) async {
-    final cacheService = CacheService.inMemory();
-    await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 0});
+  testWidgets(
+    'bandsCount 0 renders Quick Actions with Add Song/Add Setlist disabled '
+    'and Add Band enabled (D-02/D-09/D-10)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 0});
 
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({'username': 'alice', 'bandsCount': 0}),
-        200,
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'username': 'alice', 'bandsCount': 0}),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      // Online-first: build() fetches from the network before rendering
+      // data, so a single frame no longer guarantees it has landed.
+      await tester.pumpAndSettle();
+
+      expect(find.text('Welcome, alice'), findsOneWidget);
+      expect(find.text('Quick Actions'), findsOneWidget);
+
+      final addBand = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Add Band'),
       );
-    });
+      expect(addBand.onPressed, isNotNull);
 
-    await tester.pumpWidget(wrap(apiClient, cacheService));
-    // Online-first: build() fetches from the network before rendering data,
-    // so a single frame no longer guarantees it has landed.
-    await tester.pumpAndSettle();
-
-    expect(find.text('No bands yet'), findsOneWidget);
-    expect(find.widgetWithText(ElevatedButton, 'Create Band'), findsOneWidget);
-  });
-
-  testWidgets('bandsCount 1 shows "1 band" (singular)', (tester) async {
-    final cacheService = CacheService.inMemory();
-    await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 1});
-
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({'username': 'alice', 'bandsCount': 1}),
-        200,
+      final addSong = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Add Song'),
       );
-    });
+      expect(addSong.onPressed, isNull);
 
-    await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pumpAndSettle();
-
-    expect(find.text('1 band'), findsOneWidget);
-  });
-
-  testWidgets('bandsCount 2 shows "2 bands" (plural)', (tester) async {
-    final cacheService = CacheService.inMemory();
-    await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 2});
-
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({'username': 'alice', 'bandsCount': 2}),
-        200,
+      final addSetlist = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Add Setlist'),
       );
-    });
+      expect(addSetlist.onPressed, isNull);
+    },
+  );
 
-    await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'bandsCount > 0 renders Quick Actions with all three buttons enabled '
+    '(D-03/D-10)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 2});
 
-    expect(find.text('2 bands'), findsOneWidget);
-  });
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'username': 'alice', 'bandsCount': 2}),
+          200,
+        );
+      });
 
-  testWidgets('bandsCount 1250 shows "1,250 bands" (comma-grouped, exact)', (
-    tester,
-  ) async {
-    final cacheService = CacheService.inMemory();
-    await cacheService.writeHomepage({
-      'username': 'alice',
-      'bandsCount': 1250,
-    });
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
 
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({'username': 'alice', 'bandsCount': 1250}),
-        200,
-      );
-    });
+      expect(find.text('Welcome, alice'), findsOneWidget);
+      expect(find.text('Quick Actions'), findsOneWidget);
 
-    await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pumpAndSettle();
-
-    expect(find.text('1,250 bands'), findsOneWidget);
-  });
+      for (final label in ['Add Band', 'Add Song', 'Add Setlist']) {
+        final button = tester.widget<ElevatedButton>(
+          find.widgetWithText(ElevatedButton, label),
+        );
+        expect(button.onPressed, isNotNull, reason: '$label should be enabled');
+      }
+    },
+  );
 
   testWidgets(
     'no cache and network failure shows "Couldn\'t load home" + Retry',
@@ -189,54 +193,46 @@ void main() {
         );
       });
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: false),
-      );
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
       expect(find.text('No cached data'), findsOneWidget);
-      expect(
-        find.text('Connect to the internet to load this'),
-        findsOneWidget,
-      );
+      expect(find.text('Connect to the internet to load this'), findsOneWidget);
       expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
     },
   );
 
-  testWidgets(
-    'switching to the Home tab a second time triggers a second '
-    'GET /api/homepage call (D-01 tab-switch refetch)',
-    (tester) async {
-      final cacheService = CacheService.inMemory();
-      var callCount = 0;
-      final apiClient = buildApiClient((request) async {
-        if (request.url.path == '/api/homepage') {
-          callCount++;
-        }
-        return http.Response(
-          jsonEncode({'username': 'alice', 'bandsCount': 1}),
-          200,
-        );
-      });
-
-      await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pumpAndSettle();
-      final initialCallCount = callCount;
-      expect(initialCallCount, 1);
-
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(HomeScreen)),
+  testWidgets('switching to the Home tab a second time triggers a second '
+      'GET /api/homepage call (D-01 tab-switch refetch)', (tester) async {
+    final cacheService = CacheService.inMemory();
+    var callCount = 0;
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/homepage') {
+        callCount++;
+      }
+      return http.Response(
+        jsonEncode({'username': 'alice', 'bandsCount': 1}),
+        200,
       );
+    });
 
-      // First selection of the Home tab (index 0) — no-op since it's already
-      // 0, so switch away and back to actually trigger the listener.
-      container.read(selectedTabIndexProvider.notifier).setIndex(1);
-      container.read(selectedTabIndexProvider.notifier).setIndex(0);
-      await tester.pumpAndSettle();
-      expect(callCount, initialCallCount + 1);
-    },
-  );
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pumpAndSettle();
+    final initialCallCount = callCount;
+    expect(initialCallCount, 1);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+
+    // First selection of the Home tab (index 0) — no-op since it's already
+    // 0, so switch away and back to actually trigger the listener.
+    container.read(selectedTabIndexProvider.notifier).setIndex(1);
+    container.read(selectedTabIndexProvider.notifier).setIndex(0);
+    await tester.pumpAndSettle();
+    expect(callCount, initialCallCount + 1);
+  });
 
   testWidgets(
     "AppBar's LinearProgressIndicator shows only while refreshing with data "
@@ -266,7 +262,7 @@ void main() {
 
       firstFetchGate.complete();
       await tester.pumpAndSettle();
-      expect(find.text('1 band'), findsOneWidget);
+      expect(find.text('Quick Actions'), findsOneWidget);
 
       final container = ProviderScope.containerOf(
         tester.element(find.byType(HomeScreen)),
@@ -280,13 +276,112 @@ void main() {
       // D-08: refreshing with data already present keeps old content
       // visible and shows the subtle indicator instead of the full-screen
       // spinner.
-      expect(find.text('1 band'), findsOneWidget);
+      expect(find.text('Quick Actions'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
 
       secondFetchGate.complete();
       await tester.pumpAndSettle();
       expect(find.byType(LinearProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets('tapping "Add Band" navigates to CreateBandScreen (HOME-01)', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 0});
+    final apiClient = buildApiClient((request) async {
+      return http.Response(
+        jsonEncode({'username': 'alice', 'bandsCount': 0}),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Add Band'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateBandScreen), findsOneWidget);
+  });
+
+  testWidgets(
+    'tapping "Add Song" with bandsCount > 0 opens a bottom sheet listing '
+    'each seeded band by name, and selecting one navigates to '
+    'CreateTrackScreen carrying that band\'s id (HOME-02)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 2});
+      final apiClient = buildApiClient(
+        (request) async {
+          return http.Response(
+            jsonEncode({'username': 'alice', 'bandsCount': 2}),
+            200,
+          );
+        },
+        bands: [
+          {'id': 'a', 'name': 'The Testers'},
+          {'id': 'b', 'name': 'The Others'},
+        ],
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Add Song'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('The Testers'), findsOneWidget);
+      expect(find.text('The Others'), findsOneWidget);
+
+      await tester.tap(find.text('The Testers'));
+      await tester.pumpAndSettle();
+
+      final screen = tester.widget<CreateTrackScreen>(
+        find.byType(CreateTrackScreen),
+      );
+      expect(screen.bandId, 'a');
+    },
+  );
+
+  testWidgets(
+    'tapping "Add Setlist" with bandsCount > 0 opens a bottom sheet listing '
+    'each seeded band by name, and selecting one navigates to '
+    'CreateSetlistScreen carrying that band\'s id (HOME-02)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeHomepage({'username': 'alice', 'bandsCount': 2});
+      final apiClient = buildApiClient(
+        (request) async {
+          return http.Response(
+            jsonEncode({'username': 'alice', 'bandsCount': 2}),
+            200,
+          );
+        },
+        bands: [
+          {'id': 'a', 'name': 'The Testers'},
+          {'id': 'b', 'name': 'The Others'},
+        ],
+      );
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Add Setlist'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('The Testers'), findsOneWidget);
+      expect(find.text('The Others'), findsOneWidget);
+
+      await tester.tap(find.text('The Others'));
+      await tester.pumpAndSettle();
+
+      final screen = tester.widget<CreateSetlistScreen>(
+        find.byType(CreateSetlistScreen),
+      );
+      expect(screen.bandId, 'b');
     },
   );
 }
