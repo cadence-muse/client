@@ -74,7 +74,7 @@ Full detail for Phases 1-5: `.planning/milestones/v1.0-ROADMAP.md`
   4. On track list/detail screens, icons represent musical key, duration, and notes at a glance.
   5. On setlist list/detail screens, icons represent location and duration at a glance.
 
-**Plans**: 1/4 plans executed
+**Plans**: 4/4 plans executed
 Plans:
 **Wave 1**
 
@@ -82,9 +82,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 06-02-PLAN.md — Band member count & role display (BAND-10)
-- [ ] 06-03-PLAN.md — Track metadata icons: key/duration/notes (TRACK-07)
-- [ ] 06-04-PLAN.md — Setlist metadata icons: location/duration (SETL-11)
+- [x] 06-02-PLAN.md — Band member count & role display (BAND-10)
+- [x] 06-03-PLAN.md — Track metadata icons: key/duration/notes (TRACK-07)
+- [x] 06-04-PLAN.md — Setlist metadata icons: location/duration (SETL-11)
 
 **UI hint**: yes
 
@@ -159,7 +159,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 3. Tracks | v1.0 | 4/4 | Complete | 2026-08-16 |
 | 4. Setlists | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 5. Offline Trust & Connectivity UX | v1.0 | 5/5 | Complete | 2026-08-17 |
-| 6. Foundation Info & Settings Polish | v1.1 | 1/4 | In Progress|  |
+| 6. Foundation Info & Settings Polish | v1.1 | 4/4 | In Progress|  |
 | 7. Cache Behavior Flip — Online-First | v1.1 | 0/TBD | Not started | - |
 | 8. Band Owner Tools | v1.1 | 0/TBD | Not started | - |
 | 9. Homepage Quick Actions | v1.1 | 0/TBD | Not started | - |
