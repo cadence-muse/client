@@ -1,6 +1,6 @@
 ---
 phase: 09-homepage-quick-actions
-reviewed: 2026-08-22T00:00:00Z
+reviewed: 2026-08-21T22:28:15Z
 depth: standard
 files_reviewed: 4
 files_reviewed_list:
@@ -10,89 +10,129 @@ files_reviewed_list:
   - test/features/home/home_screen_test.dart
 findings:
   critical: 0
-  warning: 3
+  warning: 1
   info: 2
-  total: 5
+  total: 3
 status: issues_found
 ---
 
 # Phase 09: Code Review Report
 
-**Reviewed:** 2026-08-22T00:00:00Z
+**Reviewed:** 2026-08-21T22:28:15Z
 **Depth:** standard
 **Files Reviewed:** 4
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the new `band_picker_sheet.dart` (net-new file) and the restructured `home_screen.dart` (Quick Actions layout + band-picker wiring), plus their test files. The happy-path implementation (loading/error/data states, D-05 through D-08/D-11 navigation handoff, `context.mounted` guard after the async `showModalBottomSheet` gap) is correct and well tested. No critical/security defects found. Three warnings center on the band-picker's handling of degenerate states that its own data source (`bandsListDataProvider`) can legitimately produce but that neither the widget nor its tests account for: an empty band list, an unbounded/long band list with no scroll container, and an error state with no real retry path given how `bandsListDataProvider` is kept alive elsewhere in the app.
+Reviewed the Homepage Quick Actions band-picker sheet, the Home tab screen, and
+their widget tests. `flutter analyze` is clean and both test files pass in
+full (19/19). The offline-first data flow (`bandsListDataProvider`,
+`homepageDataProvider`), the D-07/D-08 dismiss-without-error behavior, and the
+error-message redaction (V7) are all implemented and tested correctly.
+
+No security or correctness-blocking defects were found. One robustness gap
+stands out: the band-picker's list of `ListTile`s is not wrapped in a
+scrollable container, so it will visibly overflow once a user has more bands
+than fit in the sheet's default (9/16-screen-height) constraint — untested
+and unhandled. Two minor code-quality items (an unused parameter and
+confusing variable shadowing) round out the findings.
 
 ## Warnings
 
-### WR-01: Band-picker has no empty-state UI, and can silently render blank
-
-**File:** `lib/features/home/band_picker_sheet.dart:33-49`
-**Issue:** The `data:` branch renders a `Column` built from `for (final band in bands) ListTile(...)` with no check for `bands.isEmpty`. The picker's gating (`bandsCount > 0`, `home_screen.dart:138,145`) comes from a *different* provider (`homepageDataProvider`'s `bandsCount` field, from `GET /api/homepage`) than the picker's actual data source (`bandsListDataProvider`, from `GET /api/band/list`, `lib/providers/bands_provider.dart`). These are two independently-fetched, independently-cached, online-first providers with no shared version/consistency guarantee — e.g. a stale cached `bandsCount` in `HomepageData`, or the user having just been removed from their only band by another user, produces a state where the "Add Song"/"Add Setlist" buttons are enabled but the sheet's `bandsListDataProvider` resolves to an empty (or now-empty) list. In that window the sheet opens to a blank/near-zero-height surface with no explanation and no way to know why, other than dismissing it.
-**Fix:** Add an explicit empty-state branch, e.g.:
-```dart
-data: (bands) => bands.isEmpty
-    ? const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('No bands to show. Pull to refresh or try again.'),
-      )
-    : Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [for (final band in bands) ListTile(...)],
-      ),
-```
-
-### WR-02: Band-picker's error message implies a retry that isn't actually available
-
-**File:** `lib/features/home/band_picker_sheet.dart:56-59`
-**Issue:** On error, the sheet shows "Could not load bands. Please try again." but offers no retry button, and dismissing/reopening the sheet does not actually retrigger a fetch in practice: `bandsListDataProvider` (`BandsListData`, `lib/providers/bands_provider.dart:53`) is `@riverpod` (AutoDispose), but `BandsScreen` (`lib/features/bands/bands_screen.dart:30`) also watches it and is kept permanently mounted inside `RootScaffold`'s `IndexedStack` (`lib/navigation/root_scaffold.dart:34`) — so as long as the app is running with the Bands tab built, the provider never actually disposes between sheet opens, and a cached error state persists. A user hitting this error has no way to recover from within the sheet itself; they must navigate to the Bands tab and use its own Retry button (`bands_screen.dart:56`) before reopening the picker will show data.
-**Fix:** Either wire the picker's error branch to a retry action (e.g. `ElevatedButton(onPressed: () => ref.invalidate(bandsListDataProvider), child: const Text('Retry'))`), or soften the copy to not imply an action the sheet doesn't support (e.g. "Could not load bands. Check your connection.").
-
-### WR-03: Band list inside the picker is not wrapped in a scrollable container
+### WR-01: Band-picker list has no scroll container — overflows once bands exceed the sheet's height
 
 **File:** `lib/features/home/band_picker_sheet.dart:34-49`
-**Issue:** The picker mirrors `bands_screen.dart`'s `_showCreateJoinMenu` bottom-sheet shape (`Column` with `mainAxisSize: MainAxisSize.min`, no `isScrollControlled`), but that source pattern is a fixed 2-item action menu, not a data-driven list whose length is the user's actual band count. `bands_screen.dart`'s own main list correctly uses `ListView.separated` (`bands_screen.dart:135`) for the same unbounded data. Copying the fixed-menu shape for a variable-length list means a user with enough bands to exceed the sheet's available height will hit a `RenderFlex` overflow with no way to reach the remaining items — there's no test exercising more than 2 bands to catch this.
-**Fix:** Wrap the list in a scrollable, sized appropriately for a modal sheet, e.g.:
+**Issue:** The sheet's band list is built as a plain `Column` inside a
+non-scrollable `Consumer`/`SafeArea`, and `showModalBottomSheet` is called
+without `isScrollControlled: true`:
+
 ```dart
-data: (bands) => ConstrainedBox(
-  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
+data: (bands) => Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    for (final band in bands)
+      ListTile(
+        leading: const Icon(Icons.group),
+        title: Text(band['name'] as String, ...),
+        onTap: () => Navigator.of(sheetContext).pop(band['id'] as String),
+      ),
+  ],
+),
+```
+
+Flutter's default (non-scroll-controlled) modal bottom sheet route
+constrains its child to `constraints.maxHeight * 9/16`. With standard
+`ListTile` height (~56dp) that's roughly 7-8 tiles before the `Column`
+overflows its constraints, producing a `RenderFlex overflowed` error (visible
+red/yellow stripes in debug, silently clipped content in release) and making
+any band beyond that point untappable. Nothing in
+`band_picker_sheet_test.dart` exercises more than 2 bands, so this gap is
+untested. This is a realistic scenario for any user in more than a handful of
+bands, not a hypothetical edge case.
+
+**Fix:** Wrap the list in a bounded, scrollable widget, e.g.:
+
+```dart
+data: (bands) => Flexible(
   child: ListView(
     shrinkWrap: true,
-    children: [for (final band in bands) ListTile(...)],
+    children: [
+      for (final band in bands)
+        ListTile(
+          leading: const Icon(Icons.group),
+          title: Text(band['name'] as String, maxLines: 1, overflow: TextOverflow.ellipsis),
+          onTap: () => Navigator.of(sheetContext).pop(band['id'] as String),
+        ),
+    ],
   ),
 ),
 ```
-(and set `isScrollControlled: true` on the `showModalBottomSheet` call so the sheet can actually grow to use that height).
+
+(or pass `isScrollControlled: true` to `showModalBottomSheet` and use a
+`DraggableScrollableSheet`/`ListView.builder`). Add a test seeding >10 bands
+and asserting no overflow / that the last band is reachable via scroll.
 
 ## Info
 
-### IN-01: Duplicated push-and-branch block for forTrack navigation
+### IN-01: `showBandPickerSheet`'s `ref` parameter is never used
 
-**File:** `lib/features/home/band_picker_sheet.dart:68-76`
-**Issue:** The `if (forTrack) { ... } else { ... }` block duplicates the `Navigator.of(context).push(MaterialPageRoute(builder: (_) => ...))` scaffolding twice, differing only in the destination widget.
-**Fix:** Collapse to a single push with the widget chosen inline:
+**File:** `lib/features/home/band_picker_sheet.dart:22-26`
+**Issue:** `showBandPickerSheet(BuildContext context, WidgetRef ref, {required bool forTrack})`
+takes a `WidgetRef` that is never referenced in the function body. All
+provider access happens through the nested `Consumer(builder: (context, ref, _) { ... })`,
+whose `ref` parameter shadows (and shadows out) the outer one. Both call
+sites (`home_screen.dart:139,146` and the test harness) are forced to thread
+a `WidgetRef` through for no effect, which is misleading — a future reader
+may assume the outer `ref` is what drives the sheet's data and try to
+`ref.invalidate(...)` it expecting an effect on the open sheet.
+**Fix:** Drop the unused `ref` parameter from the signature (and its two call
+sites), since the `Consumer` already supplies its own scoped `ref`:
+
 ```dart
-Navigator.of(context).push(
-  MaterialPageRoute(
-    builder: (_) => forTrack
-        ? CreateTrackScreen(bandId: bandId)
-        : CreateSetlistScreen(bandId: bandId),
-  ),
-);
+Future<void> showBandPickerSheet(
+  BuildContext context, {
+  required bool forTrack,
+}) async { ... }
 ```
 
-### IN-02: No test coverage for the empty-list / long-list / error-retry gaps
+### IN-02: Shadowed `context`/`ref` names reduce readability
 
-**File:** `test/features/home/band_picker_sheet_test.dart`, `test/features/home/home_screen_test.dart`
-**Issue:** Given WR-01/WR-02/WR-03 above, there's no test seeding `bandsListDataProvider` with zero bands while `bandsCount > 0` on the homepage side, none seeding more than 2 bands to check for overflow, and none asserting any retry affordance after an error.
-**Fix:** Add coverage once the corresponding warnings are addressed, to lock in the fixed behavior.
+**File:** `lib/features/home/band_picker_sheet.dart:31`
+**Issue:** `Consumer(builder: (context, ref, _) { ... })` reuses the names
+`context` and `ref` from the enclosing `showBandPickerSheet(BuildContext context, WidgetRef ref, ...)`
+signature and from `showModalBottomSheet`'s own `builder: (sheetContext) => ...`.
+While technically correct here (the innermost `context`/`ref` are the ones
+that should be used within the `Consumer`), the shadowing makes it easy for a
+future edit to reach for the wrong-scoped `context`/`ref` without the
+analyzer flagging it, especially once IN-01 is fixed and the outer `ref` no
+longer exists to compare against.
+**Fix:** Rename the `Consumer` builder's parameters, e.g.
+`builder: (tileContext, sheetRef, _) { ... }`, to make the distinct scopes
+explicit.
 
 ---
 
-_Reviewed: 2026-08-22T00:00:00Z_
+_Reviewed: 2026-08-21T22:28:15Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
