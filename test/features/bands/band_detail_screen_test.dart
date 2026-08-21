@@ -140,7 +140,10 @@ void main() {
       expect(find.byType(BandAvatar), findsOneWidget);
       expect(find.text('alice'), findsOneWidget);
       expect(find.text('abc-123-def'), findsOneWidget);
-      expect(find.widgetWithText(TextButton, 'Copy'), findsOneWidget);
+      expect(
+        find.widgetWithIcon(IconButton, Icons.content_copy),
+        findsOneWidget,
+      );
     },
   );
 
@@ -177,7 +180,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Copy'));
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.content_copy));
       await tester.pump();
 
       expect(copiedTexts, ['abc-123-def']);
@@ -439,8 +442,8 @@ void main() {
   );
 
   testWidgets(
-    'Remove icon appears on a member row while online; offline shows '
-    'OfflineNoCacheView instead',
+    'the member-row menu (PopupMenuButton) appears while online; offline '
+    'shows OfflineNoCacheView instead',
     (tester) async {
       final members = [
         {'id': 'u1', 'username': 'owner'},
@@ -456,10 +459,10 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      final onlineRemoveButton = tester.widget<IconButton>(
-        find.widgetWithIcon(IconButton, Icons.person_remove),
+      final onlineMenu = tester.widget<PopupMenuButton<void>>(
+        find.byType(PopupMenuButton<void>),
       );
-      expect(onlineRemoveButton.onPressed, isNotNull);
+      expect(onlineMenu.enabled, isTrue);
 
       final offlineCacheService = CacheService.inMemory();
       await tester.pumpWidget(
@@ -468,7 +471,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
-      expect(find.byIcon(Icons.person_remove), findsNothing);
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
     },
   );
 
@@ -709,8 +712,9 @@ void main() {
   );
 
   testWidgets(
-    'owner sees a "Remove" icon on other members\' rows but never on their '
-    'own row; non-owner never sees it (remove-member)',
+    'owner sees "Make owner" and "Remove" in the menu on other members\' '
+    'rows but never on their own row; non-owner never sees the menu '
+    '(remove-member)',
     (tester) async {
       final members = [
         {'id': 'u1', 'username': 'owner'},
@@ -726,7 +730,16 @@ void main() {
       await tester.pumpWidget(wrap(ownerApiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.person_remove), findsOneWidget);
+      // Only one member row (not the owner's own) has a menu.
+      expect(find.byType(PopupMenuButton<void>), findsOneWidget);
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Make owner'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
+
+      await tester.tapAt(const Offset(0, 0));
+      await tester.pumpAndSettle();
 
       final memberCacheService = CacheService.inMemory();
       await memberCacheService.writeBandDetail('b1', band(members: members));
@@ -738,7 +751,7 @@ void main() {
       await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.person_remove), findsNothing);
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
     },
   );
 
@@ -770,7 +783,9 @@ void main() {
 
       expect(find.text('member'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
@@ -875,7 +890,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
@@ -1013,7 +1030,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.person_remove));
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
@@ -1027,6 +1046,175 @@ void main() {
         find.widgetWithText(FilledButton, 'Remove'),
       );
       expect(removeButton.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a null ownership tri-state (profile still loading) hides both the '
+    'member-row menu and the Rotate icon, avoiding a render-then-hide '
+    'flicker',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final profileGate = Completer<void>();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/me') {
+          await profileGate.future;
+          return http.Response(
+            jsonEncode({'id': 'u1', 'username': 'owner'}),
+            200,
+          );
+        }
+        return http.Response(jsonEncode(band(members: members)), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      // Profile hasn't resolved yet -> tri-state null -> both owner-gated
+      // controls stay hidden, never optimistically rendered then hidden.
+      expect(find.byType(PopupMenuButton<void>), findsNothing);
+      expect(find.byIcon(Icons.refresh), findsNothing);
+
+      profileGate.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PopupMenuButton<void>), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'owner sees the Rotate icon (refresh) next to Copy on the invite-code '
+    'row; non-owner sees only Copy',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+      final ownerApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(ownerApiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.content_copy), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsOneWidget);
+
+      final memberCacheService = CacheService.inMemory();
+      await memberCacheService.writeBandDetail('b1', band());
+      final memberApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.content_copy), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'opening the member-row menu under max OS text-scale renders "Make '
+    'owner"/"Remove" without an overflow exception (backstop)',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(members: members));
+      final apiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: () => band(members: members),
+      );
+
+      await tester.pumpWidget(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(3.0)),
+            child: wrap(apiClient, cacheService),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Make owner'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'confirming Transfer invalidates and refetches the band detail; the '
+    'demoted owner remains a member (not removed) after a successful '
+    'transfer (BAND-12 safety)',
+    (tester) async {
+      final members = [
+        {'id': 'u1', 'username': 'owner'},
+        {'id': 'u2', 'username': 'member'},
+      ];
+      var currentOwnerId = 'u1';
+      Map<String, dynamic> currentBand() => {
+        'id': 'b1',
+        'name': 'The Testers',
+        'ownerId': currentOwnerId,
+        'members': members,
+        'inviteCode': 'abc-123-def',
+      };
+
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', currentBand());
+
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/me') {
+          return http.Response(
+            jsonEncode({'id': 'u1', 'username': 'owner'}),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/transfer-ownership') {
+          currentOwnerId = 'u2';
+          return http.Response('', 200);
+        }
+        return http.Response(jsonEncode(currentBand()), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('owner'), findsOneWidget);
+      expect(find.text('member'), findsOneWidget);
+
+      await tester.tap(find.byType(PopupMenuButton<void>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Make owner'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.pumpAndSettle();
+
+      // Post-transfer: both members still present. The client never
+      // computes membership changes itself — it only reflects the
+      // server's authoritative refetched state (D-09) — so the demoted
+      // owner ('owner') must still show in the member list, never
+      // disappear as a side effect of the transfer (BAND-12 prohibition,
+      // mirrors T-08-05).
+      expect(find.byType(BandDetailScreen), findsOneWidget);
+      expect(find.text('owner'), findsOneWidget);
+      expect(find.text('member'), findsOneWidget);
     },
   );
 }

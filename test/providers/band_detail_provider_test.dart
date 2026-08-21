@@ -231,6 +231,48 @@ void main() {
   );
 
   test(
+    'rotateInviteCode() merges the new code into cached state without an '
+    'additional network fetch',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+
+      var getBandCallCount = 0;
+      final apiClient = buildApiClient((request) async {
+        getBandCallCount++;
+        return http.Response(jsonEncode(band()), 200);
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+      final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
+      addTearDown(sub.close);
+
+      final initial = await container.read(
+        bandDetailDataProvider('b1').future,
+      );
+      expect(initial['inviteCode'], 'abc-123');
+      final baselineCallCount = getBandCallCount;
+
+      await container
+          .read(bandDetailDataProvider('b1').notifier)
+          .rotateInviteCode('new-code');
+
+      final updated = container.read(bandDetailDataProvider('b1')).valueOrNull;
+      expect(updated?['inviteCode'], 'new-code');
+      // Other fields are preserved by the merge, not dropped.
+      expect(updated?['id'], 'b1');
+      expect(updated?['name'], 'Band');
+      // rotateInviteCode() itself triggered no additional
+      // GET /api/band/{bandId} fetch beyond build()'s own online-first
+      // fetch.
+      expect(getBandCallCount, baselineCallCount);
+
+      final cached = await cacheService.readBandDetail('b1');
+      expect(cached?['inviteCode'], 'new-code');
+    },
+  );
+
+  test(
     'a local updateName() mutation is not clobbered by a slower in-flight '
     'refresh() (WR-02)',
     () async {

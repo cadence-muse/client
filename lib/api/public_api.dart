@@ -135,6 +135,35 @@ class PublicApi {
     await _client.send('DELETE', '/api/band/$bandId/remove-member/$userId');
   }
 
+  /// Regenerates a band's invite code (`RotateBandInviteCode` —
+  /// server-enforced owner-only, see `publicapi.yml`). `'200'` returns
+  /// `RotateBandInviteCodeResponseBody` (`{newInviteCode}`) — callers perform
+  /// the D-08 optimistic local patch with the returned value, never a
+  /// refetch (see `ConfirmRotateInviteCodeDialog`).
+  Future<Map<String, dynamic>> rotateInviteCode(String bandId) async {
+    final response = await _client.send(
+      'POST',
+      '/api/band/$bandId/rotate-invite-code',
+    );
+    return response!;
+  }
+
+  /// Transfers band ownership to one of its members
+  /// (`TransferBandOwnership` — server-enforced owner-only, see
+  /// `publicapi.yml`). `'200'` has no response body — callers must
+  /// invalidate+refetch the band detail (D-09) rather than trust an echoed
+  /// value.
+  Future<void> transferOwnership({
+    required String bandId,
+    required String userId,
+  }) async {
+    await _client.send(
+      'POST',
+      '/api/band/$bandId/transfer-ownership',
+      body: {'userId': userId},
+    );
+  }
+
   /// Returns a band's tracks (`TrackListItem` — id/title/artist +
   /// optional durationSeconds).
   Future<List<Map<String, dynamic>>> listBandTracks(String bandId) async {
