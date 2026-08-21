@@ -949,6 +949,39 @@ void main() {
   );
 
   testWidgets(
+    'shows "Owner • N members" below the band name when the current user '
+    'is the owner, and "Member • N members" when they are not (BAND-10)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band());
+      final ownerApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u1', 'username': 'owner'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(ownerApiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      // The default `band()` fixture has exactly one member, so the
+      // singular "1 member" (no trailing "s") is correct per BAND-10's
+      // pluralization truth.
+      expect(find.text('Owner • 1 member'), findsOneWidget);
+
+      final memberCacheService = CacheService.inMemory();
+      await memberCacheService.writeBandDetail('b1', band());
+      final memberApiClient = buildRoutedApiClient(
+        profile: () => {'id': 'u2', 'username': 'member'},
+        band: band,
+      );
+
+      await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Member • 1 member'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'a Remove failure from a non-ApiException error (e.g. offline) shows '
     'the generic fallback message and re-enables the Remove button',
     (tester) async {
