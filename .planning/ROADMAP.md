@@ -27,7 +27,7 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 6: Foundation Info & Settings Polish** - Password change, band member count/role display, and metadata icons on Track/Setlist screens (completed 2026-08-21)
 - [x] **Phase 7: Cache Behavior Flip — Online-First** - Online always fetches fresh; offline serves cache with a persistent warning banner; staleness-tier badge system removed (completed 2026-08-21)
 - [x] **Phase 8: Band Owner Tools** - Owner can rotate the invite code and transfer band ownership (completed 2026-08-21)
-- [ ] **Phase 9: Homepage Quick Actions** - Add band/song/setlist shortcuts from the Homepage, with a band-picker dialog for song/setlist
+- [x] **Phase 9: Homepage Quick Actions** - Add band/song/setlist shortcuts from the Homepage, with a band-picker dialog for song/setlist (completed 2026-08-22)
 - [ ] **Phase 10: Searchable Setlist Track Picker** - Setlist track picker replaces the flat dialog with a searchable list; `ListBandTracks` spec gains a `searchQuery` field
 
 ## Phase Details
@@ -164,7 +164,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — Home quick-actions layout + shared band-picker, end-to-end (HOME-01, HOME-02)
+- [x] 09-01-PLAN.md — Home quick-actions layout + shared band-picker, end-to-end (HOME-01, HOME-02)
 
 **UI hint**: yes
 
@@ -198,5 +198,5 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 6. Foundation Info & Settings Polish | v1.1 | 4/4 | Complete    | 2026-08-21 |
 | 7. Cache Behavior Flip — Online-First | v1.1 | 0/5 | Not started | - |
 | 8. Band Owner Tools | v1.1 | 1/1 | Complete    | 2026-08-21 |
-| 9. Homepage Quick Actions | v1.1 | 0/1 | Not started | - |
+| 9. Homepage Quick Actions | v1.1 | 1/1 | Complete    | 2026-08-22 |
 | 10. Searchable Setlist Track Picker | v1.1 | 0/TBD | Not started | - |
