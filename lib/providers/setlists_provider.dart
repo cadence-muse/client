@@ -3,30 +3,17 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'auth_provider.dart';
+import 'connectivity_provider.dart';
+import 'offline_no_cache_exception.dart';
 import '../cache/cache_service.dart';
 
 part 'setlists_provider.g.dart';
 
-/// Cache-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
-/// (family provider — mirrors [TrackListData]'s cache-first shape, see
-/// `tracks_provider.dart`).
-///
-/// On [build], cached data (if present) is returned immediately with a
-/// background refresh kicked off silently (no loading spinner, no error
-/// surfaced if the background refresh fails). With no cache, the network
-/// fetch happens inline and any [ApiException] becomes an [AsyncError],
-/// which is what drives the "Failed to load setlists" + Retry error state.
-///
-/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-/// a second call while one is already in flight reuses the same [Future]
-/// rather than firing a second network request.
-/// D-04: `bandSetlists` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp (mirrors [ProfileSyncedAt], see
-/// `profile_provider.dart`). Set on a cache hit (from the pre-existing
-/// cached value) and bumped unconditionally on every successful
-/// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write —
-/// never on a failed background refresh, since `_refresh()`'s catch branch
-/// never reaches that call.
+/// `bandSetlists` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
+/// stored timestamp (mirrors [ProfileSyncedAt], see `profile_provider.dart`).
+/// Set on a cache hit (from the pre-existing cached value) and bumped
+/// unconditionally on every successful
+/// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write.
 @riverpod
 class SetlistListSyncedAt extends _$SetlistListSyncedAt {
   @override
@@ -35,12 +22,29 @@ class SetlistListSyncedAt extends _$SetlistListSyncedAt {
   void set(DateTime? value) => state = value;
 }
 
+/// Online-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
+/// (D-01/D-03/D-06; family provider — mirrors [BandsListData]'s online-first
+/// shape, see `bands_provider.dart`).
+///
+/// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+/// attempted first — a populated cache is not consulted on the happy path.
+/// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+/// distinct error surfaced when a cache hit exists) and only rethrows (as an
+/// [AsyncError], driving "Failed to load setlists" + Retry) when there's
+/// nothing cached either. When offline, cached data is served directly with
+/// zero network calls, or [OfflineNoCacheException] is thrown if nothing has
+/// ever been cached (D-06) — recovery from that state is automatic the
+/// moment [isOnlineProvider] flips back to true, since [build] re-watches it.
+///
+/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+/// a second call while one is already in flight reuses the same [Future]
+/// rather than firing a second network request.
 @riverpod
 class SetlistListData extends _$SetlistListData {
   Future<void>? _inFlightRefresh;
 
   /// Monotonic counter bumped by every local-mutation method.
-  /// [_refresh]/[_doRefresh] capture this before their network await and
+  /// [refresh]/[_doRefresh] capture this before their network await and
   /// discard a fetched result if it changed while the fetch was in flight —
   /// otherwise a slower background refresh could silently revert a local
   /// mutation that landed first (WR-02).
@@ -48,16 +52,35 @@ class SetlistListData extends _$SetlistListData {
 
   @override
   Future<List<Map<String, dynamic>>> build(String bandId) async {
+    final isOnline = ref.watch(isOnlineProvider);
     final cache = ref.watch(cacheServiceProvider);
+
+    if (isOnline) {
+      try {
+        return await _fetchAndCache(bandId);
+      } catch (_) {
+        // D-03: online but the fetch itself failed — fall back to cache
+        // silently, the same as a true-offline cache hit.
+        final cached = await cache.readBandSetlists(bandId);
+        if (cached != null) {
+          ref
+              .read(setlistListSyncedAtProvider(bandId).notifier)
+              .set(await cache.readBandSetlistsSyncedAt(bandId));
+          return cached;
+        }
+        rethrow;
+      }
+    }
+
     final cached = await cache.readBandSetlists(bandId);
     if (cached != null) {
       ref
           .read(setlistListSyncedAtProvider(bandId).notifier)
           .set(await cache.readBandSetlistsSyncedAt(bandId));
-      unawaited(_refresh(bandId));
       return cached;
     }
-    return _fetchAndCache(bandId);
+    // D-06: offline with nothing ever cached.
+    throw const OfflineNoCacheException();
   }
 
   Future<List<Map<String, dynamic>>> _fetchAndCache(String bandId) async {
@@ -67,21 +90,6 @@ class SetlistListData extends _$SetlistListData {
     await ref.read(cacheServiceProvider).writeBandSetlists(bandId, setlists);
     ref.read(setlistListSyncedAtProvider(bandId).notifier).set(DateTime.now());
     return setlists;
-  }
-
-  /// Silent background refresh fired from [build] on a cache hit. Never
-  /// surfaces an error — a failed background refresh just leaves the
-  /// currently-cached data displayed.
-  Future<void> _refresh(String bandId) async {
-    final capturedVersion = _version;
-    try {
-      final fresh = await _fetchAndCache(bandId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
-      }
-    } catch (_) {
-      // Keep showing cached data.
-    }
   }
 
   /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
@@ -129,21 +137,10 @@ class SetlistListData extends _$SetlistListData {
   }
 }
 
-/// Cache-first `GET /api/band/{bandId}/setlist/{setlistId}` data, keyed per
-/// `(bandId, setlistId)` pair (family provider — mirrors [TrackDetailData]'s
-/// cache-first shape, see `tracks_provider.dart`).
-///
-/// Mirrors [SetlistListData]'s cache-first shape: cache hit returns
-/// immediately with a silent background refresh; cache miss fetches inline
-/// (any [ApiException] becomes an [AsyncError], driving the "Failed to load
-/// setlists" + Retry error state).
-/// D-04: `setlistDetail` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp (mirrors [SetlistListSyncedAt]).
-/// Set on a cache hit (from the pre-existing cached value) and bumped
-/// unconditionally on every successful [SetlistDetailData._fetchAndCache] /
-/// [SetlistDetailData.updateFields] / [SetlistDetailData.reorderTracks]
-/// write — never on a failed background refresh, since `_refresh()`'s catch
-/// branch never reaches that call.
+/// Family counterpart of [SetlistListSyncedAt] for
+/// `GET /api/band/{bandId}/setlist/{setlistId}`, keyed per `(bandId,
+/// setlistId)` pair to match [SetlistDetailData]'s `build(String bandId,
+/// String setlistId)` shape.
 @riverpod
 class SetlistDetailSyncedAt extends _$SetlistDetailSyncedAt {
   @override
@@ -152,12 +149,24 @@ class SetlistDetailSyncedAt extends _$SetlistDetailSyncedAt {
   void set(DateTime? value) => state = value;
 }
 
+/// Online-first `GET /api/band/{bandId}/setlist/{setlistId}` data (D-01/
+/// D-03/D-06), keyed per `(bandId, setlistId)` pair (family provider —
+/// mirrors [BandDetailData]'s online-first shape, see `bands_provider.dart`).
+///
+/// Mirrors [SetlistListData]'s online-first shape exactly: when online, a
+/// fresh fetch is always attempted first (a populated cache is not consulted
+/// on the happy path); a failed online fetch falls back to cache silently
+/// (D-03); offline serves cache directly or throws
+/// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+/// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+/// provider already rebuilds fresh on every `Navigator.push` into
+/// `SetlistDetailScreen`.
 @riverpod
 class SetlistDetailData extends _$SetlistDetailData {
   Future<void>? _inFlightRefresh;
 
   /// Monotonic counter bumped by every local-mutation method.
-  /// [_refresh]/[_doRefresh] capture this before their network await and
+  /// [refresh]/[_doRefresh] capture this before their network await and
   /// discard a fetched result if it changed while the fetch was in flight —
   /// otherwise a slower background refresh could silently revert a local
   /// edit that landed first (WR-02).
@@ -165,16 +174,35 @@ class SetlistDetailData extends _$SetlistDetailData {
 
   @override
   Future<Map<String, dynamic>> build(String bandId, String setlistId) async {
+    final isOnline = ref.watch(isOnlineProvider);
     final cache = ref.watch(cacheServiceProvider);
+
+    if (isOnline) {
+      try {
+        return await _fetchAndCache(bandId, setlistId);
+      } catch (_) {
+        // D-03: online but the fetch itself failed — fall back to cache
+        // silently, the same as a true-offline cache hit.
+        final cached = await cache.readSetlistDetail(bandId, setlistId);
+        if (cached != null) {
+          ref
+              .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+              .set(await cache.readSetlistDetailSyncedAt(bandId, setlistId));
+          return cached;
+        }
+        rethrow;
+      }
+    }
+
     final cached = await cache.readSetlistDetail(bandId, setlistId);
     if (cached != null) {
       ref
           .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
           .set(await cache.readSetlistDetailSyncedAt(bandId, setlistId));
-      unawaited(_refresh(bandId, setlistId));
       return cached;
     }
-    return _fetchAndCache(bandId, setlistId);
+    // D-06: offline with nothing ever cached.
+    throw const OfflineNoCacheException();
   }
 
   Future<Map<String, dynamic>> _fetchAndCache(
@@ -191,21 +219,6 @@ class SetlistDetailData extends _$SetlistDetailData {
         .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
         .set(DateTime.now());
     return setlist;
-  }
-
-  /// Silent background refresh fired from [build] on a cache hit. Never
-  /// surfaces an error — a failed background refresh just leaves the
-  /// currently-cached data displayed.
-  Future<void> _refresh(String bandId, String setlistId) async {
-    final capturedVersion = _version;
-    try {
-      final fresh = await _fetchAndCache(bandId, setlistId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
-      }
-    } catch (_) {
-      // Keep showing cached data.
-    }
   }
 
   /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
@@ -309,18 +322,11 @@ class SelectedSetlistBandIdFilter extends _$SelectedSetlistBandIdFilter {
   void setFilter(String? bandId) => state = bandId;
 }
 
-/// Cache-first `GET /api/setlist/list` data spanning every band the user
-/// belongs to, optionally narrowed by [SelectedSetlistBandIdFilter] (mirrors
-/// [UserTracksListData]'s cache-first shape, but non-family — [build]
-/// watches [selectedSetlistBandIdFilterProvider] directly, so changing the
-/// filter automatically triggers a full rebuild with the new cache
-/// key/fetch).
-/// D-04: `userSetlists` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp (mirrors [HomepageSyncedAt], see
+/// `userSetlists` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
+/// stored timestamp (mirrors [HomepageSyncedAt], see
 /// `homepage_provider.dart`). Set on a cache hit (from the pre-existing
 /// cached value) and bumped unconditionally on every successful
-/// [UserSetlistsListData._fetchAndCache] — never on a failed background
-/// refresh, since `_refresh()`'s catch branch never reaches that call.
+/// [UserSetlistsListData._fetchAndCache] write.
 @riverpod
 class UserSetlistsSyncedAt extends _$UserSetlistsSyncedAt {
   @override
@@ -329,30 +335,71 @@ class UserSetlistsSyncedAt extends _$UserSetlistsSyncedAt {
   void set(DateTime? value) => state = value;
 }
 
+/// Online-first `GET /api/setlist/list` data spanning every band the user
+/// belongs to, optionally narrowed by [SelectedSetlistBandIdFilter] (D-01/
+/// D-03/D-06; mirrors [UserTracksListData]'s online-first shape, but
+/// non-family — [build] watches [selectedSetlistBandIdFilterProvider]
+/// directly, so changing the filter automatically triggers a full rebuild
+/// with the new cache key/fetch).
+///
+/// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+/// attempted first — a populated cache is not consulted on the happy path.
+/// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+/// distinct error surfaced when a cache hit exists) and only rethrows (as an
+/// [AsyncError]) when there's nothing cached either. When offline, cached
+/// data is served directly with zero network calls, or
+/// [OfflineNoCacheException] is thrown if nothing has ever been cached
+/// (D-06) — recovery from that state is automatic the moment
+/// [isOnlineProvider] flips back to true, since [build] re-watches it.
+///
+/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+/// a second call while one is already in flight reuses the same [Future]
+/// rather than firing a second network request.
 @riverpod
 class UserSetlistsListData extends _$UserSetlistsListData {
   Future<void>? _inFlightRefresh;
 
   /// Monotonic counter bumped by every local-mutation method.
-  /// [_refresh]/[_doRefresh] capture this before their network await and
+  /// [refresh]/[_doRefresh] capture this before their network await and
   /// discard a fetched result if it changed while the fetch was in flight —
   /// otherwise a slower background refresh could silently revert a local
-  /// mutation that landed first (WR-02).
+  /// mutation that landed first (WR-02). Never bumped in practice (this
+  /// provider has no local-mutation methods), but kept for shape parity
+  /// with [UserTracksListData]/[SetlistListData]/[SetlistDetailData].
   final int _version = 0;
 
   @override
   Future<List<Map<String, dynamic>>> build() async {
     final bandIdFilter = ref.watch(selectedSetlistBandIdFilterProvider);
+    final isOnline = ref.watch(isOnlineProvider);
     final cache = ref.watch(cacheServiceProvider);
+
+    if (isOnline) {
+      try {
+        return await _fetchAndCache(bandIdFilter);
+      } catch (_) {
+        // D-03: online but the fetch itself failed — fall back to cache
+        // silently, the same as a true-offline cache hit.
+        final cached = await cache.readUserSetlists(bandIdFilter);
+        if (cached != null) {
+          ref
+              .read(userSetlistsSyncedAtProvider.notifier)
+              .set(await cache.readUserSetlistsSyncedAt(bandIdFilter));
+          return cached;
+        }
+        rethrow;
+      }
+    }
+
     final cached = await cache.readUserSetlists(bandIdFilter);
     if (cached != null) {
       ref
           .read(userSetlistsSyncedAtProvider.notifier)
           .set(await cache.readUserSetlistsSyncedAt(bandIdFilter));
-      unawaited(_refresh(bandIdFilter));
       return cached;
     }
-    return _fetchAndCache(bandIdFilter);
+    // D-06: offline with nothing ever cached.
+    throw const OfflineNoCacheException();
   }
 
   Future<List<Map<String, dynamic>>> _fetchAndCache(
@@ -366,21 +413,6 @@ class UserSetlistsListData extends _$UserSetlistsListData {
         .writeUserSetlists(bandIdFilter, setlists);
     ref.read(userSetlistsSyncedAtProvider.notifier).set(DateTime.now());
     return setlists;
-  }
-
-  /// Silent background refresh fired from [build] on a cache hit. Never
-  /// surfaces an error — a failed background refresh just leaves the
-  /// currently-cached data displayed.
-  Future<void> _refresh(String? bandIdFilter) async {
-    final capturedVersion = _version;
-    try {
-      final fresh = await _fetchAndCache(bandIdFilter);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
-      }
-    } catch (_) {
-      // Keep showing cached data.
-    }
   }
 
   /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
