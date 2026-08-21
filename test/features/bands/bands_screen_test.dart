@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
@@ -6,8 +7,10 @@ import 'package:cadence/features/bands/band_avatar.dart';
 import 'package:cadence/features/bands/bands_screen.dart';
 import 'package:cadence/features/bands/create_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/bands_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
-import 'package:cadence/widgets/sync_status_badge.dart';
+import 'package:cadence/providers/navigation_provider.dart';
+import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,14 +80,12 @@ void main() {
     });
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pump();
+    // Online-first: build() fetches from the network before rendering data,
+    // so a single frame no longer guarantees it has landed.
+    await tester.pumpAndSettle();
 
     expect(find.text('The Testers'), findsOneWidget);
     expect(find.byType(BandAvatar), findsOneWidget);
-
-    // Drain the background refresh build() fires on a cache hit so no
-    // dangling Future is left pending when the test body returns.
-    await tester.pumpAndSettle();
   });
 
   testWidgets('empty list shows "No bands yet" empty state', (tester) async {
@@ -96,7 +97,7 @@ void main() {
     });
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('No bands yet'), findsOneWidget);
     expect(
@@ -153,13 +154,11 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final textWidget = tester.widget<Text>(find.text(longName));
       expect(textWidget.maxLines, 1);
       expect(textWidget.overflow, TextOverflow.ellipsis);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -185,39 +184,136 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byType(ListTile), findsNWidgets(2));
-
-      await tester.pumpAndSettle();
     },
   );
 
-  testWidgets('SyncStatusBadge is present once the bands list loads', (
-    tester,
-  ) async {
-    final cacheService = CacheService.inMemory();
-    await cacheService.writeBands([
-      {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
-    ]);
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({
-          'items': [
-            {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
-          ],
-        }),
-        200,
+  testWidgets(
+    'offline with no cache shows OfflineNoCacheView, with no Retry button '
+    '(D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
       );
-    });
+      await tester.pumpAndSettle();
 
-    await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pump();
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.text('No cached data'), findsOneWidget);
+      expect(
+        find.text('Connect to the internet to load this'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+    },
+  );
 
-    expect(find.byType(SyncStatusBadge), findsOneWidget);
+  testWidgets(
+    'switching to the Bands tab a second time triggers a second '
+    'listBands() network call (D-01 tab-switch refetch)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          callCount++;
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
+            ],
+          }),
+          200,
+        );
+      });
 
-    await tester.pumpAndSettle();
-  });
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+      final initialCallCount = callCount;
+      expect(initialCallCount, 1);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(BandsScreen)),
+      );
+
+      // First selection of the Bands tab (index 1).
+      container.read(selectedTabIndexProvider.notifier).setIndex(1);
+      await tester.pumpAndSettle();
+      expect(callCount, initialCallCount + 1);
+
+      // Switch away, then re-select the Bands tab a second time.
+      container.read(selectedTabIndexProvider.notifier).setIndex(0);
+      container.read(selectedTabIndexProvider.notifier).setIndex(1);
+      await tester.pumpAndSettle();
+      expect(callCount, initialCallCount + 2);
+    },
+  );
+
+  testWidgets(
+    "AppBar's LinearProgressIndicator shows only while refreshing with data "
+    'already present, not during the initial cold-start load (D-08/D-09)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      var callCount = 0;
+      final firstFetchGate = Completer<void>();
+      final secondFetchGate = Completer<void>();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path != '/api/band/list') {
+          return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+        }
+        callCount++;
+        await (callCount == 1 ? firstFetchGate : secondFetchGate).future;
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'The Testers', 'membersCount': 1},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      // D-09: cold start (no data yet) only shows the full-screen spinner,
+      // not the AppBar's thin progress indicator. The fetch is deliberately
+      // held open by firstFetchGate so this state is observable.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      firstFetchGate.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('The Testers'), findsOneWidget);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(BandsScreen)),
+      );
+      // container.refresh() (unlike invalidate()) synchronously invalidates
+      // and re-reads in one step, matching D-08's "in-flight with data
+      // already present" state deterministically for this assertion.
+      container.refresh(bandsListDataProvider);
+      await tester.pump();
+
+      // D-08: refreshing with data already present keeps old content
+      // visible and shows the subtle indicator instead of the full-screen
+      // spinner.
+      expect(find.text('The Testers'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+      secondFetchGate.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    },
+  );
 
   testWidgets('FAB is disabled and tooltipped while offline', (tester) async {
     final cacheService = CacheService.inMemory();
@@ -332,7 +428,7 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Create Band'));
       await tester.pumpAndSettle();

@@ -26,7 +26,7 @@ class OfflineBanner extends ConsumerWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              "You're offline — showing cached data",
+              'Showing cached data — may be out of date',
               style: TextStyle(color: colorScheme.onErrorContainer),
             ),
           ),

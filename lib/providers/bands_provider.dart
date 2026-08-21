@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'auth_provider.dart';
+import 'connectivity_provider.dart';
+import 'offline_no_cache_exception.dart';
 import '../cache/cache_service.dart';
 
 part 'bands_provider.g.dart';
@@ -32,14 +34,17 @@ class BandDetailSyncedAt extends _$BandDetailSyncedAt {
   void set(DateTime? value) => state = value;
 }
 
-/// Cache-first `GET /api/band/list` data.
+/// Online-first `GET /api/band/list` data (D-01/D-03/D-06).
 ///
-/// On [build], cached data (if present) is returned immediately with a
-/// background refresh kicked off silently (no loading spinner, no error
-/// surfaced if the background refresh fails — mirrors [HomepageData]'s
-/// cache-first pattern). With no cache, the network fetch happens inline and
-/// any [ApiException] becomes an [AsyncError], which is what drives the
-/// "Couldn't load bands" + Retry error state.
+/// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+/// attempted first — a populated cache is not consulted on the happy path.
+/// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+/// distinct error surfaced when a cache hit exists) and only rethrows (as an
+/// [AsyncError], driving "Couldn't load bands" + Retry) when there's nothing
+/// cached either. When offline, cached data is served directly with zero
+/// network calls, or [OfflineNoCacheException] is thrown if nothing has ever
+/// been cached (D-06) — recovery from that state is automatic the moment
+/// [isOnlineProvider] flips back to true, since [build] re-watches it.
 ///
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
@@ -49,7 +54,7 @@ class BandsListData extends _$BandsListData {
   Future<void>? _inFlightRefresh;
 
   /// Monotonic counter bumped by every local-mutation method ([setBands],
-  /// [renameBand]). [_refresh]/[_doRefresh] capture this before their
+  /// [renameBand]). [refresh]/[_doRefresh] capture this before their
   /// network await and discard a fetched result if it changed while the
   /// fetch was in flight — otherwise a slower background refresh could
   /// silently revert a local edit that landed first (WR-02).
@@ -57,16 +62,35 @@ class BandsListData extends _$BandsListData {
 
   @override
   Future<List<Map<String, dynamic>>> build() async {
+    final isOnline = ref.watch(isOnlineProvider);
     final cache = ref.watch(cacheServiceProvider);
+
+    if (isOnline) {
+      try {
+        return await _fetchAndCache();
+      } catch (_) {
+        // D-03: online but the fetch itself failed — fall back to cache
+        // silently, the same as a true-offline cache hit.
+        final cached = await cache.readBands();
+        if (cached != null) {
+          ref
+              .read(bandsListSyncedAtProvider.notifier)
+              .set(await cache.readBandsSyncedAt());
+          return cached;
+        }
+        rethrow;
+      }
+    }
+
     final cached = await cache.readBands();
     if (cached != null) {
       ref
           .read(bandsListSyncedAtProvider.notifier)
           .set(await cache.readBandsSyncedAt());
-      unawaited(_refresh());
       return cached;
     }
-    return _fetchAndCache();
+    // D-06: offline with nothing ever cached.
+    throw const OfflineNoCacheException();
   }
 
   Future<List<Map<String, dynamic>>> _fetchAndCache() async {
@@ -74,21 +98,6 @@ class BandsListData extends _$BandsListData {
     await ref.read(cacheServiceProvider).writeBands(bands);
     ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
     return bands;
-  }
-
-  /// Silent background refresh fired from [build] on a cache hit. Never
-  /// surfaces an error — a failed background refresh just leaves the
-  /// currently-cached data displayed.
-  Future<void> _refresh() async {
-    final capturedVersion = _version;
-    try {
-      final fresh = await _fetchAndCache();
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
-      }
-    } catch (_) {
-      // Keep showing cached data.
-    }
   }
 
   /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).

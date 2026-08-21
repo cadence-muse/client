@@ -16,7 +16,7 @@ void main() {
     await tester.pumpWidget(wrap(false));
 
     expect(
-      find.text("You're offline — showing cached data"),
+      find.text('Showing cached data — may be out of date'),
       findsOneWidget,
     );
     expect(find.byIcon(Icons.cloud_off), findsOneWidget);
@@ -26,7 +26,7 @@ void main() {
     await tester.pumpWidget(wrap(true));
 
     expect(
-      find.text("You're offline — showing cached data"),
+      find.text('Showing cached data — may be out of date'),
       findsNothing,
     );
   });
