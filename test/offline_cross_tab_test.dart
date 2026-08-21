@@ -78,7 +78,7 @@ void main() {
         return http.Response(
           jsonEncode({
             'items': [
-              {'id': 'b1', 'name': 'B.A.T.H.'},
+              {'id': 'b1', 'name': 'B.A.T.H.', 'membersCount': 1},
             ],
           }),
           200,
