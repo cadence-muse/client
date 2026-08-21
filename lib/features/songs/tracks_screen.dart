@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/tracks_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import '../tracks/track_detail_screen.dart';
 import '../tracks/track_formatting.dart';
 
@@ -17,16 +18,40 @@ class TracksScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // D-01: this tab screen is kept alive by RootScaffold's IndexedStack, so
+    // build() only runs once per app session by default — re-selecting the
+    // Tracks tab (index 2) must explicitly invalidate the provider to fetch
+    // fresh data. Registered before the bands.isEmpty early return below so
+    // a tab-switch always re-triggers a fetch attempt regardless of that
+    // state.
+    ref.listen<int>(selectedTabIndexProvider, (previous, current) {
+      if (current == 2) ref.invalidate(userTracksListDataProvider);
+    });
+
     final bands = ref.watch(bandsListDataProvider).valueOrNull ?? const [];
+    final userTracksAsync = ref.watch(userTracksListDataProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tracks')),
+      appBar: AppBar(
+        title: const Text('Tracks'),
+        // D-08: a subtle in-flight indicator while a refetch is running
+        // with data already present, instead of blanking the screen; D-09's
+        // cold-start spinner is the `loading:` branch below, unaffected.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: userTracksAsync.isLoading && userTracksAsync.hasValue
+              ? const LinearProgressIndicator()
+              : const SizedBox.shrink(),
+        ),
+      ),
       body: bands.isEmpty
           ? _buildEmptyState(context, ref, showViewBandsButton: true)
           : Column(
               children: [
                 _buildFilterDropdown(context, ref, bands),
-                Expanded(child: _buildTracksBody(context, ref)),
+                Expanded(
+                  child: _buildTracksBody(context, ref, userTracksAsync),
+                ),
               ],
             ),
     );
@@ -60,22 +85,23 @@ class TracksScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTracksBody(BuildContext context, WidgetRef ref) {
-    final tracksAsync = ref.watch(userTracksListDataProvider);
-    final syncedAt = ref.watch(userTracksSyncedAtProvider);
-
+  Widget _buildTracksBody(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<List<Map<String, dynamic>>> tracksAsync,
+  ) {
     return tracksAsync.when(
-      data: (tracks) => Column(
-        children: [
-          SyncStatusBadge(syncedAt: syncedAt),
-          Expanded(child: _buildContent(context, ref, tracks)),
-        ],
-      ),
+      data: (tracks) => _buildContent(context, ref, tracks),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => _buildError(
-        context,
-        () => ref.invalidate(userTracksListDataProvider),
-      ),
+      error: (error, stackTrace) {
+        if (error is OfflineNoCacheException) {
+          return const OfflineNoCacheView();
+        }
+        return _buildError(
+          context,
+          () => ref.invalidate(userTracksListDataProvider),
+        );
+      },
     );
   }
 

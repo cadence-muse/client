@@ -32,11 +32,14 @@ void main() {
     ApiClient apiClient, {
     required Set<String> currentTrackIds,
     bool isOnline = true,
+    CacheService? cacheService,
   }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
-        cacheServiceProvider.overrideWithValue(CacheService.inMemory()),
+        cacheServiceProvider.overrideWithValue(
+          cacheService ?? CacheService.inMemory(),
+        ),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
@@ -208,37 +211,36 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a non-ApiException failure shows the generic fallback message',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        if (request.url.path == '/api/band/b1/track/list') {
-          return http.Response(
-            jsonEncode({
-              'items': [
-                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
-              ],
-            }),
-            200,
-          );
-        }
-        if (request.method == 'POST' &&
-            request.url.path == '/api/band/b1/setlist/s1/tracks') {
-          throw const SocketException('Network is unreachable');
-        }
-        return http.Response('', 204);
-      });
+  testWidgets('a non-ApiException failure shows the generic fallback message', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/band/b1/track/list') {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+            ],
+          }),
+          200,
+        );
+      }
+      if (request.method == 'POST' &&
+          request.url.path == '/api/band/b1/setlist/s1/tracks') {
+        throw const SocketException('Network is unreachable');
+      }
+      return http.Response('', 204);
+    });
 
-      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
-      await openDialog(tester);
-      await tester.tap(find.text('Track One'));
-      await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+    await openDialog(tester);
+    await tester.tap(find.text('Track One'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Failed to add tracks. Try again.'), findsOneWidget);
-    },
-  );
+    expect(find.text('Failed to add tracks. Try again.'), findsOneWidget);
+  });
 
   testWidgets(
     'the Add button disables and shows a spinner while the request is in '
@@ -290,6 +292,14 @@ void main() {
     'with tracks selected and isOnlineProvider false, the Add button is '
     'disabled with a "Requires connection" label',
     (tester) async {
+      // TrackListData is online-first (07-03): offline with nothing cached
+      // throws OfflineNoCacheException instead of populating the checklist,
+      // so this test — which exercises the Add button's connectivity gate,
+      // not data availability — seeds the cache the offline branch reads.
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', [
+        {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+      ]);
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/band/b1/track/list') {
           return http.Response(
@@ -305,7 +315,12 @@ void main() {
       });
 
       await tester.pumpWidget(
-        wrap(apiClient, currentTrackIds: {}, isOnline: false),
+        wrap(
+          apiClient,
+          currentTrackIds: {},
+          isOnline: false,
+          cacheService: cacheService,
+        ),
       );
       await openDialog(tester);
       await tester.tap(find.text('Track One'));

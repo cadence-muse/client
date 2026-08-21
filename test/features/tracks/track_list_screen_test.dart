@@ -5,6 +5,7 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/track_list_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -68,13 +69,11 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Cached Song'), findsOneWidget);
       expect(find.text('Cached Artist'), findsOneWidget);
       expect(find.text('3:45'), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -144,7 +143,7 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final titleWidget = tester.widget<Text>(find.text(longTitle));
       expect(titleWidget.maxLines, 1);
@@ -153,8 +152,6 @@ void main() {
       final artistWidget = tester.widget<Text>(find.text(longArtist));
       expect(artistWidget.maxLines, 1);
       expect(artistWidget.overflow, TextOverflow.ellipsis);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -169,9 +166,7 @@ void main() {
         return http.Response(jsonEncode({'items': []}), 200);
       });
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: false),
-      );
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
       await tester.pumpAndSettle();
 
       final fab = tester.widget<FloatingActionButton>(
@@ -215,53 +210,65 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.music_note), findsOneWidget);
       expect(find.text('C'), findsOneWidget);
       expect(find.byIcon(Icons.timer), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
+  testWidgets('a cached track with no key entry omits the music_note icon but '
+      'still shows the timer icon', (tester) async {
+    final cacheService = CacheService.inMemory();
+    await cacheService.writeBandTracks('b1', [
+      {
+        'id': 't1',
+        'title': 'Cached Song',
+        'artist': 'Cached Artist',
+        'durationSeconds': 225,
+      },
+    ]);
+
+    final apiClient = buildApiClient((request) async {
+      return http.Response(
+        jsonEncode({
+          'items': [
+            {
+              'id': 't1',
+              'title': 'Cached Song',
+              'artist': 'Cached Artist',
+              'durationSeconds': 225,
+            },
+          ],
+        }),
+        200,
+      );
+    });
+
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.music_note), findsNothing);
+    expect(find.byIcon(Icons.timer), findsOneWidget);
+  });
+
   testWidgets(
-    'a cached track with no key entry omits the music_note icon but '
-    'still shows the timer icon',
+    'offline with no cache shows OfflineNoCacheView, with no Retry button '
+    '(D-06)',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBandTracks('b1', [
-        {
-          'id': 't1',
-          'title': 'Cached Song',
-          'artist': 'Cached Artist',
-          'durationSeconds': 225,
-        },
-      ]);
-
       final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'items': [
-              {
-                'id': 't1',
-                'title': 'Cached Song',
-                'artist': 'Cached Artist',
-                'durationSeconds': 225,
-              },
-            ],
-          }),
-          200,
-        );
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
       });
 
-      await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
-
-      expect(find.byIcon(Icons.music_note), findsNothing);
-      expect(find.byIcon(Icons.timer), findsOneWidget);
-
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
       await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.text('No cached data'), findsOneWidget);
+      expect(find.text('Connect to the internet to load this'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
     },
   );
 
@@ -275,9 +282,7 @@ void main() {
         return http.Response(jsonEncode({'items': []}), 200);
       });
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: true),
-      );
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
       await tester.pumpAndSettle();
 
       final fab = tester.widget<FloatingActionButton>(

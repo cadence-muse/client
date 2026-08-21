@@ -6,6 +6,7 @@ import 'package:cadence/features/tracks/edit_track_screen.dart';
 import 'package:cadence/features/tracks/track_detail_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -86,6 +87,28 @@ void main() {
   );
 
   testWidgets(
+    'offline with no cache shows OfflineNoCacheView, with no Retry button '
+    '(D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.text('No cached data'), findsOneWidget);
+      expect(find.text('Connect to the internet to load this'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'a full BandTrack response renders title/artist/duration/tempo/key/notes',
     (tester) async {
       final cacheService = CacheService.inMemory();
@@ -159,26 +182,25 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the Edit IconButton is absent while trackAsync is loading',
-    (tester) async {
-      final cacheService = CacheService.inMemory();
-      final apiClient = buildApiClient((request) async {
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-        return http.Response(
-          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
-          200,
-        );
-      });
+  testWidgets('the Edit IconButton is absent while trackAsync is loading', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    final apiClient = buildApiClient((request) async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      return http.Response(
+        jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+        200,
+      );
+    });
 
-      await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pump();
 
-      expect(find.byIcon(Icons.edit), findsNothing);
+    expect(find.byIcon(Icons.edit), findsNothing);
 
-      await tester.pumpAndSettle();
-    },
-  );
+    await tester.pumpAndSettle();
+  });
 
   testWidgets(
     'tapping Edit pushes EditTrackScreen with the currently-loaded track '
@@ -229,6 +251,11 @@ void main() {
     'with "Requires connection" tooltip while offline',
     (tester) async {
       final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTrackDetail('b1', 't1', {
+        'id': 't1',
+        'title': 'Song',
+        'artist': 'Artist',
+      });
       final apiClient = buildApiClient((request) async {
         return http.Response(
           jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
@@ -236,9 +263,7 @@ void main() {
         );
       });
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: false),
-      );
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
       await tester.pumpAndSettle();
 
       final editButton = tester.widget<IconButton>(
@@ -269,9 +294,7 @@ void main() {
         );
       });
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: true),
-      );
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
       await tester.pumpAndSettle();
 
       final editButton = tester.widget<IconButton>(
