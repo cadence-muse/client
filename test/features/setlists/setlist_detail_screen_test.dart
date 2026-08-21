@@ -345,7 +345,11 @@ void main() {
 
       final apiClient = buildApiClient((request) async {
         if (request.method == 'DELETE' &&
-            request.url.path == '/api/band/b1/setlist/s1/track/t1') {
+            request.url.path == '/api/band/b1/setlist/s1/tracks') {
+          final decoded = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(decoded, {
+            'trackIds': ['t1'],
+          });
           removedTrackId = 't1';
           removed = true;
           return http.Response('', 204);

@@ -520,8 +520,10 @@ void main() {
         // request's query parameter is deterministic.
 
         final capturedBandIdFilters = <String?>[];
+        final capturedMethods = <String>[];
         final apiClient = buildApiClient((request) async {
           capturedBandIdFilters.add(request.url.queryParameters['bandId']);
+          capturedMethods.add(request.method);
           return http.Response(
             jsonEncode({
               'items': [
@@ -543,6 +545,7 @@ void main() {
         await container.read(userTracksListDataProvider.future);
         await Future<void>.delayed(const Duration(milliseconds: 50));
         capturedBandIdFilters.clear();
+        capturedMethods.clear();
 
         container
             .read(selectedBandIdFilterProvider.notifier)
@@ -550,6 +553,7 @@ void main() {
         await container.read(userTracksListDataProvider.future);
 
         expect(capturedBandIdFilters, contains('band-x'));
+        expect(capturedMethods, everyElement('POST'));
       },
     );
 

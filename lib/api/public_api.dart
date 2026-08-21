@@ -230,14 +230,21 @@ class PublicApi {
 
   /// Returns tracks across every band the current user belongs to
   /// (`UserTrackListItem` — id/title/artist/durationSeconds/bandId/bandName),
-  /// optionally narrowed to a single band via [bandIdFilter].
+  /// optionally narrowed to a single band via [bandIdFilter]. `GET`->`POST`
+  /// migration per the `fe72e78` schema update; `bandIdFilter` remains a
+  /// query parameter (`BandIdFilter` is still `in: query`). [searchQuery] is
+  /// accepted by the wire schema (`ListUserTracksRequestBody`) but not yet
+  /// driven by any UI in this phase — no search input exists yet (distinct
+  /// from Phase 10's `SETL-12`, a different endpoint's `searchQuery`).
   Future<List<Map<String, dynamic>>> listUserTracks({
     String? bandIdFilter,
+    String? searchQuery,
   }) async {
     final response = await _client.send(
-      'GET',
+      'POST',
       '/api/track/list',
       queryParameters: bandIdFilter == null ? null : {'bandId': bandIdFilter},
+      body: {'searchQuery': ?searchQuery},
     );
     return (response!['items'] as List).cast<Map<String, dynamic>>();
   }
@@ -341,7 +348,14 @@ class PublicApi {
     );
   }
 
-  /// Removes a single track from a setlist (D-13). `'204'` no content.
+  /// Removes a single track from a setlist via the batch `RemoveSetlistTracks`
+  /// endpoint (`DELETE .../tracks`, `RemoveSetlistTracksRequestBody` —
+  /// `fe72e78` schema update consolidated the old single-track `DELETE
+  /// .../track/{trackId}` route into this bulk endpoint). There is no
+  /// multi-select UI today (see `setlist_detail_screen.dart`'s `_removeTrack`,
+  /// this method's only caller), so this method's public signature stays
+  /// single-track — it always sends a 1-element `trackIds` array internally.
+  /// `'204'` no content.
   Future<void> removeSetlistTrack({
     required String bandId,
     required String setlistId,
@@ -349,7 +363,10 @@ class PublicApi {
   }) async {
     await _client.send(
       'DELETE',
-      '/api/band/$bandId/setlist/$setlistId/track/$trackId',
+      '/api/band/$bandId/setlist/$setlistId/tracks',
+      body: {
+        'trackIds': [trackId],
+      },
     );
   }
 
@@ -372,14 +389,18 @@ class PublicApi {
   /// Returns setlists across every band the current user belongs to
   /// (`UserSetlistListItem` — id/name/tracksCount/durationSeconds/bandId/
   /// bandName + optional eventDate), optionally narrowed to a single band
-  /// via [bandIdFilter]. Mirrors `listUserTracks` exactly (D-03, SETL-10).
+  /// via [bandIdFilter]. Mirrors `listUserTracks` exactly (D-03, SETL-10),
+  /// including its `GET`->`POST` migration and optional [searchQuery] (per
+  /// the `fe72e78` schema update; `bandIdFilter` stays a query parameter).
   Future<List<Map<String, dynamic>>> listUserSetlists({
     String? bandIdFilter,
+    String? searchQuery,
   }) async {
     final response = await _client.send(
-      'GET',
+      'POST',
       '/api/setlist/list',
       queryParameters: bandIdFilter == null ? null : {'bandId': bandIdFilter},
+      body: {'searchQuery': ?searchQuery},
     );
     return (response!['items'] as List).cast<Map<String, dynamic>>();
   }
