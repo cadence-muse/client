@@ -5,6 +5,7 @@ import 'package:cadence/api/token_storage.dart';
 import 'package:cadence/app.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
@@ -105,6 +106,7 @@ void main() {
               }),
             ),
           ),
+          isOnlineProvider.overrideWithValue(true),
         ],
         child: const CadenceApp(),
       ),
