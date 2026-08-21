@@ -6,6 +6,7 @@ import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/features/setlists/setlist_list_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,7 +51,7 @@ void main() {
     });
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('No setlists yet'), findsOneWidget);
     expect(
@@ -58,8 +59,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.widgetWithText(ElevatedButton, 'Add setlist'), findsOneWidget);
-
-    await tester.pumpAndSettle();
   });
 
   testWidgets(
@@ -74,7 +73,7 @@ void main() {
         );
       });
 
-      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
       await tester.pumpAndSettle();
 
       expect(
@@ -115,14 +114,12 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Friday Show'), findsOneWidget);
       expect(find.text('No date set'), findsOneWidget);
       expect(find.text('10m 0s'), findsOneWidget);
       expect(find.byIcon(Icons.timer), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -168,12 +165,10 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('1m 0s'), findsOneWidget);
       expect(find.text('42m 35s'), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -209,13 +204,11 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final nameWidget = tester.widget<Text>(find.text(longName));
       expect(nameWidget.maxLines, 1);
       expect(nameWidget.overflow, TextOverflow.ellipsis);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -252,13 +245,11 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.location_on), findsOneWidget);
       expect(find.text('The Fillmore'), findsOneWidget);
       expect(find.byIcon(Icons.timer), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -293,12 +284,10 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.location_on), findsNothing);
       expect(find.byIcon(Icons.timer), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -338,7 +327,7 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text(eventLocation));
       await tester.pump();
@@ -364,7 +353,7 @@ void main() {
       await tester.pumpWidget(
         wrap(apiClient, cacheService, isOnline: false),
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final offlineFab = tester.widget<FloatingActionButton>(
         find.byType(FloatingActionButton),
@@ -372,18 +361,76 @@ void main() {
       expect(offlineFab.onPressed, isNull);
       expect(offlineFab.tooltip, 'Requires connection');
 
-      await tester.pumpAndSettle();
-
       await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final onlineFab = tester.widget<FloatingActionButton>(
         find.byType(FloatingActionButton),
       );
       expect(onlineFab.onPressed, isNotNull);
       expect(onlineFab.tooltip, 'Add setlist');
+    },
+  );
 
+  testWidgets(
+    'offline with no cache shows OfflineNoCacheView, with no Retry button '
+    '(D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
       await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.text('No cached data'), findsOneWidget);
+      expect(
+        find.text('Connect to the internet to load this'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'offline with cache present renders the cached setlist data (D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandSetlists('b1', [
+        {
+          'id': 's1',
+          'name': 'Cached Setlist',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+        },
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Should Not Fetch',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cached Setlist'), findsOneWidget);
+      expect(find.byType(OfflineNoCacheView), findsNothing);
     },
   );
 }
