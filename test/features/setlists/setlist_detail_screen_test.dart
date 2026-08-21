@@ -7,7 +7,7 @@ import 'package:cadence/features/setlists/edit_setlist_screen.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
-import 'package:cadence/widgets/sync_status_badge.dart';
+import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -579,10 +579,16 @@ void main() {
 
   testWidgets(
     'with isOnlineProvider false, the Edit IconButton is disabled with a '
-    '"Requires connection" tooltip and SyncStatusBadge is present; with it '
-    'true, the Edit IconButton is enabled',
+    '"Requires connection" tooltip; with it true, the Edit IconButton is '
+    'enabled',
     (tester) async {
       final cacheService = CacheService.inMemory();
+      await cacheService.writeSetlistDetail('b1', 's1', {
+        'id': 's1',
+        'name': 'Setlist',
+        'durationSeconds': 0,
+        'tracks': <Map<String, dynamic>>[],
+      });
       final apiClient = buildApiClient((request) async {
         return http.Response(
           jsonEncode({
@@ -603,7 +609,6 @@ void main() {
       );
       expect(offlineEditButton.onPressed, isNull);
       expect(offlineEditButton.tooltip, 'Requires connection');
-      expect(find.byType(SyncStatusBadge), findsOneWidget);
 
       await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
       await tester.pumpAndSettle();
@@ -621,6 +626,20 @@ void main() {
     'Edit does not enter edit mode',
     (tester) async {
       final cacheService = CacheService.inMemory();
+      await cacheService.writeSetlistDetail('b1', 's1', {
+        'id': 's1',
+        'name': 'Setlist',
+        'durationSeconds': 0,
+        'tracks': [
+          {
+            'trackId': 't1',
+            'position': 0,
+            'title': 'Song One',
+            'artist': 'Artist One',
+            'durationSeconds': 200,
+          },
+        ],
+      });
       final apiClient = buildApiClient((request) async {
         return http.Response(
           jsonEncode({
@@ -723,6 +742,12 @@ void main() {
     'with isOnlineProvider false, the Delete ListTile is disabled',
     (tester) async {
       final cacheService = CacheService.inMemory();
+      await cacheService.writeSetlistDetail('b1', 's1', {
+        'id': 's1',
+        'name': 'Setlist',
+        'durationSeconds': 0,
+        'tracks': <Map<String, dynamic>>[],
+      });
       final apiClient = buildApiClient((request) async {
         return http.Response(
           jsonEncode({
@@ -742,6 +767,36 @@ void main() {
         find.widgetWithText(ListTile, 'Delete'),
       );
       expect(deleteTile.enabled, isFalse);
+    },
+  );
+
+  testWidgets(
+    'offline with no cache shows OfflineNoCacheView, with no Retry button '
+    '(D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.text('No cached data'), findsOneWidget);
+      expect(
+        find.text('Connect to the internet to load this'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
     },
   );
 }

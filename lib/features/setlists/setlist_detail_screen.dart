@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/setlists_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import 'add_setlist_tracks_dialog.dart';
 import 'confirm_delete_setlist_dialog.dart';
 import 'edit_setlist_screen.dart';
@@ -181,9 +182,6 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     final setlistAsync = ref.watch(
       setlistDetailDataProvider(widget.bandId, widget.setlistId),
     );
-    final syncedAt = ref.watch(
-      setlistDetailSyncedAtProvider(widget.bandId, widget.setlistId),
-    );
     final isOnline = ref.watch(isOnlineProvider);
     final name = setlistAsync.valueOrNull?['name'] as String?;
     final currentSetlist = setlistAsync.valueOrNull;
@@ -211,19 +209,19 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
         ],
       ),
       body: setlistAsync.when(
-        data: (setlist) => Column(
-          children: [
-            SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(child: _buildContent(context, setlist, isOnline)),
-          ],
-        ),
+        data: (setlist) => _buildContent(context, setlist, isOnline),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _buildError(
-          context,
-          () => ref.invalidate(
-            setlistDetailDataProvider(widget.bandId, widget.setlistId),
-          ),
-        ),
+        error: (error, stackTrace) {
+          if (error is OfflineNoCacheException) {
+            return const OfflineNoCacheView();
+          }
+          return _buildError(
+            context,
+            () => ref.invalidate(
+              setlistDetailDataProvider(widget.bandId, widget.setlistId),
+            ),
+          );
+        },
       ),
     );
   }

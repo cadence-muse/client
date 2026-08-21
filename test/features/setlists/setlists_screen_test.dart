@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
@@ -5,7 +6,10 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/features/setlists/setlists_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
-import 'package:cadence/widgets/sync_status_badge.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/providers/navigation_provider.dart';
+import 'package:cadence/providers/setlists_provider.dart';
+import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,11 +28,22 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient, CacheService cacheService) {
+  // Defaults isOnlineProvider to true so pre-existing tests keep exercising
+  // the online path unless a test explicitly overrides it — real-app
+  // connectivity_plus resolves AsyncLoading/AsyncError to `false` in this
+  // sandboxed test environment with no platform-channel mock, which would
+  // otherwise disable both bandsListDataProvider's and
+  // userSetlistsListDataProvider's online-first fetch by default.
+  Widget wrap(
+    ApiClient apiClient,
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: const MaterialApp(home: SetlistsScreen()),
     );
@@ -38,13 +53,12 @@ void main() {
     'zero bands renders the empty state with no dropdown and no button',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([]);
       final apiClient = buildApiClient((request) async {
         return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('No setlists'), findsOneWidget);
       expect(
@@ -53,8 +67,6 @@ void main() {
       );
       expect(find.byType(DropdownButton<String?>), findsNothing);
       expect(find.byType(ElevatedButton), findsNothing);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -63,29 +75,6 @@ void main() {
     'name title, and tracksAndDuration trailing text',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([
-        {'id': 'b1', 'name': 'Band One'},
-        {'id': 'b2', 'name': 'Band Two'},
-      ]);
-      await cacheService.writeUserSetlists(null, [
-        {
-          'id': 's1',
-          'name': 'Setlist One',
-          'tracksCount': 8,
-          'durationSeconds': 2555,
-          'bandId': 'b1',
-          'bandName': 'Band One',
-        },
-        {
-          'id': 's2',
-          'name': 'Setlist Two',
-          'tracksCount': 1,
-          'durationSeconds': 200,
-          'bandId': 'b2',
-          'bandName': 'Band Two',
-        },
-      ]);
-
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/band/list') {
           return http.Response(
@@ -124,11 +113,7 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      // Two pumps: one for bandsListDataProvider's cache-hit resolution,
-      // one for userSetlistsListDataProvider's — the latter's Expanded
-      // subtree isn't built until the former resolves non-empty.
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Setlist One'), findsOneWidget);
       expect(find.text('Setlist Two'), findsOneWidget);
@@ -136,8 +121,6 @@ void main() {
       expect(find.text('Band Two'), findsWidgets);
       expect(find.text('8 tracks, 42m 35s'), findsOneWidget);
       expect(find.text('1 track, 3m 20s'), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -146,20 +129,6 @@ void main() {
     'query parameter',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([
-        {'id': 'b1', 'name': 'Band One'},
-        {'id': 'b2', 'name': 'Band Two'},
-      ]);
-      await cacheService.writeUserSetlists(null, [
-        {
-          'id': 's1',
-          'name': 'Setlist One',
-          'tracksCount': 1,
-          'durationSeconds': 200,
-          'bandId': 'b1',
-          'bandName': 'Band One',
-        },
-      ]);
 
       String? capturedBandIdFilter;
       var sawFilterRequest = false;
@@ -197,7 +166,6 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
       await tester.pumpAndSettle();
 
       await tester.tap(find.byType(DropdownButton<String?>));
@@ -215,9 +183,6 @@ void main() {
     'try again." + Retry',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([
-        {'id': 'b1', 'name': 'Band One'},
-      ]);
 
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/band/list') {
@@ -252,20 +217,6 @@ void main() {
     'bandId/id fields, not the currently-selected filter',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([
-        {'id': 'b1', 'name': 'Band One'},
-        {'id': 'b2', 'name': 'Band Two'},
-      ]);
-      await cacheService.writeUserSetlists(null, [
-        {
-          'id': 's2',
-          'name': 'Setlist Two',
-          'tracksCount': 1,
-          'durationSeconds': 200,
-          'bandId': 'b2',
-          'bandName': 'Band Two',
-        },
-      ]);
 
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/band/list') {
@@ -309,7 +260,6 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Setlist Two'));
@@ -325,24 +275,9 @@ void main() {
   );
 
   testWidgets(
-    'SyncStatusBadge is present once the global list loads; no '
-    'FloatingActionButton is present (SETL-10 is view-only)',
+    'no FloatingActionButton is present (SETL-10 is view-only)',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([
-        {'id': 'b1', 'name': 'Band One'},
-      ]);
-      await cacheService.writeUserSetlists(null, [
-        {
-          'id': 's1',
-          'name': 'Setlist One',
-          'tracksCount': 1,
-          'durationSeconds': 200,
-          'bandId': 'b1',
-          'bandName': 'Band One',
-        },
-      ]);
-
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/band/list') {
           return http.Response(
@@ -372,13 +307,160 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.byType(SyncStatusBadge), findsOneWidget);
-      expect(find.byType(FloatingActionButton), findsNothing);
-
       await tester.pumpAndSettle();
+
+      expect(find.byType(FloatingActionButton), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'offline with no cache shows OfflineNoCacheView, with no Retry button '
+    '(D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'b1', 'name': 'Band One'},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.text('No cached data'), findsOneWidget);
+      expect(
+        find.text('Connect to the internet to load this'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'switching to the Setlists tab a second time triggers a second '
+    'listUserSetlists() network call (D-01 tab-switch refetch)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      var setlistsCallCount = 0;
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        setlistsCallCount++;
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist One',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+      final initialCallCount = setlistsCallCount;
+      expect(initialCallCount, 1);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SetlistsScreen)),
+      );
+
+      // First selection of the Setlists tab (index 3).
+      container.read(selectedTabIndexProvider.notifier).setIndex(3);
+      await tester.pumpAndSettle();
+      expect(setlistsCallCount, initialCallCount + 1);
+
+      // Switch away, then re-select the Setlists tab a second time.
+      container.read(selectedTabIndexProvider.notifier).setIndex(0);
+      container.read(selectedTabIndexProvider.notifier).setIndex(3);
+      await tester.pumpAndSettle();
+      expect(setlistsCallCount, initialCallCount + 2);
+    },
+  );
+
+  testWidgets(
+    "AppBar's LinearProgressIndicator shows only while refreshing with data "
+    'already present, not once settled (D-08)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      var setlistsCallCount = 0;
+      final refetchGate = Completer<void>();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        setlistsCallCount++;
+        if (setlistsCallCount > 1) {
+          await refetchGate.future;
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist One',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Setlist One'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SetlistsScreen)),
+      );
+      // container.refresh() (unlike invalidate()) synchronously invalidates
+      // and re-reads in one step, matching D-08's "in-flight with data
+      // already present" state deterministically for this assertion.
+      container.refresh(userSetlistsListDataProvider);
+      await tester.pump();
+
+      // D-08: refreshing with data already present keeps old content
+      // visible and shows the subtle indicator instead of the full-screen
+      // spinner.
+      expect(find.text('Setlist One'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+      refetchGate.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(LinearProgressIndicator), findsNothing);
     },
   );
 }

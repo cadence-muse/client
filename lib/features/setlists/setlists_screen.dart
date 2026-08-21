@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
+import '../../providers/navigation_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/setlists_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import 'setlist_detail_screen.dart';
 import 'setlist_formatting.dart';
 
@@ -17,11 +19,30 @@ class SetlistsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // D-01: this tab screen is kept alive by RootScaffold's IndexedStack, so
+    // build() only runs once per app session by default — re-selecting the
+    // Setlists tab must explicitly invalidate the provider to fetch fresh
+    // data rather than silently showing whatever was last in state.
+    ref.listen<int>(selectedTabIndexProvider, (previous, current) {
+      if (current == 3) ref.invalidate(userSetlistsListDataProvider);
+    });
+
     final bands = ref.watch(bandsListDataProvider).valueOrNull ?? const [];
-    final syncedAt = ref.watch(userSetlistsSyncedAtProvider);
+    final setlistsAsync = ref.watch(userSetlistsListDataProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Setlists')),
+      appBar: AppBar(
+        title: const Text('Setlists'),
+        // D-08: a subtle in-flight indicator while a refetch is running
+        // with data already present, instead of blanking the screen; D-09's
+        // cold-start spinner is the `loading:` branch below, unaffected.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: setlistsAsync.isLoading && setlistsAsync.hasValue
+              ? const LinearProgressIndicator()
+              : const SizedBox.shrink(),
+        ),
+      ),
       // Per the Copywriting Contract's "Empty state button | Not shown", the
       // zero-bands case skips the filter dropdown entirely and shows the
       // empty state directly — no "View bands" affordance like Track's.
@@ -30,7 +51,9 @@ class SetlistsScreen extends ConsumerWidget {
           : Column(
               children: [
                 _buildFilterDropdown(context, ref, bands),
-                Expanded(child: _buildSetlistsBody(context, ref, syncedAt)),
+                Expanded(
+                  child: _buildSetlistsBody(context, ref, setlistsAsync),
+                ),
               ],
             ),
     );
@@ -68,22 +91,20 @@ class SetlistsScreen extends ConsumerWidget {
   Widget _buildSetlistsBody(
     BuildContext context,
     WidgetRef ref,
-    DateTime? syncedAt,
+    AsyncValue<List<Map<String, dynamic>>> setlistsAsync,
   ) {
-    final setlistsAsync = ref.watch(userSetlistsListDataProvider);
-
     return setlistsAsync.when(
-      data: (setlists) => Column(
-        children: [
-          SyncStatusBadge(syncedAt: syncedAt),
-          Expanded(child: _buildContent(context, setlists)),
-        ],
-      ),
+      data: (setlists) => _buildContent(context, setlists),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => _buildError(
-        context,
-        () => ref.invalidate(userSetlistsListDataProvider),
-      ),
+      error: (error, stackTrace) {
+        if (error is OfflineNoCacheException) {
+          return const OfflineNoCacheView();
+        }
+        return _buildError(
+          context,
+          () => ref.invalidate(userSetlistsListDataProvider),
+        );
+      },
     );
   }
 

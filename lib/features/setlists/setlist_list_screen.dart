@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/connectivity_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/setlists_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import 'create_setlist_screen.dart';
 import 'setlist_detail_screen.dart';
 import 'setlist_formatting.dart';
@@ -16,23 +17,22 @@ class SetlistListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final setlistsAsync = ref.watch(setlistListDataProvider(bandId));
-    final syncedAt = ref.watch(setlistListSyncedAtProvider(bandId));
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Setlists')),
       body: setlistsAsync.when(
-        data: (setlists) => Column(
-          children: [
-            SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(child: _buildContent(context, setlists)),
-          ],
-        ),
+        data: (setlists) => _buildContent(context, setlists),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _buildError(
-          context,
-          () => ref.invalidate(setlistListDataProvider(bandId)),
-        ),
+        error: (error, stackTrace) {
+          if (error is OfflineNoCacheException) {
+            return const OfflineNoCacheView();
+          }
+          return _buildError(
+            context,
+            () => ref.invalidate(setlistListDataProvider(bandId)),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: isOnline
