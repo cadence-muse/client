@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/connectivity_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/tracks_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import 'confirm_delete_track_dialog.dart';
 import 'edit_track_screen.dart';
 import 'track_formatting.dart';
@@ -21,7 +22,6 @@ class TrackDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final trackAsync = ref.watch(trackDetailDataProvider(bandId, trackId));
-    final syncedAt = ref.watch(trackDetailSyncedAtProvider(bandId, trackId));
     final isOnline = ref.watch(isOnlineProvider);
     final title = trackAsync.valueOrNull?['title'] as String?;
     final currentTrack = trackAsync.valueOrNull;
@@ -49,17 +49,17 @@ class TrackDetailScreen extends ConsumerWidget {
         ],
       ),
       body: trackAsync.when(
-        data: (track) => Column(
-          children: [
-            SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(child: _buildContent(context, track, isOnline)),
-          ],
-        ),
+        data: (track) => _buildContent(context, track, isOnline),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _buildError(
-          context,
-          () => ref.invalidate(trackDetailDataProvider(bandId, trackId)),
-        ),
+        error: (error, stackTrace) {
+          if (error is OfflineNoCacheException) {
+            return const OfflineNoCacheView();
+          }
+          return _buildError(
+            context,
+            () => ref.invalidate(trackDetailDataProvider(bandId, trackId)),
+          );
+        },
       ),
     );
   }
@@ -113,9 +113,9 @@ class TrackDetailScreen extends ConsumerWidget {
         if (notes != null && notes.isNotEmpty) ...[
           const SizedBox(height: 16),
           GestureDetector(
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(notes)),
-            ),
+            onTap: () => ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(notes))),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
