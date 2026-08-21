@@ -768,6 +768,9 @@ components:
           type: string
         membersCount:
           type: integer
+        ownerId:
+          type: string
+          format: uuid
       required:
         - id
         - name
@@ -886,6 +889,8 @@ components:
           type: string
         durationSeconds:
           type: integer
+        key:
+          type: string
       required:
         - id
         - title
@@ -1028,6 +1033,8 @@ components:
         eventDate:
           type: string
           format: date
+        eventLocation:
+          type: string
       required:
         - id
         - name
