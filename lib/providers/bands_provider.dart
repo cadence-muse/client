@@ -152,20 +152,24 @@ class BandsListData extends _$BandsListData {
   }
 }
 
-/// Cache-first `GET /api/band/{bandId}` data, keyed per band (this project's
-/// first family provider — [build]'s extra `bandId` parameter is
-/// auto-detected by riverpod_generator as the family key).
+/// Online-first `GET /api/band/{bandId}` data (D-01/D-03/D-06), keyed per
+/// band (this project's first family provider — [build]'s extra `bandId`
+/// parameter is auto-detected by riverpod_generator as the family key).
 ///
-/// Mirrors [BandsListData]'s cache-first shape: cache hit returns
-/// immediately with a silent background refresh; cache miss fetches inline
-/// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
-/// band details" + Retry error state).
+/// Mirrors [BandsListData]'s online-first shape exactly: when online, a
+/// fresh fetch is always attempted first (a populated cache is not
+/// consulted on the happy path); a failed online fetch falls back to cache
+/// silently (D-03); offline serves cache directly or throws
+/// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+/// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+/// provider already rebuilds fresh on every `Navigator.push` into
+/// `BandDetailScreen`.
 @riverpod
 class BandDetailData extends _$BandDetailData {
   Future<void>? _inFlightRefresh;
 
   /// Monotonic counter bumped by every local-mutation method
-  /// ([updateName]). [_refresh]/[_doRefresh] capture this before their
+  /// ([updateName]). [refresh]/[_doRefresh] capture this before their
   /// network await and discard a fetched result if it changed while the
   /// fetch was in flight — otherwise a slower background refresh could
   /// silently revert a local edit that landed first (WR-02).
@@ -173,16 +177,35 @@ class BandDetailData extends _$BandDetailData {
 
   @override
   Future<Map<String, dynamic>> build(String bandId) async {
+    final isOnline = ref.watch(isOnlineProvider);
     final cache = ref.watch(cacheServiceProvider);
+
+    if (isOnline) {
+      try {
+        return await _fetchAndCache(bandId);
+      } catch (_) {
+        // D-03: online but the fetch itself failed — fall back to cache
+        // silently, the same as a true-offline cache hit.
+        final cached = await cache.readBandDetail(bandId);
+        if (cached != null) {
+          ref
+              .read(bandDetailSyncedAtProvider(bandId).notifier)
+              .set(await cache.readBandDetailSyncedAt(bandId));
+          return cached;
+        }
+        rethrow;
+      }
+    }
+
     final cached = await cache.readBandDetail(bandId);
     if (cached != null) {
       ref
           .read(bandDetailSyncedAtProvider(bandId).notifier)
           .set(await cache.readBandDetailSyncedAt(bandId));
-      unawaited(_refresh(bandId));
       return cached;
     }
-    return _fetchAndCache(bandId);
+    // D-06: offline with nothing ever cached.
+    throw const OfflineNoCacheException();
   }
 
   Future<Map<String, dynamic>> _fetchAndCache(String bandId) async {
@@ -190,21 +213,6 @@ class BandDetailData extends _$BandDetailData {
     await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
     ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
     return band;
-  }
-
-  /// Silent background refresh fired from [build] on a cache hit. Never
-  /// surfaces an error — a failed background refresh just leaves the
-  /// currently-cached data displayed.
-  Future<void> _refresh(String bandId) async {
-    final capturedVersion = _version;
-    try {
-      final fresh = await _fetchAndCache(bandId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
-      }
-    } catch (_) {
-      // Keep showing cached data.
-    }
   }
 
   /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).

@@ -5,6 +5,8 @@ import 'package:cadence/api/api_exception.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/providers/offline_no_cache_exception.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -24,44 +26,80 @@ void main() {
 
   ProviderContainer buildContainer(
     ApiClient apiClient,
-    CacheService cacheService,
-  ) {
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     final container = ProviderContainer(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
     );
     addTearDown(container.dispose);
     return container;
   }
 
+  Map<String, dynamic> band({String name = 'Band'}) => {
+    'id': 'b1',
+    'name': name,
+    'ownerId': 'u1',
+    'members': [
+      {'id': 'u1', 'username': 'alice'},
+    ],
+    'inviteCode': 'abc-123',
+  };
+
   test(
-    'cache-hit returns cached detail map immediately with a silent background refresh',
+    'online + no cache: build() fetches directly from the API and returns '
+    'the fetched detail map',
     () async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBandDetail('b1', {
-        'id': 'b1',
-        'name': 'Cached Band',
-        'ownerId': 'u1',
-        'members': [
-          {'id': 'u1', 'username': 'alice'},
-        ],
-        'inviteCode': 'abc-123',
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response(jsonEncode(band(name: 'Fresh Band')), 200);
       });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      final data = await container.read(bandDetailDataProvider('b1').future);
+
+      expect(data['name'], 'Fresh Band');
+      expect(callCount, 1);
+    },
+  );
+
+  test(
+    'online + stale cache present: build() returns the FRESH network data, '
+    'not the cache',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'Stale Cached'));
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode(band(name: 'Fresh Network')), 200);
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      final data = await container.read(bandDetailDataProvider('b1').future);
+
+      expect(data['name'], 'Fresh Network');
+    },
+  );
+
+  test(
+    'online + fetch throws + cache present: build() returns the cached '
+    'detail map silently, no AsyncError surfaced (D-03)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
 
       final apiClient = buildApiClient((request) async {
         return http.Response(
-          jsonEncode({
-            'id': 'b1',
-            'name': 'Cached Band',
-            'ownerId': 'u1',
-            'members': [
-              {'id': 'u1', 'username': 'alice'},
-            ],
-            'inviteCode': 'abc-123',
-          }),
-          200,
+          jsonEncode({'code': 'server_error', 'message': 'boom'}),
+          500,
         );
       });
 
@@ -69,86 +107,108 @@ void main() {
 
       final data = await container.read(bandDetailDataProvider('b1').future);
 
-      expect(data['id'], 'b1');
       expect(data['name'], 'Cached Band');
+      expect(container.read(bandDetailDataProvider('b1')).hasError, isFalse);
     },
   );
 
-  test('no cache and network failure yields AsyncError', () async {
-    final cacheService = CacheService.inMemory();
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({'code': 'network_error', 'message': 'offline'}),
-        500,
+  test(
+    'online + fetch throws + no cache: build() rethrows as an AsyncError',
+    () async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'network_error', 'message': 'offline'}),
+          500,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      await expectLater(
+        container.read(bandDetailDataProvider('b1').future),
+        throwsA(isA<ApiException>()),
       );
-    });
+      expect(container.read(bandDetailDataProvider('b1')).hasError, isTrue);
+    },
+  );
 
-    final container = buildContainer(apiClient, cacheService);
+  test(
+    'offline + cache present: build() returns cached data with zero network '
+    'calls',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
 
-    await expectLater(
-      container.read(bandDetailDataProvider('b1').future),
-      throwsA(isA<ApiException>()),
-    );
-    expect(container.read(bandDetailDataProvider('b1')).hasError, isTrue);
-  });
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response(
+          jsonEncode(band(name: 'Should Not Be Fetched')),
+          200,
+        );
+      });
+
+      final container = buildContainer(
+        apiClient,
+        cacheService,
+        isOnline: false,
+      );
+
+      final data = await container.read(bandDetailDataProvider('b1').future);
+
+      expect(data['name'], 'Cached Band');
+      expect(callCount, 0);
+    },
+  );
+
+  test(
+    'offline + no cache: build() throws OfflineNoCacheException (D-06)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode(band()), 200);
+      });
+
+      final container = buildContainer(
+        apiClient,
+        cacheService,
+        isOnline: false,
+      );
+
+      await expectLater(
+        container.read(bandDetailDataProvider('b1').future),
+        throwsA(isA<OfflineNoCacheException>()),
+      );
+    },
+  );
 
   test(
     'updateName() merges the new name into cached state without an '
     'additional network fetch',
     () async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBandDetail('b1', {
-        'id': 'b1',
-        'name': 'Old Name',
-        'ownerId': 'u1',
-        'members': [
-          {'id': 'u1', 'username': 'alice'},
-        ],
-        'inviteCode': 'abc-123',
-      });
+      await cacheService.writeBandDetail('b1', band(name: 'Old Name'));
 
       var getBandCallCount = 0;
       final apiClient = buildApiClient((request) async {
         getBandCallCount++;
-        return http.Response(
-          jsonEncode({
-            'id': 'b1',
-            'name': 'Old Name',
-            'ownerId': 'u1',
-            'members': [
-              {'id': 'u1', 'username': 'alice'},
-            ],
-            'inviteCode': 'abc-123',
-          }),
-          200,
-        );
+        return http.Response(jsonEncode(band(name: 'Old Name')), 200);
       });
 
       final container = buildContainer(apiClient, cacheService);
 
       // bandDetailDataProvider is autoDispose (plain @riverpod); a bare
       // container.read() doesn't hold a subscription, so the provider would
-      // get disposed and silently rebuilt (resetting state to AsyncLoading
-      // then a fresh cache-hit) between reads. Keep it alive for the
-      // duration of this test the same way a watching widget would.
+      // get disposed and silently rebuilt between reads. Keep it alive for
+      // the duration of this test the same way a watching widget would.
       final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
       addTearDown(sub.close);
 
-      // Establish the provider (cache-hit path — data returns from cache
-      // immediately, but a silent background refresh is also fired per
-      // build()'s cache-first contract; let that settle before recording a
-      // baseline, so this test isolates updateName()'s own call count
-      // rather than racing that unrelated background refresh).
       final initial = await container.read(
         bandDetailDataProvider('b1').future,
       );
       expect(initial['name'], 'Old Name');
-      // The unawaited background refresh chains several awaits (HTTP send +
-      // response decode) before it settles; a real (not just microtask-tick)
-      // delay is needed so it reliably completes before the baseline below
-      // is captured — otherwise it can race past updateName() and clobber
-      // the merged name back to the stale network value.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
       final baselineCallCount = getBandCallCount;
 
       await container
@@ -161,8 +221,7 @@ void main() {
       expect(updated?['id'], 'b1');
       expect(updated?['inviteCode'], 'abc-123');
       // updateName() itself triggered no additional GET /api/band/{bandId}
-      // fetch beyond whatever had already happened via the background
-      // refresh above.
+      // fetch beyond build()'s own online-first fetch.
       expect(getBandCallCount, baselineCallCount);
 
       // The merged name is also persisted to the local cache.
@@ -173,31 +232,23 @@ void main() {
 
   test(
     'a local updateName() mutation is not clobbered by a slower in-flight '
-    'background refresh (WR-02)',
+    'refresh() (WR-02)',
     () async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBandDetail('b1', {
-        'id': 'b1',
-        'name': 'Cached Band',
-        'ownerId': 'u1',
-        'members': [
-          {'id': 'u1', 'username': 'alice'},
-        ],
-        'inviteCode': 'abc-123',
-      });
+      await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
 
+      var callCount = 0;
       final apiClient = buildApiClient((request) async {
+        callCount++;
+        if (callCount == 1) {
+          // build()'s own online-first fetch — resolves immediately.
+          return http.Response(jsonEncode(band(name: 'Cached Band')), 200);
+        }
+        // The explicit refresh() below — delayed so updateName() below can
+        // land first.
         await Future<void>.delayed(const Duration(milliseconds: 100));
         return http.Response(
-          jsonEncode({
-            'id': 'b1',
-            'name': 'Stale Network Name',
-            'ownerId': 'u1',
-            'members': [
-              {'id': 'u1', 'username': 'alice'},
-            ],
-            'inviteCode': 'abc-123',
-          }),
+          jsonEncode(band(name: 'Stale Network Name')),
           200,
         );
       });
@@ -206,16 +257,14 @@ void main() {
       final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
       addTearDown(sub.close);
 
-      // build()'s cache hit fires an unawaited background refresh whose
-      // (delayed) response hasn't arrived yet.
       await container.read(bandDetailDataProvider('b1').future);
 
-      await container
-          .read(bandDetailDataProvider('b1').notifier)
-          .updateName('Locally Renamed');
+      final notifier = container.read(bandDetailDataProvider('b1').notifier);
+      final refreshFuture = notifier.refresh();
 
-      // Let the delayed background refresh's response resolve.
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await notifier.updateName('Locally Renamed');
+
+      await refreshFuture;
 
       final finalState = container
           .read(bandDetailDataProvider('b1'))
@@ -225,33 +274,19 @@ void main() {
   );
 
   test(
-    'a background refresh with no intervening local mutation still updates '
-    'state to the fetched data',
+    'a refresh() with no intervening local mutation still updates state to '
+    'the fetched data',
     () async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBandDetail('b1', {
-        'id': 'b1',
-        'name': 'Cached Band',
-        'ownerId': 'u1',
-        'members': [
-          {'id': 'u1', 'username': 'alice'},
-        ],
-        'inviteCode': 'abc-123',
-      });
+      await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
 
+      var callCount = 0;
       final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'id': 'b1',
-            'name': 'Fresh Network Name',
-            'ownerId': 'u1',
-            'members': [
-              {'id': 'u1', 'username': 'alice'},
-            ],
-            'inviteCode': 'abc-123',
-          }),
-          200,
-        );
+        callCount++;
+        if (callCount == 1) {
+          return http.Response(jsonEncode(band(name: 'Cached Band')), 200);
+        }
+        return http.Response(jsonEncode(band(name: 'Fresh Network')), 200);
       });
 
       final container = buildContainer(apiClient, cacheService);
@@ -259,47 +294,25 @@ void main() {
       addTearDown(sub.close);
 
       await container.read(bandDetailDataProvider('b1').future);
-      // Let the unawaited background refresh settle.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await container.read(bandDetailDataProvider('b1').notifier).refresh();
 
       final finalState = container
           .read(bandDetailDataProvider('b1'))
           .valueOrNull;
-      expect(finalState?['name'], 'Fresh Network Name');
+      expect(finalState?['name'], 'Fresh Network');
     },
   );
 
   test(
-    'on a cache hit, bandDetailSyncedAtProvider(bandId) resolves to the '
-    "pre-seeded cache's syncedAt before the background refresh settles, "
-    'then updates to a later value once the background refresh completes',
+    'online build() sets bandDetailSyncedAtProvider(bandId) from the fresh '
+    'fetch, later than the stale seeded cache value',
     () async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBandDetail('b1', {
-        'id': 'b1',
-        'name': 'Cached Band',
-        'ownerId': 'u1',
-        'members': [
-          {'id': 'u1', 'username': 'alice'},
-        ],
-        'inviteCode': 'abc-123',
-      });
+      await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
       final seededSyncedAt = await cacheService.readBandDetailSyncedAt('b1');
 
       final apiClient = buildApiClient((request) async {
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        return http.Response(
-          jsonEncode({
-            'id': 'b1',
-            'name': 'Fresh Band',
-            'ownerId': 'u1',
-            'members': [
-              {'id': 'u1', 'username': 'alice'},
-            ],
-            'inviteCode': 'abc-123',
-          }),
-          200,
-        );
+        return http.Response(jsonEncode(band(name: 'Fresh Band')), 200);
       });
 
       final container = buildContainer(apiClient, cacheService);
@@ -313,19 +326,9 @@ void main() {
 
       await container.read(bandDetailDataProvider('b1').future);
 
-      expect(
-        container.read(bandDetailSyncedAtProvider('b1')),
-        seededSyncedAt,
-      );
-
-      // Drain the background refresh fired from build()'s cache hit.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-
-      final refreshedSyncedAt = container.read(
-        bandDetailSyncedAtProvider('b1'),
-      );
-      expect(refreshedSyncedAt, isNotNull);
-      expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+      final syncedAt = container.read(bandDetailSyncedAtProvider('b1'));
+      expect(syncedAt, isNotNull);
+      expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
     },
   );
 }

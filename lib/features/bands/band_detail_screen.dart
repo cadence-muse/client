@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/profile_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import '../setlists/setlist_list_screen.dart';
 import '../tracks/track_list_screen.dart';
 import 'band_avatar.dart';
@@ -46,7 +47,6 @@ class BandDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bandAsync = ref.watch(bandDetailDataProvider(bandId));
     final profileAsync = ref.watch(profileDataProvider);
-    final syncedAt = ref.watch(bandDetailSyncedAtProvider(bandId));
     final isOnline = ref.watch(isOnlineProvider);
     final bandName = bandAsync.valueOrNull?['name'] as String?;
 
@@ -74,19 +74,17 @@ class BandDetailScreen extends ConsumerWidget {
         ],
       ),
       body: bandAsync.when(
-        data: (band) => Column(
-          children: [
-            SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(
-              child: _buildContent(context, band, profileAsync, isOnline),
-            ),
-          ],
-        ),
+        data: (band) => _buildContent(context, band, profileAsync, isOnline),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _buildError(
-          context,
-          () => ref.invalidate(bandDetailDataProvider(bandId)),
-        ),
+        error: (error, stackTrace) {
+          if (error is OfflineNoCacheException) {
+            return const OfflineNoCacheView();
+          }
+          return _buildError(
+            context,
+            () => ref.invalidate(bandDetailDataProvider(bandId)),
+          );
+        },
       ),
     );
   }
