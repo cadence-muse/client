@@ -111,7 +111,22 @@ Plans:
   3. When offline, a persistent warning banner is visible on every cached screen indicating the shown data may be out of date.
   4. The old per-item staleness badge (10min/30min "synced X ago" tiers) no longer appears anywhere in the app.
 
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+**Wave 1**
+
+- [ ] 07-01-PLAN.md — Tracer: Bands tab + band detail online-first, shared OfflineNoCacheException/OfflineNoCacheView, banner reword
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 07-02-PLAN.md — Home + Profile tabs online-first
+- [ ] 07-03-PLAN.md — Tracks (list/detail/cross-band) online-first
+- [ ] 07-04-PLAN.md — Setlists (list/detail/cross-band) online-first
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 07-05-PLAN.md — Delete SyncStatusBadge; rewrite aggregate OFFL-07/OFFL-08 regression guard
+
 **UI hint**: yes
 
 ### Phase 8: Band Owner Tools
@@ -171,7 +186,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 4. Setlists | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 5. Offline Trust & Connectivity UX | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 6. Foundation Info & Settings Polish | v1.1 | 4/4 | Complete    | 2026-08-21 |
-| 7. Cache Behavior Flip — Online-First | v1.1 | 0/TBD | Not started | - |
+| 7. Cache Behavior Flip — Online-First | v1.1 | 0/5 | Not started | - |
 | 8. Band Owner Tools | v1.1 | 0/TBD | Not started | - |
 | 9. Homepage Quick Actions | v1.1 | 0/TBD | Not started | - |
 | 10. Searchable Setlist Track Picker | v1.1 | 0/TBD | Not started | - |
