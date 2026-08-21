@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
+import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/features/setlists/setlist_list_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
@@ -118,14 +119,15 @@ void main() {
 
       expect(find.text('Friday Show'), findsOneWidget);
       expect(find.text('No date set'), findsOneWidget);
-      expect(find.text('3 tracks, 10m 0s'), findsOneWidget);
+      expect(find.text('10m 0s'), findsOneWidget);
+      expect(find.byIcon(Icons.timer), findsOneWidget);
 
       await tester.pumpAndSettle();
     },
   );
 
   testWidgets(
-    'track-count pluralization: 1 track is singular, 8 tracks is plural',
+    'setlist list shows duration text regardless of track count',
     (tester) async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBandSetlists('b1', [
@@ -168,8 +170,8 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pump();
 
-      expect(find.text('1 track, 1m 0s'), findsOneWidget);
-      expect(find.text('8 tracks, 42m 35s'), findsOneWidget);
+      expect(find.text('1m 0s'), findsOneWidget);
+      expect(find.text('42m 35s'), findsOneWidget);
 
       await tester.pumpAndSettle();
     },
@@ -212,6 +214,137 @@ void main() {
       final nameWidget = tester.widget<Text>(find.text(longName));
       expect(nameWidget.maxLines, 1);
       expect(nameWidget.overflow, TextOverflow.ellipsis);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'a setlist with eventLocation shows the location icon+value alongside '
+    'the duration icon',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandSetlists('b1', [
+        {
+          'id': 's1',
+          'name': "Tonight's Show",
+          'tracksCount': 5,
+          'durationSeconds': 2730,
+          'eventLocation': 'The Fillmore',
+        },
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': "Tonight's Show",
+                'tracksCount': 5,
+                'durationSeconds': 2730,
+                'eventLocation': 'The Fillmore',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.location_on), findsOneWidget);
+      expect(find.text('The Fillmore'), findsOneWidget);
+      expect(find.byIcon(Icons.timer), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'a setlist with no eventLocation omits the location icon but still '
+    'shows duration',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandSetlists('b1', [
+        {
+          'id': 's1',
+          'name': 'Friday Show',
+          'tracksCount': 3,
+          'durationSeconds': 600,
+        },
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Friday Show',
+                'tracksCount': 3,
+                'durationSeconds': 600,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      expect(find.byIcon(Icons.location_on), findsNothing);
+      expect(find.byIcon(Icons.timer), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'tapping a long location text shows a SnackBar with the full text and '
+    'does not navigate to SetlistDetailScreen',
+    (tester) async {
+      final eventLocation =
+          'A' * 30 +
+          ' Very Long Venue Name That Exceeds The Trailing Column Width';
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandSetlists('b1', [
+        {
+          'id': 's1',
+          'name': 'Friday Show',
+          'tracksCount': 3,
+          'durationSeconds': 600,
+          'eventLocation': eventLocation,
+        },
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Friday Show',
+                'tracksCount': 3,
+                'durationSeconds': 600,
+                'eventLocation': eventLocation,
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pump();
+
+      await tester.tap(find.text(eventLocation));
+      await tester.pump();
+
+      expect(find.text(eventLocation), findsWidgets);
+      expect(find.byType(SetlistDetailScreen), findsNothing);
 
       await tester.pumpAndSettle();
     },
