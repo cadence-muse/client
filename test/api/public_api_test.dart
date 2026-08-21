@@ -70,4 +70,138 @@ void main() {
       );
     });
   });
+
+  group('listUserTracks', () {
+    test(
+      'calling with bandIdFilter sends POST to /api/track/list with '
+      'bandId as a query parameter',
+      () async {
+        String? capturedMethod;
+        String? capturedPath;
+        String? capturedBandId;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedMethod = request.method;
+            capturedPath = request.url.path;
+            capturedBandId = request.url.queryParameters['bandId'];
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserTracks(bandIdFilter: 'b1');
+
+        expect(capturedMethod, 'POST');
+        expect(capturedPath, '/api/track/list');
+        expect(capturedBandId, 'b1');
+      },
+    );
+
+    test(
+      'calling with no bandIdFilter and no searchQuery sends POST with no '
+      'bandId query parameter',
+      () async {
+        String? capturedMethod;
+        var hasBandId = false;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedMethod = request.method;
+            hasBandId = request.url.queryParameters.containsKey('bandId');
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserTracks();
+
+        expect(capturedMethod, 'POST');
+        expect(hasBandId, isFalse);
+      },
+    );
+
+    test(
+      'calling with searchQuery sends a JSON body {searchQuery: value}',
+      () async {
+        Map<String, dynamic>? capturedBody;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserTracks(searchQuery: 'wonderwall');
+
+        expect(capturedBody, {'searchQuery': 'wonderwall'});
+      },
+    );
+  });
+
+  group('listUserSetlists', () {
+    test(
+      'calling with bandIdFilter sends POST to /api/setlist/list with '
+      'bandId as a query parameter',
+      () async {
+        String? capturedMethod;
+        String? capturedPath;
+        String? capturedBandId;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedMethod = request.method;
+            capturedPath = request.url.path;
+            capturedBandId = request.url.queryParameters['bandId'];
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserSetlists(bandIdFilter: 'b1');
+
+        expect(capturedMethod, 'POST');
+        expect(capturedPath, '/api/setlist/list');
+        expect(capturedBandId, 'b1');
+      },
+    );
+
+    test(
+      'calling with no bandIdFilter and no searchQuery sends POST with no '
+      'bandId query parameter',
+      () async {
+        String? capturedMethod;
+        var hasBandId = false;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedMethod = request.method;
+            hasBandId = request.url.queryParameters.containsKey('bandId');
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserSetlists();
+
+        expect(capturedMethod, 'POST');
+        expect(hasBandId, isFalse);
+      },
+    );
+
+    test(
+      'calling with searchQuery sends a JSON body {searchQuery: value}',
+      () async {
+        Map<String, dynamic>? capturedBody;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserSetlists(searchQuery: 'wonderwall');
+
+        expect(capturedBody, {'searchQuery': 'wonderwall'});
+      },
+    );
+  });
 }
