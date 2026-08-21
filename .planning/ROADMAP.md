@@ -24,7 +24,7 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
 
 **Milestone Goal:** Catch the app up to the fe72e78 schema update, flip offline cache to online-first, polish info-display UI, and add search to the setlist song picker.
 
-- [ ] **Phase 6: Foundation Info & Settings Polish** - Password change, band member count/role display, and metadata icons on Track/Setlist screens
+- [x] **Phase 6: Foundation Info & Settings Polish** - Password change, band member count/role display, and metadata icons on Track/Setlist screens (completed 2026-08-21)
 - [ ] **Phase 7: Cache Behavior Flip — Online-First** - Online always fetches fresh; offline serves cache with a persistent warning banner; staleness-tier badge system removed
 - [ ] **Phase 8: Band Owner Tools** - Owner can rotate the invite code and transfer band ownership
 - [ ] **Phase 9: Homepage Quick Actions** - Add band/song/setlist shortcuts from the Homepage, with a band-picker dialog for song/setlist
@@ -159,7 +159,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 3. Tracks | v1.0 | 4/4 | Complete | 2026-08-16 |
 | 4. Setlists | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 5. Offline Trust & Connectivity UX | v1.0 | 5/5 | Complete | 2026-08-17 |
-| 6. Foundation Info & Settings Polish | v1.1 | 4/4 | In Progress|  |
+| 6. Foundation Info & Settings Polish | v1.1 | 4/4 | Complete    | 2026-08-21 |
 | 7. Cache Behavior Flip — Online-First | v1.1 | 0/TBD | Not started | - |
 | 8. Band Owner Tools | v1.1 | 0/TBD | Not started | - |
 | 9. Homepage Quick Actions | v1.1 | 0/TBD | Not started | - |
