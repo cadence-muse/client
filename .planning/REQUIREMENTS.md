@@ -19,8 +19,8 @@ Requirements for the v1.1 UI Improvements milestone. Each maps to a roadmap phas
 
 ### Home
 
-- [ ] **HOME-01**: User can start "Add band" from a Homepage quick action, opening the band-creation screen directly
-- [ ] **HOME-02**: User can start "Add song" or "Add setlist" from Homepage quick actions, picking a band via a picker dialog before opening the respective per-band create screen
+- [x] **HOME-01**: User can start "Add band" from a Homepage quick action, opening the band-creation screen directly
+- [x] **HOME-02**: User can start "Add song" or "Add setlist" from Homepage quick actions, picking a band via a picker dialog before opening the respective per-band create screen
 
 ### Offline Cache
 
@@ -61,8 +61,8 @@ None yet.
 | OFFL-08 | Phase 7 | Complete |
 | BAND-11 | Phase 8 | Complete |
 | BAND-12 | Phase 8 | Complete |
-| HOME-01 | Phase 9 | Pending |
-| HOME-02 | Phase 9 | Pending |
+| HOME-01 | Phase 9 | Complete |
+| HOME-02 | Phase 9 | Complete |
 | SETL-12 | Phase 10 | Pending |
 
 **Coverage:**
