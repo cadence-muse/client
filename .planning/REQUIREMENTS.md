@@ -24,8 +24,8 @@ Requirements for the v1.1 UI Improvements milestone. Each maps to a roadmap phas
 
 ### Offline Cache
 
-- [ ] **OFFL-07**: When online, every cached screen always fetches fresh data from the server (no cache-first serve)
-- [ ] **OFFL-08**: When offline, screens serve last-fetched cache data with a persistent warning banner; existing `SyncStatusBadge`/staleness-tier system (10min/30min) is removed entirely
+- [x] **OFFL-07**: When online, every cached screen always fetches fresh data from the server (no cache-first serve)
+- [x] **OFFL-08**: When offline, screens serve last-fetched cache data with a persistent warning banner; existing `SyncStatusBadge`/staleness-tier system (10min/30min) is removed entirely
 
 ### Tracks
 
@@ -57,8 +57,8 @@ None yet.
 | BAND-10 | Phase 6 | Complete |
 | TRACK-07 | Phase 6 | Complete |
 | SETL-11 | Phase 6 | Complete |
-| OFFL-07 | Phase 7 | Pending |
-| OFFL-08 | Phase 7 | Pending |
+| OFFL-07 | Phase 7 | Complete |
+| OFFL-08 | Phase 7 | Complete |
 | BAND-11 | Phase 8 | Pending |
 | BAND-12 | Phase 8 | Pending |
 | HOME-01 | Phase 9 | Pending |
