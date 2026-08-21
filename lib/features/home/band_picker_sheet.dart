@@ -31,8 +31,8 @@ Future<void> showBandPickerSheet(
         builder: (context, ref, _) {
           final bandsAsync = ref.watch(bandsListDataProvider);
           return bandsAsync.when(
-            data: (bands) => Column(
-              mainAxisSize: MainAxisSize.min,
+            data: (bands) => ListView(
+              shrinkWrap: true,
               children: [
                 for (final band in bands)
                   ListTile(
