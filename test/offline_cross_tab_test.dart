@@ -64,7 +64,7 @@ class _FakeSecureStorage extends FlutterSecureStoragePlatform
 }
 
 void main() {
-  const bannerText = "You're offline — showing cached data";
+  const bannerText = 'Showing cached data — may be out of date';
   const tabLabels = ['Home', 'Bands', 'Tracks', 'Setlists', 'Profile'];
 
   /// Mirrors `test/widget_test.dart`'s `MockClient` handler shape, extended

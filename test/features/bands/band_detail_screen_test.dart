@@ -9,7 +9,7 @@ import 'package:cadence/features/bands/band_detail_screen.dart';
 import 'package:cadence/features/bands/edit_band_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
-import 'package:cadence/widgets/sync_status_badge.dart';
+import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -132,15 +132,15 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      // Online-first: build() fetches from the network before rendering
+      // data, so a single frame no longer guarantees it has landed.
+      await tester.pumpAndSettle();
 
       expect(find.text('The Testers'), findsWidgets);
       expect(find.byType(BandAvatar), findsOneWidget);
       expect(find.text('alice'), findsOneWidget);
       expect(find.text('abc-123-def'), findsOneWidget);
       expect(find.widgetWithText(TextButton, 'Copy'), findsOneWidget);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -175,7 +175,7 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(TextButton, 'Copy'));
       await tester.pump();
@@ -187,46 +187,24 @@ void main() {
     },
   );
 
-  testWidgets('cached data present renders immediately with no spinner', (
-    tester,
-  ) async {
-    final cacheService = CacheService.inMemory();
-    await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
-
-    final apiClient = buildApiClient((request) async {
-      return http.Response(jsonEncode(band(name: 'Cached Band')), 200);
-    });
-
-    await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pump();
-
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('Cached Band'), findsWidgets);
-
-    await tester.pumpAndSettle();
-  });
-
   testWidgets(
-    'background refresh silently replaces displayed data with no spinner',
+    'online build() fetches fresh data and renders it, with no spinner '
+    'once settled',
     (tester) async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBandDetail('b1', band(name: 'Old Name'));
+      await cacheService.writeBandDetail('b1', band(name: 'Stale Cached'));
 
       final apiClient = buildApiClient((request) async {
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        return http.Response(jsonEncode(band(name: 'New Name')), 200);
+        return http.Response(jsonEncode(band(name: 'Fresh Network')), 200);
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
-
-      expect(find.text('Old Name'), findsWidgets);
-      expect(find.byType(CircularProgressIndicator), findsNothing);
-
       await tester.pumpAndSettle();
 
-      expect(find.text('New Name'), findsWidgets);
+      // Online-first: the fresh network fetch wins over the stale cache.
       expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Fresh Network'), findsWidgets);
+      expect(find.text('Stale Cached'), findsNothing);
     },
   );
 
@@ -241,11 +219,9 @@ void main() {
     });
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('No members'), findsOneWidget);
-
-    await tester.pumpAndSettle();
   });
 
   testWidgets(
@@ -283,7 +259,7 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       final headingFinder = find.descendant(
         of: find.byType(ListView),
@@ -292,8 +268,6 @@ void main() {
       final textWidget = tester.widget<Text>(headingFinder);
       expect(textWidget.maxLines, 1);
       expect(textWidget.overflow, TextOverflow.ellipsis);
-
-      await tester.pumpAndSettle();
     },
   );
 
@@ -312,7 +286,7 @@ void main() {
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Old Name'), findsWidgets);
 
@@ -334,22 +308,48 @@ void main() {
     },
   );
 
-  testWidgets('SyncStatusBadge is present once the band detail loads', (
-    tester,
-  ) async {
-    final cacheService = CacheService.inMemory();
-    await cacheService.writeBandDetail('b1', band());
-    final apiClient = buildApiClient((request) async {
-      return http.Response(jsonEncode(band()), 200);
-    });
+  testWidgets(
+    'offline with no cache shows OfflineNoCacheView, with no Retry button '
+    '(D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode(band()), 200);
+      });
 
-    await tester.pumpWidget(wrap(apiClient, cacheService));
-    await tester.pump();
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(SyncStatusBadge), findsOneWidget);
+      expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      expect(find.text('No cached data'), findsOneWidget);
+      expect(
+        find.text('Connect to the internet to load this'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+    },
+  );
 
-    await tester.pumpAndSettle();
-  });
+  testWidgets(
+    'offline with cache present renders the cached band data (D-06)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode(band(name: 'Should Not Fetch')), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cached Band'), findsWidgets);
+      expect(find.byType(OfflineNoCacheView), findsNothing);
+    },
+  );
 
   testWidgets(
     'Edit icon is disabled while offline and enabled while online',

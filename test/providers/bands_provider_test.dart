@@ -5,6 +5,8 @@ import 'package:cadence/api/api_exception.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
+import 'package:cadence/providers/connectivity_provider.dart';
+import 'package:cadence/providers/offline_no_cache_exception.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -24,12 +26,14 @@ void main() {
 
   ProviderContainer buildContainer(
     ApiClient apiClient,
-    CacheService cacheService,
-  ) {
+    CacheService cacheService, {
+    bool isOnline = true,
+  }) {
     final container = ProviderContainer(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
+        isOnlineProvider.overrideWithValue(isOnline),
       ],
     );
     addTearDown(container.dispose);
@@ -37,18 +41,17 @@ void main() {
   }
 
   test(
-    'cache-hit returns cached data immediately with a silent background refresh',
+    'online + no cache: build() fetches directly from the API and returns '
+    'the fetched list',
     () async {
       final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([
-        {'id': 'a', 'name': 'Cached Band'},
-      ]);
-
+      var callCount = 0;
       final apiClient = buildApiClient((request) async {
+        callCount++;
         return http.Response(
           jsonEncode({
             'items': [
-              {'id': 'a', 'name': 'Cached Band'},
+              {'id': 'a', 'name': 'Fresh Band'},
             ],
           }),
           200,
@@ -60,28 +63,148 @@ void main() {
       final data = await container.read(bandsListDataProvider.future);
 
       expect(data, [
-        {'id': 'a', 'name': 'Cached Band'},
+        {'id': 'a', 'name': 'Fresh Band'},
+      ]);
+      expect(callCount, 1);
+    },
+  );
+
+  test(
+    'online + stale cache present: build() returns the FRESH network data, '
+    'not the cache (online-first ignores a populated cache on the happy '
+    'path, not just on a cache miss)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'Stale Cached Band'},
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'Fresh Network Band'},
+            ],
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      final data = await container.read(bandsListDataProvider.future);
+
+      expect(data, [
+        {'id': 'a', 'name': 'Fresh Network Band'},
       ]);
     },
   );
 
-  test('no cache and network failure yields AsyncError', () async {
-    final cacheService = CacheService.inMemory();
-    final apiClient = buildApiClient((request) async {
-      return http.Response(
-        jsonEncode({'code': 'network_error', 'message': 'offline'}),
-        500,
+  test(
+    'online + fetch throws + cache present: build() returns the cached list '
+    'silently, no AsyncError surfaced (D-03)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'Cached Band'},
+      ]);
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'server_error', 'message': 'boom'}),
+          500,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      final data = await container.read(bandsListDataProvider.future);
+
+      expect(data, [
+        {'id': 'a', 'name': 'Cached Band'},
+      ]);
+      expect(container.read(bandsListDataProvider).hasError, isFalse);
+    },
+  );
+
+  test(
+    'online + fetch throws + no cache: build() rethrows as an AsyncError',
+    () async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'network_error', 'message': 'offline'}),
+          500,
+        );
+      });
+
+      final container = buildContainer(apiClient, cacheService);
+
+      await expectLater(
+        container.read(bandsListDataProvider.future),
+        throwsA(isA<ApiException>()),
       );
-    });
+      expect(container.read(bandsListDataProvider).hasError, isTrue);
+    },
+  );
 
-    final container = buildContainer(apiClient, cacheService);
+  test(
+    'offline + cache present: build() returns cached data with zero network '
+    'calls',
+    () async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'Cached Band'},
+      ]);
 
-    await expectLater(
-      container.read(bandsListDataProvider.future),
-      throwsA(isA<ApiException>()),
-    );
-    expect(container.read(bandsListDataProvider).hasError, isTrue);
-  });
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'Should Not Be Fetched'},
+            ],
+          }),
+          200,
+        );
+      });
+
+      final container = buildContainer(
+        apiClient,
+        cacheService,
+        isOnline: false,
+      );
+
+      final data = await container.read(bandsListDataProvider.future);
+
+      expect(data, [
+        {'id': 'a', 'name': 'Cached Band'},
+      ]);
+      expect(callCount, 0);
+    },
+  );
+
+  test(
+    'offline + no cache: build() throws OfflineNoCacheException (D-06)',
+    () async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      final container = buildContainer(
+        apiClient,
+        cacheService,
+        isOnline: false,
+      );
+
+      await expectLater(
+        container.read(bandsListDataProvider.future),
+        throwsA(isA<OfflineNoCacheException>()),
+      );
+    },
+  );
 
   test('two rapid refresh() calls trigger exactly one network call', () async {
     final cacheService = CacheService.inMemory();
@@ -107,10 +230,9 @@ void main() {
     // Keep the (autoDispose) provider alive across the gaps below, mirroring
     // the persistent subscription a widget's ref.watch would hold.
     container.listen(bandsListDataProvider, (_, _) {});
-    // Drain the initial background refresh fired from build()'s cache hit
-    // before measuring refresh()'s own dedup behavior.
+    // Drain build()'s own online-first fetch before measuring refresh()'s
+    // own dedup behavior.
     await container.read(bandsListDataProvider.future);
-    await Future<void>.delayed(const Duration(milliseconds: 100));
     callCount = 0;
 
     final notifier = container.read(bandsListDataProvider.notifier);
@@ -123,14 +245,29 @@ void main() {
 
   test(
     'a local setBands() mutation is not clobbered by a slower in-flight '
-    'background refresh (WR-02)',
+    'refresh() (WR-02)',
     () async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([
         {'id': 'a', 'name': 'Cached Band'},
       ]);
 
+      var callCount = 0;
       final apiClient = buildApiClient((request) async {
+        callCount++;
+        if (callCount == 1) {
+          // build()'s own online-first fetch — resolves immediately.
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'a', 'name': 'Cached Band'},
+              ],
+            }),
+            200,
+          );
+        }
+        // The explicit refresh() below — delayed so setBands() below can
+        // land first.
         await Future<void>.delayed(const Duration(milliseconds: 100));
         return http.Response(
           jsonEncode({
@@ -145,18 +282,16 @@ void main() {
       final container = buildContainer(apiClient, cacheService);
       container.listen(bandsListDataProvider, (_, _) {});
 
-      // build()'s cache hit fires an unawaited background refresh whose
-      // (delayed) response hasn't arrived yet.
       await container.read(bandsListDataProvider.future);
 
-      container
-          .read(bandsListDataProvider.notifier)
-          .setBands([
-            {'id': 'a', 'name': 'Locally Renamed Band'},
-          ]);
+      final notifier = container.read(bandsListDataProvider.notifier);
+      final refreshFuture = notifier.refresh();
 
-      // Let the delayed background refresh's response resolve.
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      notifier.setBands([
+        {'id': 'a', 'name': 'Locally Renamed Band'},
+      ]);
+
+      await refreshFuture;
 
       final finalState = container.read(bandsListDataProvider).valueOrNull;
       expect(finalState, [
@@ -166,15 +301,27 @@ void main() {
   );
 
   test(
-    'a background refresh with no intervening local mutation still updates '
-    'state to the fetched data',
+    'a refresh() with no intervening local mutation still updates state to '
+    'the fetched data',
     () async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([
         {'id': 'a', 'name': 'Cached Band'},
       ]);
 
+      var callCount = 0;
       final apiClient = buildApiClient((request) async {
+        callCount++;
+        if (callCount == 1) {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'a', 'name': 'Cached Band'},
+              ],
+            }),
+            200,
+          );
+        }
         return http.Response(
           jsonEncode({
             'items': [
@@ -189,8 +336,7 @@ void main() {
       container.listen(bandsListDataProvider, (_, _) {});
 
       await container.read(bandsListDataProvider.future);
-      // Let the unawaited background refresh settle.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await container.read(bandsListDataProvider.notifier).refresh();
 
       final finalState = container.read(bandsListDataProvider).valueOrNull;
       expect(finalState, [
@@ -223,8 +369,6 @@ void main() {
       final container = buildContainer(apiClient, cacheService);
       container.listen(bandsListDataProvider, (_, _) {});
       await container.read(bandsListDataProvider.future);
-      // Let the background refresh settle so it doesn't race renameBand().
-      await Future<void>.delayed(const Duration(milliseconds: 50));
 
       container.read(bandsListDataProvider.notifier).renameBand('a', 'New');
 
@@ -243,9 +387,8 @@ void main() {
   );
 
   test(
-    'on a cache hit, bandsListSyncedAtProvider resolves to the pre-seeded '
-    "cache's syncedAt before the background refresh settles, then updates "
-    'to a later value once the background refresh completes',
+    'online build() sets bandsListSyncedAtProvider from the fresh fetch, '
+    'later than the stale seeded cache value',
     () async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([
@@ -254,7 +397,6 @@ void main() {
       final seededSyncedAt = await cacheService.readBandsSyncedAt();
 
       final apiClient = buildApiClient((request) async {
-        await Future<void>.delayed(const Duration(milliseconds: 50));
         return http.Response(
           jsonEncode({
             'items': [
@@ -271,14 +413,9 @@ void main() {
 
       await container.read(bandsListDataProvider.future);
 
-      expect(container.read(bandsListSyncedAtProvider), seededSyncedAt);
-
-      // Drain the background refresh fired from build()'s cache hit.
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-
-      final refreshedSyncedAt = container.read(bandsListSyncedAtProvider);
-      expect(refreshedSyncedAt, isNotNull);
-      expect(refreshedSyncedAt!.isAfter(seededSyncedAt!), isTrue);
+      final syncedAt = container.read(bandsListSyncedAtProvider);
+      expect(syncedAt, isNotNull);
+      expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
     },
   );
 }

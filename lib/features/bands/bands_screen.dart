@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../providers/navigation_provider.dart';
+import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/profile_provider.dart';
-import '../../widgets/sync_status_badge.dart';
+import '../../widgets/offline_no_cache_view.dart';
 import 'band_avatar.dart';
 import 'band_detail_screen.dart';
 import 'create_band_screen.dart';
@@ -17,23 +19,43 @@ class BandsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // D-01: this tab screen is kept alive by RootScaffold's IndexedStack, so
+    // build() only runs once per app session by default — re-selecting the
+    // Bands tab must explicitly invalidate the provider to fetch fresh data
+    // rather than silently showing whatever was last in state.
+    ref.listen<int>(selectedTabIndexProvider, (previous, current) {
+      if (current == 1) ref.invalidate(bandsListDataProvider);
+    });
+
     final bandsAsync = ref.watch(bandsListDataProvider);
-    final syncedAt = ref.watch(bandsListSyncedAtProvider);
     final isOnline = ref.watch(isOnlineProvider);
     final profileAsync = ref.watch(profileDataProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bands')),
-      body: bandsAsync.when(
-        data: (bands) => Column(
-          children: [
-            SyncStatusBadge(syncedAt: syncedAt),
-            Expanded(child: _buildContent(context, bands, profileAsync)),
-          ],
+      appBar: AppBar(
+        title: const Text('Bands'),
+        // D-08: a subtle in-flight indicator while a refetch is running with
+        // data already present, instead of blanking the screen; D-09's
+        // cold-start spinner is the `loading:` branch below, unaffected.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: bandsAsync.isLoading && bandsAsync.hasValue
+              ? const LinearProgressIndicator()
+              : const SizedBox.shrink(),
         ),
+      ),
+      body: bandsAsync.when(
+        data: (bands) => _buildContent(context, bands, profileAsync),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            _buildError(context, () => ref.invalidate(bandsListDataProvider)),
+        error: (error, stackTrace) {
+          if (error is OfflineNoCacheException) {
+            return const OfflineNoCacheView();
+          }
+          return _buildError(
+            context,
+            () => ref.invalidate(bandsListDataProvider),
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: isOnline ? () => _showCreateJoinMenu(context, ref) : null,
