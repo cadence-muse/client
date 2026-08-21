@@ -1,6 +1,6 @@
 # External Integrations
 
-**Analysis Date:** 2026-08-13
+**Analysis Date:** 2026-08-21
 
 ## APIs & External Services
 
@@ -15,10 +15,11 @@
 ## Data Storage
 
 **Databases:**
-- Type: Remote via API only
-- Connection: HTTP REST calls to backend
-- Client: `ApiClient` in `lib/api/api_client.dart`
-- No local database (SQLite, etc.) currently implemented
+- Remote: HTTP REST calls to backend via `ApiClient` in `lib/api/api_client.dart`
+- Local: Hive NoSQL database (2.2.3) for offline read-only caching
+  - Purpose: Cache band/track/setlist data for offline access
+  - Integration: `hive_flutter` (1.1.0) handles paths and app directory
+  - No offline mutation (read-only cache in v1)
 
 **Secure Token Storage:**
 - Service: flutter_secure_storage (native platform secure storage)
@@ -30,9 +31,10 @@
 - Type: Local filesystem only
 - Assets location: `assets/images/` (app icons, logos)
 
-**Caching:**
-- Type: None currently implemented
-- Note: Session token cached in memory during app runtime
+**Caching & Offline:**
+- Type: Local Hive database + network connectivity detection
+- Network detection: `connectivity_plus` (7.3.1) detects online/offline state
+- Logic: Session token cached in memory; Hive backs up fetched data for offline read access
 
 ## Authentication & Identity
 
@@ -67,12 +69,18 @@
 ## CI/CD & Deployment
 
 **Hosting:**
-- Multiple targets: iOS App Store, Google Play Store, Web
+- Multiple targets: iOS App Store, Google Play Store, Web (Docker)
 - Platform-specific builds via Flutter CLI
 
 **CI Pipeline:**
-- Type: None configured
-- Manual build via `flutter build apk`, `flutter build ios`, `flutter build web`
+- Type: GitHub Actions (automated on push/PR to main, on release tags)
+- Validation workflow: `.github/workflows/validate.yml`
+- Release workflow: `.github/workflows/release.yml`
+
+**Container Registry:**
+- GitHub Container Registry (GHCR)
+- Push on version tags: `v*.*.*`
+- Image URI: `ghcr.io/${{ github.repository }}`
 
 ## Environment Configuration
 
@@ -106,4 +114,4 @@
 
 ---
 
-*Integration audit: 2026-08-13*
+*Integration audit: 2026-08-21*

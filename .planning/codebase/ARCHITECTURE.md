@@ -1,7 +1,7 @@
-<!-- refreshed: 2026-08-16 -->
+<!-- refreshed: 2026-08-21 -->
 # Architecture
 
-**Analysis Date:** 2026-08-16
+**Analysis Date:** 2026-08-21
 
 ## System Overview
 
@@ -298,16 +298,21 @@ Runs on: `ubuntu-latest`
 5. **Setup buildx** (`docker/setup-buildx-action@v3`) — Multi-platform builder
 6. **Install dependencies** (`flutter pub get`)
 7. **Build web** (`flutter build web`)
-   - Target: Web static files
+   - Target: Web static files in `build/web/`
    - Dart define: `API_BASE_URL=` (empty; expects env override at runtime)
    - Artifacts: `build/web/` directory
 8. **Build and push Docker image** (`docker/build-push-action@v6`)
-   - Context: Repository root (uses `Dockerfile`)
+   - Context: Repository root
+   - Dockerfile: `Dockerfile` (serves web build via nginx alpine)
    - Push: `true` (to GHCR)
    - Tags: Semver + latest
    - Cache: GitHub Actions cache (speed up rebuilds)
 
-**Result:** Docker image available at `ghcr.io/[owner]/cadence-client:v[version]` and `:latest`
+**Docker deployment:**
+- Image: `ghcr.io/[owner]/cadence-client:v[version]` and `:latest`
+- Runtime: nginx alpine container
+- Entry: Serves static files from `build/web/` directory on port 80
+- Config: Dockerfile at repo root copies `build/web` → `/usr/share/nginx/html`
 
 **Job 2: Android Release (`release-apk`)**
 
@@ -365,4 +370,4 @@ Runs on: `ubuntu-latest`
 
 ---
 
-*Architecture analysis: 2026-08-16*
+*Architecture analysis: 2026-08-21*
