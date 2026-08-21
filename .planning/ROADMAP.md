@@ -88,6 +88,17 @@ Plans:
 
 **UI hint**: yes
 
+### Phase 06.1: API contract catch-up: migrate RemoveSetlistTrack to RemoveSetlistTracks batch endpoint and ListUserTracks/ListUserSetlists from GET to POST with searchQuery body, per fe72e78 schema update (INSERTED)
+
+**Goal:** `public_api.dart`'s `removeSetlistTrack`, `listUserTracks`, and `listUserSetlists` methods match the current `publicapi.yml` wire contract (post `fe72e78`), so setlist track removal and the cross-band track/setlist lists succeed against the live API instead of failing on stale GET/DELETE-path assumptions.
+**Requirements**: None — inserted urgent catch-up phase, no `REQUIREMENTS.md` IDs apply (see STATE.md's "Roadmap Evolution" entry).
+**Depends on:** Phase 6
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 06.1-01-PLAN.md — Migrate removeSetlistTrack (batch endpoint), listUserTracks and listUserSetlists (GET→POST) to match the fe72e78 schema update
+
 ### Phase 7: Cache Behavior Flip — Online-First
 
 **Goal**: Users always see the freshest server data when online, and get an honest, simple signal when viewing cached data offline — replacing the staleness-tier badge system entirely.
