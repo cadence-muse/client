@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../widgets/sync_status_badge.dart';
 import '../settings/settings_screen.dart';
+import 'change_password_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -74,6 +75,18 @@ class ProfileScreen extends ConsumerWidget {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            );
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.lock_outline),
+          title: const Text('Change password'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const ChangePasswordScreen(),
+              ),
             );
           },
         ),

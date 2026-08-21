@@ -9,7 +9,7 @@ Requirements for the v1.1 UI Improvements milestone. Each maps to a roadmap phas
 
 ### Users
 
-- [ ] **USER-03**: User can change their account password from the Profile screen
+- [x] **USER-03**: User can change their account password from the Profile screen
 
 ### Bands
 
@@ -53,7 +53,7 @@ None yet.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| USER-03 | Phase 6 | Pending |
+| USER-03 | Phase 6 | Complete |
 | BAND-10 | Phase 6 | Pending |
 | TRACK-07 | Phase 6 | Pending |
 | SETL-11 | Phase 6 | Pending |

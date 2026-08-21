@@ -48,6 +48,25 @@ class PublicApi {
     await _client.send('POST', '/api/logout');
   }
 
+  /// Changes the current user's password (`ChangeUserPassword` — `POST
+  /// /api/me/password`). [currentPassword] is a client-first D-01 addition to
+  /// `ChangeUserPasswordRequestBody` — the field is always sent, but backend
+  /// validation of it may land separately. On a wrong [currentPassword], the
+  /// server responds `400` with `ErrorCode.invalid_input` (never `401` —
+  /// see `publicapi.yml`'s `BadRequest` response for this operation);
+  /// callers should branch on `statusCode == 400 && code == 'invalid_input'`
+  /// rather than checking for `401`.
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _client.send(
+      'POST',
+      '/api/me/password',
+      body: {'currentPassword': currentPassword, 'password': newPassword},
+    );
+  }
+
   /// Returns the current user's bands (`BandListItem` — id + name only).
   Future<List<Map<String, dynamic>>> listBands() async {
     final response = await _client.send('GET', '/api/band/list');
@@ -89,7 +108,10 @@ class PublicApi {
   /// updated `Band` back — callers merge their own submitted [name] into any
   /// local cache/state instead of trusting an echoed response (see
   /// `edit_band_screen.dart`).
-  Future<void> updateBand({required String bandId, required String name}) async {
+  Future<void> updateBand({
+    required String bandId,
+    required String name,
+  }) async {
     await _client.send('PUT', '/api/band/$bandId', body: {'name': name});
   }
 
