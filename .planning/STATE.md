@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Improvements
-current_phase: 07
-current_phase_name: Cache Behavior Flip — Online-First
-status: executing
-stopped_at: Phase 07 plans 01-04 merged (wave 1-2 complete), 07-05 (wave 3) remaining
-last_updated: "2026-08-21T16:11:05.000Z"
+current_phase: 08
+current_phase_name: Band Owner Tools
+status: ready_to_plan
+stopped_at: Phase 07 complete — all 5 plans merged, full test suite green (371/371), stale test debt fixed via quick task 260821-qx7
+last_updated: "2026-08-21T16:40:00.000Z"
 last_activity: 2026-08-21
-last_activity_desc: Resumed session — merged 3 worktree branches (07-02, 07-03, 07-04) left unmerged by a dead parallel-execute session, cleaned stale lock/sentinel/orphan worktree
-state_head: 1035c246b59a062cae0c07ec487c0bad4900b5d8
+last_activity_desc: Executed 07-05 (SyncStatusBadge removal), merged, then fixed 3 stale offline-disabled-tile tests broken by the online-first flip via quick task 260821-qx7 — full suite green
+state_head: 8c583355eaf08e6b08044cff9ed306942a3cd828
 progress:
   total_phases: 11
-  completed_phases: 2
-  total_plans: 10
-  completed_plans: 8
-  percent: 33
+  completed_phases: 8
+  total_plans: 33
+  completed_plans: 33
+  percent: 73
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-20)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 07 — Cache Behavior Flip — Online-First
+**Current focus:** Phase 08 — Band Owner Tools
 
 ## Current Position
 
-Phase: 07 (Cache Behavior Flip — Online-First) — EXECUTING
-Plan: 4 of 5 done (07-01, 07-02, 07-03, 07-04 merged; 07-05 wave-3 sync-badge plan remaining)
-Status: Executing Phase 07
-Last activity: 2026-08-21 — merged 3 stranded worktree branches, ready for 07-05
+Phase: 07 (Cache Behavior Flip — Online-First) — COMPLETE (5/5 plans merged)
+Next: Phase 08 (Band Owner Tools) — not yet planned
+Status: Ready to plan Phase 08
+Last activity: 2026-08-21 — Phase 07 closed out; full suite green (371/371)
 
-Progress: [████░░░░░░] 33%
+Progress: [███████░░░] 73% (8/11 phases)
 
 ## Performance Metrics
 
@@ -100,7 +100,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 7 (Cache Behavior Flip) and Phase 8 (Band Owner Tools) are flagged in `.planning/research/SUMMARY.md` for deeper phase-research before planning (`_version` guard interaction, offline banner accessibility, multi-step destructive-action UX, profile-invalidation-on-transfer) — consider `/gsd-plan-phase --research-phase` for both.
+- Phase 8 (Band Owner Tools) is flagged in `.planning/research/SUMMARY.md` for deeper phase-research before planning (`_version` guard interaction, multi-step destructive-action UX, profile-invalidation-on-transfer) — consider `/gsd-plan-phase --research-phase`.
 - Phase 10 (Searchable Setlist Track Picker): backend does not implement the new `searchQuery` field this milestone — client extends `publicapi.yml` now, but the picker must degrade gracefully (e.g. client-side filtering) until backend support ships.
 
 ### Quick Tasks Completed
@@ -108,6 +108,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260819-v0u | add /api/logout call when user logs out on profile screen | 2026-08-19 | 6a55de3 | [260819-v0u-add-api-logout-call-when-user-logs-out-o](./quick/260819-v0u-add-api-logout-call-when-user-logs-out-o/) |
+| 260821-qx7 | fix 3 stale tests asserting retired cache-first offline-disabled-tiles pattern | 2026-08-21 | 8c58335 | [260821-qx7-fix-3-stale-tests-in-phase-07-that-asser](./quick/260821-qx7-fix-3-stale-tests-in-phase-07-that-asser/) |
 
 ### Roadmap Evolution
 
@@ -123,11 +124,11 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-21T16:11:05.000Z
-Stopped at: 07-01..07-04 merged to main, 07-05 (wave 3, sync badge) ready to execute
-Resume file: none — proceed to /gsd-execute-phase 07
+Last session: 2026-08-21T16:40:00.000Z
+Stopped at: Phase 07 fully complete and clean (all 5 plans merged, full suite green, no known gaps)
+Resume file: none — proceed to /gsd-plan-phase 8
 
 ## Operator Next Steps
 
-- Run `/gsd-execute-phase 07` to run 07-05 (sync_status_badge wiring, OFFL-07/OFFL-08) — last plan in phase 07
-- Note: 4 pre-existing test failures unrelated to this session's merges (band_detail_screen_test.dart x2, widget_test.dart bottom-nav) plus 1 expected-red offline_trust_regression_test guard that 07-05 will fix
+- Run `/gsd-plan-phase 8` (Band Owner Tools) — consider `--research-phase` per the flagged concerns above
+- Phase 07 closed clean: flutter analyze 0 issues, flutter test 371/371 passing

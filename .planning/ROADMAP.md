@@ -25,7 +25,7 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
 **Milestone Goal:** Catch the app up to the fe72e78 schema update, flip offline cache to online-first, polish info-display UI, and add search to the setlist song picker.
 
 - [x] **Phase 6: Foundation Info & Settings Polish** - Password change, band member count/role display, and metadata icons on Track/Setlist screens (completed 2026-08-21)
-- [ ] **Phase 7: Cache Behavior Flip — Online-First** - Online always fetches fresh; offline serves cache with a persistent warning banner; staleness-tier badge system removed
+- [x] **Phase 7: Cache Behavior Flip — Online-First** - Online always fetches fresh; offline serves cache with a persistent warning banner; staleness-tier badge system removed (completed 2026-08-21)
 - [ ] **Phase 8: Band Owner Tools** - Owner can rotate the invite code and transfer band ownership
 - [ ] **Phase 9: Homepage Quick Actions** - Add band/song/setlist shortcuts from the Homepage, with a band-picker dialog for song/setlist
 - [ ] **Phase 10: Searchable Setlist Track Picker** - Setlist track picker replaces the flat dialog with a searchable list; `ListBandTracks` spec gains a `searchQuery` field
