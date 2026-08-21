@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/profile/change_password_screen.dart';
+import 'package:cadence/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -90,7 +91,10 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
 
-    expect(find.widgetWithText(TextFormField, 'Current password'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextFormField, 'Current password'),
+      findsOneWidget,
+    );
     expect(find.widgetWithText(TextFormField, 'New password'), findsOneWidget);
     expect(
       find.widgetWithText(TextFormField, 'Confirm new password'),
@@ -126,9 +130,7 @@ void main() {
     expect(calls, 0);
   });
 
-  testWidgets('new password under 8 chars shows length error', (
-    tester,
-  ) async {
+  testWidgets('new password under 8 chars shows length error', (tester) async {
     final cacheService = CacheService.inMemory();
     final apiClient = buildApiClient((request) async {
       return http.Response('', 200);
@@ -218,34 +220,30 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Current password is incorrect'), findsOneWidget);
-      expect(
-        find.text('current password does not match'),
-        findsNothing,
-      );
+      expect(find.text('current password does not match'), findsNothing);
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
     },
   );
 
-  testWidgets(
-    '500 server_error shows the raw e.message verbatim',
-    (tester) async {
-      final cacheService = CacheService.inMemory();
-      final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({'code': 'server_error', 'message': 'Something broke'}),
-          500,
-        );
-      });
+  testWidgets('500 server_error shows the raw e.message verbatim', (
+    tester,
+  ) async {
+    final cacheService = CacheService.inMemory();
+    final apiClient = buildApiClient((request) async {
+      return http.Response(
+        jsonEncode({'code': 'server_error', 'message': 'Something broke'}),
+        500,
+      );
+    });
 
-      await tester.pumpWidget(wrap(apiClient, cacheService));
-      await fillForm(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await fillForm(tester);
+    await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Something broke'), findsOneWidget);
-    },
-  );
+    expect(find.text('Something broke'), findsOneWidget);
+  });
 
   testWidgets(
     'while in flight, submit button is disabled and shows a spinner',

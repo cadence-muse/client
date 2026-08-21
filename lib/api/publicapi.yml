@@ -727,10 +727,14 @@ components:
     ChangeUserPasswordRequestBody:
       type: object
       properties:
+        currentPassword:
+          type: string
+          format: password
         password:
           type: string
           format: password
       required:
+        - currentPassword
         - password
 
     HomepageData:
