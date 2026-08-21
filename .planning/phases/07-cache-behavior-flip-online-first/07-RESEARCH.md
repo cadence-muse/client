@@ -729,25 +729,29 @@ class BandsScreen extends ConsumerWidget {
 
 **If any table above assumed knowledge, the planner must add a `checkpoint:human-verify` task before implementation to confirm.**
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Tab-Switch Listener Implementation (D-01):**
    - Should the listener be inside each provider's `build()` (centralizes logic), or in each screen widget (more declarative)?
    - What if a provider is watched by multiple screens (e.g., `TrackListData` watched by both a tab screen and a detail screen)? Invalidating from the tab screen might cause the detail screen to refetch unnecessarily.
    - **Recommendation:** Start with Option B (screen-level listener) to keep each screen's lifecycle independent. If that causes performance issues (too many invalidations), refactor to Option A (provider-level).
+   - **RESOLVED:** Option B (screen-level listener via `ref.listen(selectedTabIndexProvider, ...)`) — implemented across all plans (07-01 through 07-04).
 
 2. **Subtle Refresh Indicator Widget (D-08):**
    - Should the indicator be a `LinearProgressIndicator` in the AppBar's `bottom` property, a small spinner in the top-right of AppBar, or a full-screen overlay?
    - **Recommendation:** `LinearProgressIndicator` in `AppBar.bottom` (shown conditionally when `bandsAsync.isLoading && bandsAsync.hasValue`) is simplest and most consistent with Material design.
+   - **RESOLVED:** `LinearProgressIndicator` in `AppBar.bottom`, shown when loading with an existing value — implemented on tab screens; pushed-route screens (autoDispose, no prior value on mount) don't need it in practice.
 
 3. **OfflineNoCacheException Handling:**
    - Should this be a custom exception class in the provider file, or moved to a shared exceptions module?
    - How should detail screens handle this (they use autoDispose, so they rebuild on every route push — they shouldn't hit the no-cache state as often)?
    - **Recommendation:** Define in the provider file for now; move to a shared module if more phases need it.
+   - **RESOLVED:** Defined once in `lib/providers/` (plan 07-01) as a shared artifact reused by all subsequent plans, rather than per-file — the cross-plan reuse made a shared location the simpler default.
 
 4. **SyncStatusBadge Removal Order:**
    - Should all 10 removal sites be handled in a single task, or split across 5 tasks (one per screen)?
    - **Recommendation:** Single task with a checklist of 10 files to ensure no file is missed; low risk of conflict since each screen's usage is local.
+   - **RESOLVED:** Single cleanup plan (07-05, wave 3, after all screen rewrites land) deletes `SyncStatusBadge` + its test and rewrites the aggregate offline-trust regression guard.
 
 ## Environment Availability
 
