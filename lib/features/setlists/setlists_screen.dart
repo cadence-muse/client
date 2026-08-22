@@ -65,11 +65,23 @@ class SetlistsScreen extends ConsumerWidget {
     List<Map<String, dynamic>> bands,
   ) {
     final selectedBandId = ref.watch(selectedSetlistBandIdFilterProvider);
+    // CR-02: `selectedSetlistBandIdFilterProvider` is never cleared when
+    // the filtered band disappears from `bands` (left/deleted/ownership
+    // changed elsewhere). Fall back to `null` ("All bands") whenever the
+    // persisted filter no longer matches an available band, so
+    // `DropdownButton`'s "exactly one item with this value" assertion
+    // never fires.
+    final availableBandIds = {
+      for (final band in bands) band['id'] as String,
+    };
+    final effectiveBandId = availableBandIds.contains(selectedBandId)
+        ? selectedBandId
+        : null;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: DropdownButton<String?>(
         isExpanded: true,
-        value: selectedBandId,
+        value: effectiveBandId,
         items: [
           const DropdownMenuItem<String?>(
             value: null,

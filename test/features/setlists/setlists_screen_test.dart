@@ -6,6 +6,7 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/features/setlists/setlists_screen.dart';
 import 'package:cadence/providers/auth_provider.dart';
+import 'package:cadence/providers/bands_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/navigation_provider.dart';
 import 'package:cadence/providers/setlists_provider.dart';
@@ -461,6 +462,86 @@ void main() {
       refetchGate.complete();
       await tester.pumpAndSettle();
       expect(find.byType(LinearProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'CR-02 regression: filtered band disappearing from the bands list '
+    'falls back to "All bands" instead of crashing the DropdownButton',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      var bandsIncludeB1 = true;
+
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                if (bandsIncludeB1) {'id': 'b1', 'name': 'Band One'},
+                {'id': 'b2', 'name': 'Band Two'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist One',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(DropdownButton<String?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Band One').last);
+      await tester.pumpAndSettle();
+
+      // Band One is now the persisted filter selection.
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(SetlistsScreen)),
+      );
+      expect(container.read(selectedSetlistBandIdFilterProvider), 'b1');
+      expect(
+        tester
+            .widget<DropdownButton<String?>>(
+              find.byType(DropdownButton<String?>),
+            )
+            .value,
+        'b1',
+      );
+
+      bandsIncludeB1 = false;
+      container.invalidate(bandsListDataProvider);
+      // pumpAndSettle rethrows any exception raised during the rebuild —
+      // without the CR-02 fix, DropdownButton's "exactly one item with
+      // this value" assertion fires here.
+      await tester.pumpAndSettle();
+
+      // The persisted filter selection is untouched (still 'b1'), but the
+      // rendered dropdown clamps to `null` ("All bands") since 'b1' no
+      // longer matches any item.
+      expect(container.read(selectedSetlistBandIdFilterProvider), 'b1');
+      expect(
+        tester
+            .widget<DropdownButton<String?>>(
+              find.byType(DropdownButton<String?>),
+            )
+            .value,
+        isNull,
+      );
     },
   );
 }
