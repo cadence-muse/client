@@ -96,8 +96,12 @@ class BandsListData extends _$BandsListData {
 
   Future<List<Map<String, dynamic>>> _fetchAndCache() async {
     final bands = await ref.read(publicApiProvider).listBands();
-    await ref.read(cacheServiceProvider).writeBands(bands);
-    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+    final wrote = await ref.read(cacheServiceProvider).writeBands(bands);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+    }
     return bands;
   }
 
@@ -122,8 +126,10 @@ class BandsListData extends _$BandsListData {
         // `state` is already correct.
         return;
       }
-      await ref.read(cacheServiceProvider).writeBands(bands);
-      ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+      final wrote = await ref.read(cacheServiceProvider).writeBands(bands);
+      if (wrote) {
+        ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+      }
       state = AsyncData(bands);
     } catch (e, st) {
       if (state.value == null) {
@@ -156,8 +162,14 @@ class BandsListData extends _$BandsListData {
     ];
     _version++;
     state = AsyncData(updated);
-    unawaited(ref.read(cacheServiceProvider).writeBands(updated));
-    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+    unawaited(
+      ref.read(cacheServiceProvider).writeBands(updated).then((wrote) {
+        // WR-02: only claim "just synced" if the write actually succeeded.
+        if (wrote) {
+          ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+        }
+      }),
+    );
   }
 
   /// Patches [bandId]'s `ownerId` in-place in the cached list after a
@@ -180,8 +192,14 @@ class BandsListData extends _$BandsListData {
     ];
     _version++;
     state = AsyncData(updated);
-    unawaited(ref.read(cacheServiceProvider).writeBands(updated));
-    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+    unawaited(
+      ref.read(cacheServiceProvider).writeBands(updated).then((wrote) {
+        // WR-02: only claim "just synced" if the write actually succeeded.
+        if (wrote) {
+          ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+        }
+      }),
+    );
   }
 }
 
@@ -243,8 +261,16 @@ class BandDetailData extends _$BandDetailData {
 
   Future<Map<String, dynamic>> _fetchAndCache(String bandId) async {
     final band = await ref.read(publicApiProvider).getBand(bandId);
-    await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
-    ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
+    final wrote = await ref
+        .read(cacheServiceProvider)
+        .writeBandDetail(bandId, band);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(bandDetailSyncedAtProvider(bandId).notifier)
+          .set(DateTime.now());
+    }
     return band;
   }
 
@@ -269,8 +295,14 @@ class BandDetailData extends _$BandDetailData {
         // `state` is already correct.
         return;
       }
-      await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
-      ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
+      final wrote = await ref
+          .read(cacheServiceProvider)
+          .writeBandDetail(bandId, band);
+      if (wrote) {
+        ref
+            .read(bandDetailSyncedAtProvider(bandId).notifier)
+            .set(DateTime.now());
+      }
       state = AsyncData(band);
     } catch (e, st) {
       if (state.value == null) {
@@ -291,8 +323,16 @@ class BandDetailData extends _$BandDetailData {
     final updated = {...current, 'name': newName};
     _version++;
     state = AsyncData(updated);
-    await ref.read(cacheServiceProvider).writeBandDetail(bandId, updated);
-    ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
+    final wrote = await ref
+        .read(cacheServiceProvider)
+        .writeBandDetail(bandId, updated);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(bandDetailSyncedAtProvider(bandId).notifier)
+          .set(DateTime.now());
+    }
   }
 
   /// Merges [newCode] into the currently cached band-detail map after a
@@ -308,7 +348,15 @@ class BandDetailData extends _$BandDetailData {
     final updated = {...current, 'inviteCode': newCode};
     _version++;
     state = AsyncData(updated);
-    await ref.read(cacheServiceProvider).writeBandDetail(bandId, updated);
-    ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
+    final wrote = await ref
+        .read(cacheServiceProvider)
+        .writeBandDetail(bandId, updated);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(bandDetailSyncedAtProvider(bandId).notifier)
+          .set(DateTime.now());
+    }
   }
 }

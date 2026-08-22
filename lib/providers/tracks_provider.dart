@@ -87,8 +87,15 @@ class TrackListData extends _$TrackListData {
 
   Future<List<Map<String, dynamic>>> _fetchAndCache(String bandId) async {
     final tracks = await ref.read(publicApiProvider).listBandTracks(bandId);
-    await ref.read(cacheServiceProvider).writeBandTracks(bandId, tracks);
-    ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+    final wrote = await ref
+        .read(cacheServiceProvider)
+        .writeBandTracks(bandId, tracks);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded — otherwise the timestamp would silently overstate what's
+    // actually persisted on disk.
+    if (wrote) {
+      ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+    }
     return tracks;
   }
 
@@ -113,8 +120,12 @@ class TrackListData extends _$TrackListData {
         // already correct.
         return;
       }
-      await ref.read(cacheServiceProvider).writeBandTracks(bandId, tracks);
-      ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+      final wrote = await ref
+          .read(cacheServiceProvider)
+          .writeBandTracks(bandId, tracks);
+      if (wrote) {
+        ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+      }
       state = AsyncData(tracks);
     } catch (e, st) {
       if (state.value == null) {
@@ -138,8 +149,18 @@ class TrackListData extends _$TrackListData {
     ];
     _version++;
     state = AsyncData(filtered);
-    unawaited(ref.read(cacheServiceProvider).writeBandTracks(bandId, filtered));
-    ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+    unawaited(
+      ref.read(cacheServiceProvider).writeBandTracks(bandId, filtered).then((
+        wrote,
+      ) {
+        // WR-02: only claim "just synced" if the write actually succeeded.
+        if (wrote) {
+          ref
+              .read(trackListSyncedAtProvider(bandId).notifier)
+              .set(DateTime.now());
+        }
+      }),
+    );
   }
 }
 
@@ -221,12 +242,16 @@ class TrackDetailData extends _$TrackDetailData {
     final track = await ref
         .read(publicApiProvider)
         .getBandTrack(bandId, trackId);
-    await ref
+    final wrote = await ref
         .read(cacheServiceProvider)
         .writeBandTrackDetail(bandId, trackId, track);
-    ref
-        .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-        .set(DateTime.now());
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
+          .set(DateTime.now());
+    }
     return track;
   }
 
@@ -253,12 +278,14 @@ class TrackDetailData extends _$TrackDetailData {
         // correct.
         return;
       }
-      await ref
+      final wrote = await ref
           .read(cacheServiceProvider)
           .writeBandTrackDetail(bandId, trackId, track);
-      ref
-          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-          .set(DateTime.now());
+      if (wrote) {
+        ref
+            .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
+            .set(DateTime.now());
+      }
       state = AsyncData(track);
     } catch (e, st) {
       if (state.value == null) {
@@ -280,12 +307,16 @@ class TrackDetailData extends _$TrackDetailData {
     final updated = {...current, ...patch};
     _version++;
     state = AsyncData(updated);
-    await ref
+    final wrote = await ref
         .read(cacheServiceProvider)
         .writeBandTrackDetail(bandId, trackId, updated);
-    ref
-        .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-        .set(DateTime.now());
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
+          .set(DateTime.now());
+    }
   }
 }
 
@@ -379,8 +410,14 @@ class UserTracksListData extends _$UserTracksListData {
     final tracks = await ref
         .read(publicApiProvider)
         .listUserTracks(bandIdFilter: bandIdFilter);
-    await ref.read(cacheServiceProvider).writeUserTracks(bandIdFilter, tracks);
-    ref.read(userTracksSyncedAtProvider.notifier).set(DateTime.now());
+    final wrote = await ref
+        .read(cacheServiceProvider)
+        .writeUserTracks(bandIdFilter, tracks);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref.read(userTracksSyncedAtProvider.notifier).set(DateTime.now());
+    }
     return tracks;
   }
 

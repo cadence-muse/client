@@ -93,11 +93,12 @@ class _FakeCacheService implements CacheService {
       : Map<String, dynamic>.from(_profile);
 
   @override
-  Future<void> writeProfile(Map<String, dynamic> data) async {
+  Future<bool> writeProfile(Map<String, dynamic> data) async {
     _profile
       ..clear()
       ..addAll(data);
     _profileSyncedAt = DateTime.now();
+    return true;
   }
 
   @override
@@ -109,11 +110,12 @@ class _FakeCacheService implements CacheService {
       : Map<String, dynamic>.from(_homepage);
 
   @override
-  Future<void> writeHomepage(Map<String, dynamic> data) async {
+  Future<bool> writeHomepage(Map<String, dynamic> data) async {
     _homepage
       ..clear()
       ..addAll(data);
     _homepageSyncedAt = DateTime.now();
+    return true;
   }
 
   @override
@@ -125,9 +127,10 @@ class _FakeCacheService implements CacheService {
       : List<Map<String, dynamic>>.from(_bands!);
 
   @override
-  Future<void> writeBands(List<Map<String, dynamic>> data) async {
+  Future<bool> writeBands(List<Map<String, dynamic>> data) async {
     _bands = List<Map<String, dynamic>>.from(data);
     _bandsSyncedAt = DateTime.now();
+    return true;
   }
 
   @override
@@ -140,12 +143,13 @@ class _FakeCacheService implements CacheService {
           : null;
 
   @override
-  Future<void> writeBandDetail(
+  Future<bool> writeBandDetail(
     String bandId,
     Map<String, dynamic> data,
   ) async {
     _bandDetails[bandId] = Map<String, dynamic>.from(data);
     _bandDetailsSyncedAt[bandId] = DateTime.now();
+    return true;
   }
 
   @override
@@ -159,12 +163,13 @@ class _FakeCacheService implements CacheService {
           : null;
 
   @override
-  Future<void> writeBandTracks(
+  Future<bool> writeBandTracks(
     String bandId,
     List<Map<String, dynamic>> data,
   ) async {
     _bandTracks[bandId] = List<Map<String, dynamic>>.from(data);
     _bandTracksSyncedAt[bandId] = DateTime.now();
+    return true;
   }
 
   @override
@@ -183,13 +188,14 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
-  Future<void> writeBandTrackDetail(
+  Future<bool> writeBandTrackDetail(
     String bandId,
     String trackId,
     Map<String, dynamic> data,
   ) async {
     _trackDetails['${bandId}_$trackId'] = Map<String, dynamic>.from(data);
     _trackDetailsSyncedAt['${bandId}_$trackId'] = DateTime.now();
+    return true;
   }
 
   @override
@@ -209,13 +215,14 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
-  Future<void> writeUserTracks(
+  Future<bool> writeUserTracks(
     String? bandIdFilter,
     List<Map<String, dynamic>> data,
   ) async {
     final key = bandIdFilter ?? 'all';
     _userTracks[key] = List<Map<String, dynamic>>.from(data);
     _userTracksSyncedAt[key] = DateTime.now();
+    return true;
   }
 
   @override
@@ -229,12 +236,13 @@ class _FakeCacheService implements CacheService {
           : null;
 
   @override
-  Future<void> writeBandSetlists(
+  Future<bool> writeBandSetlists(
     String bandId,
     List<Map<String, dynamic>> data,
   ) async {
     _bandSetlists[bandId] = List<Map<String, dynamic>>.from(data);
     _bandSetlistsSyncedAt[bandId] = DateTime.now();
+    return true;
   }
 
   @override
@@ -253,13 +261,14 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
-  Future<void> writeSetlistDetail(
+  Future<bool> writeSetlistDetail(
     String bandId,
     String setlistId,
     Map<String, dynamic> data,
   ) async {
     _setlistDetails['${bandId}_$setlistId'] = Map<String, dynamic>.from(data);
     _setlistDetailsSyncedAt['${bandId}_$setlistId'] = DateTime.now();
+    return true;
   }
 
   @override
@@ -279,13 +288,14 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
-  Future<void> writeUserSetlists(
+  Future<bool> writeUserSetlists(
     String? bandIdFilter,
     List<Map<String, dynamic>> data,
   ) async {
     final key = bandIdFilter ?? 'all';
     _userSetlists[key] = List<Map<String, dynamic>>.from(data);
     _userSetlistsSyncedAt[key] = DateTime.now();
+    return true;
   }
 
   @override

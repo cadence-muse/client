@@ -97,8 +97,16 @@ class SetlistListData extends _$SetlistListData {
     final setlists = await ref
         .read(publicApiProvider)
         .listBandSetlists(bandId);
-    await ref.read(cacheServiceProvider).writeBandSetlists(bandId, setlists);
-    ref.read(setlistListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+    final wrote = await ref
+        .read(cacheServiceProvider)
+        .writeBandSetlists(bandId, setlists);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(setlistListSyncedAtProvider(bandId).notifier)
+          .set(DateTime.now());
+    }
     return setlists;
   }
 
@@ -149,8 +157,14 @@ class SetlistListData extends _$SetlistListData {
         // already correct.
         return;
       }
-      await ref.read(cacheServiceProvider).writeBandSetlists(bandId, setlists);
-      ref.read(setlistListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+      final wrote = await ref
+          .read(cacheServiceProvider)
+          .writeBandSetlists(bandId, setlists);
+      if (wrote) {
+        ref
+            .read(setlistListSyncedAtProvider(bandId).notifier)
+            .set(DateTime.now());
+      }
       state = AsyncData(setlists);
     } catch (e, st) {
       if (state.value == null) {
@@ -175,9 +189,19 @@ class SetlistListData extends _$SetlistListData {
     _version++;
     state = AsyncData(filtered);
     unawaited(
-      ref.read(cacheServiceProvider).writeBandSetlists(bandId, filtered),
+      ref
+          .read(cacheServiceProvider)
+          .writeBandSetlists(bandId, filtered)
+          .then((wrote) {
+            // WR-02: only claim "just synced" if the write actually
+            // succeeded.
+            if (wrote) {
+              ref
+                  .read(setlistListSyncedAtProvider(bandId).notifier)
+                  .set(DateTime.now());
+            }
+          }),
     );
-    ref.read(setlistListSyncedAtProvider(bandId).notifier).set(DateTime.now());
   }
 }
 
@@ -266,12 +290,16 @@ class SetlistDetailData extends _$SetlistDetailData {
     final setlist = await ref
         .read(publicApiProvider)
         .getSetlist(bandId, setlistId);
-    await ref
+    final wrote = await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, setlist);
-    ref
-        .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-        .set(DateTime.now());
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+          .set(DateTime.now());
+    }
     return setlist;
   }
 
@@ -323,12 +351,14 @@ class SetlistDetailData extends _$SetlistDetailData {
         // `state` is already correct.
         return;
       }
-      await ref
+      final wrote = await ref
           .read(cacheServiceProvider)
           .writeSetlistDetail(bandId, setlistId, setlist);
-      ref
-          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-          .set(DateTime.now());
+      if (wrote) {
+        ref
+            .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+            .set(DateTime.now());
+      }
       state = AsyncData(setlist);
     } catch (e, st) {
       if (state.value == null) {
@@ -350,12 +380,16 @@ class SetlistDetailData extends _$SetlistDetailData {
     final updated = {...current, ...patch};
     _version++;
     state = AsyncData(updated);
-    await ref
+    final wrote = await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, updated);
-    ref
-        .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-        .set(DateTime.now());
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+          .set(DateTime.now());
+    }
   }
 
   /// Patches the cached setlist detail's `tracks` order in-place after a
@@ -382,12 +416,16 @@ class SetlistDetailData extends _$SetlistDetailData {
     _version++;
     final updated = {...current, 'tracks': reordered};
     state = AsyncData(updated);
-    await ref
+    final wrote = await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, updated);
-    ref
-        .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-        .set(DateTime.now());
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref
+          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+          .set(DateTime.now());
+    }
   }
 }
 
@@ -501,10 +539,14 @@ class UserSetlistsListData extends _$UserSetlistsListData {
     final setlists = await ref
         .read(publicApiProvider)
         .listUserSetlists(bandIdFilter: bandIdFilter);
-    await ref
+    final wrote = await ref
         .read(cacheServiceProvider)
         .writeUserSetlists(bandIdFilter, setlists);
-    ref.read(userSetlistsSyncedAtProvider.notifier).set(DateTime.now());
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref.read(userSetlistsSyncedAtProvider.notifier).set(DateTime.now());
+    }
     return setlists;
   }
 

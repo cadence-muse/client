@@ -78,8 +78,12 @@ class HomepageData extends _$HomepageData {
     final apiClient = ref.read(apiClientProvider);
     final data = await apiClient.send('GET', '/api/homepage');
     final homepage = data!;
-    await ref.read(cacheServiceProvider).writeHomepage(homepage);
-    ref.read(homepageSyncedAtProvider.notifier).set(DateTime.now());
+    final wrote = await ref.read(cacheServiceProvider).writeHomepage(homepage);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref.read(homepageSyncedAtProvider.notifier).set(DateTime.now());
+    }
     return homepage;
   }
 

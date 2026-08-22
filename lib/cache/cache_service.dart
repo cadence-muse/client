@@ -143,15 +143,21 @@ class CacheService {
     }
   }
 
-  Future<void> writeProfile(Map<String, dynamic> data) async {
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — a
+  /// cache write failure (full disk, Hive box corruption, etc.) is still
+  /// non-critical and swallowed here (callers keep serving in-memory/
+  /// network data regardless), but the boolean return lets callers avoid
+  /// bumping their `XSyncedAt` provider on a write that didn't actually
+  /// persist.
+  Future<bool> writeProfile(Map<String, dynamic> data) async {
     try {
       await _profileStore.put(_profileKey, {
         'data': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -178,15 +184,18 @@ class CacheService {
     }
   }
 
-  Future<void> writeHomepage(Map<String, dynamic> data) async {
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeHomepage(Map<String, dynamic> data) async {
     try {
       await _homepageStore.put(_homepageKey, {
         'data': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -210,15 +219,18 @@ class CacheService {
     }
   }
 
-  Future<void> writeBands(List<Map<String, dynamic>> data) async {
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeBands(List<Map<String, dynamic>> data) async {
     try {
       await _bandsStore.put(_bandsKey, {
         'items': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -242,15 +254,21 @@ class CacheService {
     }
   }
 
-  Future<void> writeBandDetail(String bandId, Map<String, dynamic> data) async {
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeBandDetail(
+    String bandId,
+    Map<String, dynamic> data,
+  ) async {
     try {
       await _bandsStore.put(_bandDetailKey(bandId), {
         'data': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -276,7 +294,10 @@ class CacheService {
     }
   }
 
-  Future<void> writeBandTracks(
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeBandTracks(
     String bandId,
     List<Map<String, dynamic>> data,
   ) async {
@@ -285,9 +306,9 @@ class CacheService {
         'items': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -316,7 +337,10 @@ class CacheService {
     }
   }
 
-  Future<void> writeBandTrackDetail(
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeBandTrackDetail(
     String bandId,
     String trackId,
     Map<String, dynamic> data,
@@ -326,9 +350,9 @@ class CacheService {
         'data': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -360,7 +384,10 @@ class CacheService {
     }
   }
 
-  Future<void> writeUserTracks(
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeUserTracks(
     String? bandIdFilter,
     List<Map<String, dynamic>> data,
   ) async {
@@ -369,9 +396,9 @@ class CacheService {
         'items': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -398,7 +425,10 @@ class CacheService {
     }
   }
 
-  Future<void> writeBandSetlists(
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeBandSetlists(
     String bandId,
     List<Map<String, dynamic>> data,
   ) async {
@@ -407,9 +437,9 @@ class CacheService {
         'items': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -438,7 +468,10 @@ class CacheService {
     }
   }
 
-  Future<void> writeSetlistDetail(
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeSetlistDetail(
     String bandId,
     String setlistId,
     Map<String, dynamic> data,
@@ -448,9 +481,9 @@ class CacheService {
         'data': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 
@@ -482,7 +515,10 @@ class CacheService {
     }
   }
 
-  Future<void> writeUserSetlists(
+  /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — see
+  /// [writeProfile]'s doc comment for the shape shared by every `writeX`
+  /// method in this class.
+  Future<bool> writeUserSetlists(
     String? bandIdFilter,
     List<Map<String, dynamic>> data,
   ) async {
@@ -491,9 +527,9 @@ class CacheService {
         'items': data,
         'syncedAt': DateTime.now().toIso8601String(),
       });
+      return true;
     } catch (_) {
-      // Non-critical cache write failure; swallow and keep serving the
-      // in-memory/network data instead.
+      return false;
     }
   }
 

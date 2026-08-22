@@ -78,8 +78,12 @@ class ProfileData extends _$ProfileData {
     final apiClient = ref.read(apiClientProvider);
     final data = await apiClient.send('GET', '/api/me');
     final profile = data!;
-    await ref.read(cacheServiceProvider).writeProfile(profile);
-    ref.read(profileSyncedAtProvider.notifier).set(DateTime.now());
+    final wrote = await ref.read(cacheServiceProvider).writeProfile(profile);
+    // WR-02: only claim "just synced" if the cache write actually
+    // succeeded.
+    if (wrote) {
+      ref.read(profileSyncedAtProvider.notifier).set(DateTime.now());
+    }
     return profile;
   }
 
