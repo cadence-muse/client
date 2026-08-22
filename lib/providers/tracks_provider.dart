@@ -104,10 +104,18 @@ class TrackListData extends _$TrackListData {
   Future<void> _doRefresh() async {
     final capturedVersion = _version;
     try {
-      final fresh = await _fetchAndCache(bandId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
+      final tracks = await ref.read(publicApiProvider).listBandTracks(bandId);
+      if (_version != capturedVersion) {
+        // A local mutation (e.g. removeFromList) landed while this fetch
+        // was in flight — discard the stale response entirely, including
+        // the cache write, so it can't silently revert the mutation's
+        // on-disk cache (CR-01) even though the in-memory `state` is
+        // already correct.
+        return;
       }
+      await ref.read(cacheServiceProvider).writeBandTracks(bandId, tracks);
+      ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+      state = AsyncData(tracks);
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);
@@ -234,10 +242,24 @@ class TrackDetailData extends _$TrackDetailData {
   Future<void> _doRefresh() async {
     final capturedVersion = _version;
     try {
-      final fresh = await _fetchAndCache(bandId, trackId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
+      final track = await ref
+          .read(publicApiProvider)
+          .getBandTrack(bandId, trackId);
+      if (_version != capturedVersion) {
+        // A local mutation (e.g. updateFields) landed while this fetch was
+        // in flight — discard the stale response entirely, including the
+        // cache write, so it can't silently revert the mutation's on-disk
+        // cache (CR-01) even though the in-memory `state` is already
+        // correct.
+        return;
       }
+      await ref
+          .read(cacheServiceProvider)
+          .writeBandTrackDetail(bandId, trackId, track);
+      ref
+          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
+          .set(DateTime.now());
+      state = AsyncData(track);
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);

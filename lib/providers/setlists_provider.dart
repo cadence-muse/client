@@ -104,10 +104,20 @@ class SetlistListData extends _$SetlistListData {
   Future<void> _doRefresh() async {
     final capturedVersion = _version;
     try {
-      final fresh = await _fetchAndCache(bandId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
+      final setlists = await ref
+          .read(publicApiProvider)
+          .listBandSetlists(bandId);
+      if (_version != capturedVersion) {
+        // A local mutation (e.g. removeFromList) landed while this fetch
+        // was in flight — discard the stale response entirely, including
+        // the cache write, so it can't silently revert the mutation's
+        // on-disk cache (CR-01) even though the in-memory `state` is
+        // already correct.
+        return;
       }
+      await ref.read(cacheServiceProvider).writeBandSetlists(bandId, setlists);
+      ref.read(setlistListSyncedAtProvider(bandId).notifier).set(DateTime.now());
+      state = AsyncData(setlists);
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);
@@ -233,10 +243,24 @@ class SetlistDetailData extends _$SetlistDetailData {
   Future<void> _doRefresh() async {
     final capturedVersion = _version;
     try {
-      final fresh = await _fetchAndCache(bandId, setlistId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
+      final setlist = await ref
+          .read(publicApiProvider)
+          .getSetlist(bandId, setlistId);
+      if (_version != capturedVersion) {
+        // A local mutation (e.g. updateFields/reorderTracks) landed while
+        // this fetch was in flight — discard the stale response entirely,
+        // including the cache write, so it can't silently revert the
+        // mutation's on-disk cache (CR-01) even though the in-memory
+        // `state` is already correct.
+        return;
       }
+      await ref
+          .read(cacheServiceProvider)
+          .writeSetlistDetail(bandId, setlistId, setlist);
+      ref
+          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
+          .set(DateTime.now());
+      state = AsyncData(setlist);
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);

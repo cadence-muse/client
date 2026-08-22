@@ -288,6 +288,14 @@ void main() {
         expect(finalState, [
           {'id': 't1', 'title': 'Track One', 'artist': 'Artist'},
         ]);
+
+        // CR-01 regression: the persisted cache must match the in-memory
+        // state — the stale refresh() response must not have overwritten
+        // it with the pre-deletion snapshot.
+        final cachedTracks = await cacheService.readBandTracks('b1');
+        expect(cachedTracks, [
+          {'id': 't1', 'title': 'Track One', 'artist': 'Artist'},
+        ]);
       },
     );
 
@@ -589,6 +597,16 @@ void main() {
           .read(trackDetailDataProvider('b1', 't1'))
           .valueOrNull;
       expect(finalState, {
+        'id': 't1',
+        'title': 'Locally Renamed Track',
+        'artist': 'Cached Artist',
+      });
+
+      // CR-01 regression: the persisted cache must match the in-memory
+      // state — the stale refresh() response must not have overwritten it
+      // with the pre-mutation snapshot.
+      final cachedTrack = await cacheService.readBandTrackDetail('b1', 't1');
+      expect(cachedTrack, {
         'id': 't1',
         'title': 'Locally Renamed Track',
         'artist': 'Cached Artist',

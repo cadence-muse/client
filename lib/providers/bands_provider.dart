@@ -11,11 +11,12 @@ part 'bands_provider.g.dart';
 
 /// D-04/D-05 (05-01-PLAN.md): independent `syncedAt` for the `bands` list
 /// cache key, mirroring [ProfileSyncedAt]'s shape. Set from the cache's
-/// stored timestamp on a cache hit, and bumped unconditionally on every
-/// successful cache write (fetch or local mutation) — never gated by
-/// [BandsListData]'s `_version` guard, since the cache write it mirrors
-/// already succeeded regardless of whether the fetched data itself gets
-/// discarded (05-RESEARCH.md Pitfall 6).
+/// stored timestamp on a cache hit, and bumped on every successful cache
+/// write (initial fetch, local mutation, or a `_doRefresh` background
+/// fetch that wasn't superseded by a local mutation) — background
+/// `_doRefresh` fetches that lose the `_version` race are discarded before
+/// either the cache write or this bump happens (CR-01 fix), so a bump here
+/// always corresponds to an actual on-disk write.
 @riverpod
 class BandsListSyncedAt extends _$BandsListSyncedAt {
   @override
@@ -112,10 +113,18 @@ class BandsListData extends _$BandsListData {
   Future<void> _doRefresh() async {
     final capturedVersion = _version;
     try {
-      final fresh = await _fetchAndCache();
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
+      final bands = await ref.read(publicApiProvider).listBands();
+      if (_version != capturedVersion) {
+        // A local mutation (e.g. setBands/renameBand/patchBandOwner) landed
+        // while this fetch was in flight — discard the stale response
+        // entirely, including the cache write, so it can't silently revert
+        // the mutation's on-disk cache (CR-01) even though the in-memory
+        // `state` is already correct.
+        return;
       }
+      await ref.read(cacheServiceProvider).writeBands(bands);
+      ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
+      state = AsyncData(bands);
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);
@@ -251,10 +260,18 @@ class BandDetailData extends _$BandDetailData {
   Future<void> _doRefresh() async {
     final capturedVersion = _version;
     try {
-      final fresh = await _fetchAndCache(bandId);
-      if (_version == capturedVersion) {
-        state = AsyncData(fresh);
+      final band = await ref.read(publicApiProvider).getBand(bandId);
+      if (_version != capturedVersion) {
+        // A local mutation (e.g. updateName/rotateInviteCode) landed while
+        // this fetch was in flight — discard the stale response entirely,
+        // including the cache write, so it can't silently revert the
+        // mutation's on-disk cache (CR-01) even though the in-memory
+        // `state` is already correct.
+        return;
       }
+      await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
+      ref.read(bandDetailSyncedAtProvider(bandId).notifier).set(DateTime.now());
+      state = AsyncData(band);
     } catch (e, st) {
       if (state.value == null) {
         state = AsyncError(e, st);
