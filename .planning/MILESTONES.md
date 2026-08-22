@@ -1,5 +1,27 @@
 # Milestones
 
+## v1.1 UI Improvements (Shipped: 2026-08-22)
+
+**Phases completed:** 6 phases, 13 plans, 28 tasks
+
+**Key accomplishments:**
+
+- Password change end-to-end on the Profile screen (USER-03), plus three client-first `publicapi.yml` field additions (`TrackListItem.key`, `SetlistListItem.eventLocation`, `BandListItem.ownerId`) that unblock Wave 2's display plans.
+- Bands list rows and the Band detail screen both surface "N members • Owner/Member" by exposing `BandDetailScreen`'s tri-state ownership helper as a public static method reused across both screens (BAND-10).
+- Track list rows and the Track detail screen both show icon-based key/duration/notes indicators (Icons.music_note/Icons.timer/Icons.notes), replacing prefixed "Duration:"/"Key:"/"Notes:" text, with tap-to-expand for long notes.
+- Setlist list and detail screens now show `Icons.location_on`/`Icons.timer` icon-based indicators for event location and duration, replacing the old "N tracks, Xm Ys" trailing text and "Duration: ..." prefixed label.
+- Migrated removeSetlistTrack to the batch DELETE .../tracks endpoint and listUserTracks/listUserSetlists from GET to POST, matching the fe72e78 publicapi.yml schema update with zero regressions across the 315-test suite.
+- Bands tab and band detail screen flipped from cache-first to online-first via a rewritten `BandsListData`/`BandDetailData` `build()` contract, plus two new shared artifacts (`OfflineNoCacheException`, `OfflineNoCacheView`) every remaining Phase 7 plan reuses verbatim
+- Home and Profile tabs flipped from cache-first to online-first by applying 07-01's exact template minus the `_version` guard — neither provider has local-mutation methods to race
+- All three track providers (TrackListData, TrackDetailData, UserTracksListData) and their three screens flipped from cache-first to online-first using 07-01's proven pattern, with the cross-band Tracks tab getting D-01 tab-switch-refetch wiring and the two pushed-route screens getting none per D-02
+- All three setlist providers (SetlistListData, SetlistDetailData, UserSetlistsListData) and their three screens (SetlistsScreen tab, SetlistListScreen, SetlistDetailScreen) flipped from cache-first to online-first, mirroring 07-01's Bands tracer pattern one entity level down
+- Deleted the now-fully-unused `SyncStatusBadge` widget and its test, and rewrote the cross-cutting `offline_trust_regression_test.dart` guard so it asserts the phase's real final state (badge gone, `OfflineNoCacheException` wired everywhere) instead of the retired Phase-5 badge-presence claim — closing out Phase 7's OFFL-07/OFFL-08 requirements.
+- Owner-gated invite-code rotation (BAND-11) and ownership transfer (BAND-12) added to `band_detail_screen.dart` via two new confirm dialogs, two new `PublicApi` methods, and two new provider local-patch methods, with the member-row `person_remove` icon migrated into a `PopupMenuButton` alongside a new "Make owner" action.
+- Home screen restructured into a unified welcome-card + Quick Actions layout with three buttons (Add Band/Song/Setlist); Add Song and Add Setlist open a shared `band_picker_sheet.dart` bottom sheet backed by `bandsListDataProvider` before handing off to the existing create screens.
+- Search TextField added to AddSetlistTracksDialog: offline substring filtering on title/artist, plus a forward-compatible debounced `searchQuery` wire parameter on `ListBandTracks` that the backend currently ignores online.
+
+---
+
 ## v1.0 MVP (Shipped: 2026-08-17)
 
 **Phases completed:** 5 phases, 23 plans, 46 tasks

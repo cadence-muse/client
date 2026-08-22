@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI Improvements
-current_phase: 08
-current_phase_name: Band Owner Tools
-status: planning
+status: Awaiting next milestone
 stopped_at: Phase 07 complete, ready to plan Phase 08
-last_updated: "2026-08-22T08:50:54.933Z"
+last_updated: "2026-08-22T08:53:50.876Z"
 last_activity: 2026-08-22
-last_activity_desc: Phase 07 complete, transitioned to Phase 08
-state_head: 329f934e9d9eec02214e754ccb0474fd53c38f01
+last_activity_desc: Milestone v1.1 completed and archived
+state_head: fc063eb9f10ccbb02cd61d1e9da6e202f767cce7
 progress:
   total_phases: 11
   completed_phases: 6
   total_plans: 13
   completed_plans: 13
   percent: 55
+current_phase: 08
+current_phase_name: Band Owner Tools
 ---
 
 # Project State
@@ -29,12 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-21)
 
 ## Current Position
 
-Phase: 08 — Band Owner Tools
-Next: Phase 9 (Homepage Quick Actions) — not yet planned
-Status: Ready to plan
-Last activity: 2026-08-22 — Phase 07 complete, transitioned to Phase 08
-
-Progress: [████░░░░░░] 36% (3/11 phases)
+Phase: Milestone v1.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-22 — Milestone v1.1 completed and archived
 
 ## Performance Metrics
 
@@ -111,8 +109,6 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 260819-v0u | add /api/logout call when user logs out on profile screen | 2026-08-19 | 6a55de3 | [260819-v0u-add-api-logout-call-when-user-logs-out-o](./quick/260819-v0u-add-api-logout-call-when-user-logs-out-o/) |
-| 260821-qx7 | fix 3 stale tests asserting retired cache-first offline-disabled-tiles pattern | 2026-08-21 | 8c58335 | [260821-qx7-fix-3-stale-tests-in-phase-07-that-asser](./quick/260821-qx7-fix-3-stale-tests-in-phase-07-that-asser/) |
 
 ### Roadmap Evolution
 
@@ -134,5 +130,4 @@ Resume file: .planning/phases/10-searchable-setlist-track-picker/10-UI-SPEC.md
 
 ## Operator Next Steps
 
-- Run `/gsd-plan-phase 9` (Homepage Quick Actions)
-- Phase 08 closed clean: flutter analyze 0 issues, flutter test 396/396 passing; 1 non-blocking code-review warning (WR-01, offline Copy regression) — see Blockers/Concerns above
+- Start the next milestone with /gsd-new-milestone

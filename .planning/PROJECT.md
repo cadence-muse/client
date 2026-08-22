@@ -2,26 +2,11 @@
 
 ## What This Is
 
-Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands to manage their repertoire together: shared song catalog, band membership, and setlists for gigs. As of v1.0, the app has full band/track/setlist CRUD against the public API, runs on Riverpod state management with a Hive-backed cache-store pattern, and every cached screen shows staleness/connectivity signals with mutations gated while offline.
+Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands to manage their repertoire together: shared song catalog, band membership, and setlists for gigs. As of v1.1, the app has full band/track/setlist CRUD against the public API, runs on Riverpod state management with a Hive-backed cache-store pattern, always shows freshly-fetched server data when online, and falls back to last-fetched cache with a persistent warning banner when offline. Band owners can rotate invite codes and transfer ownership; the setlist track picker is searchable.
 
 ## Core Value
 
 A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-
-## Current Milestone: v1.1 UI Improvements
-
-**Goal:** Catch the app up to the fe72e78 schema update, flip offline cache to online-first, polish info-display UI, and add search to the setlist song picker.
-
-**Target features:**
-- Change password form on Profile screen (`POST /api/me/password`)
-- Band member count + role (owner/member) shown in Bands UI
-- Owner tools: rotate invite code, transfer ownership
-- Homepage quick actions: add band (direct), add song / add setlist (via band-picker dialog first)
-- Cache behavior flip: online → always fetch fresh; offline → serve cache + warning, dropping the `SyncStatusBadge`/staleness-badge system entirely
-- Icons for location, duration, musical key, notes on Track and Setlist detail/list screens
-- Setlist track picker: replace dialog with a searchable list; extend `publicapi.yml`'s `ListBandTracks` with a `searchQuery` field (client adds the spec, backend to follow) and wire the picker to it
-
-**Confirmed out of scope:** removing owner-only UI gates — verified against code, already compliant with the new schema (Delete-band stays owner-gated; Track/Setlist edit/delete and Band rename already have zero owner gate).
 
 ## Requirements
 
@@ -41,10 +26,19 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - ✓ User can list, create, view, update, and delete bands they belong to — Phase 2
 - ✓ User can join a band via invite code — Phase 2
 - ✓ User (owner) can remove a band member; any member can remove themselves — Phase 2
+- ✓ User can change their account password from the Profile screen (USER-03) — v1.1 Phase 6
+- ✓ User sees each band's member count and their own role (owner/member) in the Bands list and band detail screen (BAND-10) — v1.1 Phase 6
+- ✓ Track list/detail screens show icons for musical key, duration, and notes (TRACK-07) — v1.1 Phase 6
+- ✓ Setlist list/detail screens show icons for location and duration (SETL-11) — v1.1 Phase 6
+- ✓ When online, every cached screen always fetches fresh data from the server; when offline, screens serve last-fetched cache with a persistent warning banner and the old staleness-tier badge system is removed entirely (OFFL-07, OFFL-08) — v1.1 Phase 7
+- ✓ Band owner can rotate the band's invite code (BAND-11) — v1.1 Phase 8
+- ✓ Band owner can transfer ownership to another band member (BAND-12) — v1.1 Phase 8
+- ✓ User can start "Add band"/"Add song"/"Add setlist" from Homepage quick actions, with a band-picker dialog for song/setlist (HOME-01, HOME-02) — v1.1 Phase 9
+- ✓ Setlist track picker replaces the flat all-tracks dialog with a searchable list; `publicapi.yml`'s `ListBandTracks` gains a client-side `searchQuery` field (backend implementation deferred) (SETL-12) — v1.1 Phase 10
 
 ### Active
 
-_(v1.1 UI Improvements — see Current Milestone above; REQ-IDs defined in `.planning/REQUIREMENTS.md`)_
+_(none yet — run `/gsd-new-milestone` to define the next milestone's requirements)_
 
 ### Out of Scope
 
@@ -52,20 +46,23 @@ _(v1.1 UI Improvements — see Current Milestone above; REQ-IDs defined in `.pla
 - Offline caching on web build — web stays online-only this milestone
 - Real-time collaboration (live updates when another member edits) — not requested
 - Track audio file storage/playback — API has no such field; out of scope until API adds it
+- Removing owner-only UI gates on band/track/setlist edit/delete — verified against code and the v1.1 schema update; already compliant (Delete-band stays owner-gated, Track/Setlist edit/delete and Band rename already have zero owner gate) — v1.1
+- Invite-code shareable deep link — manual copy-to-clipboard is sufficient — v1.1
+- Fuzzy/soundex search matching on the setlist track picker — client sends plain `searchQuery` text; matching strategy is a backend concern — v1.1
 
 ## Context
 
-**Shipped state (v1.0, 2026-08-17):** ~20,600 LOC Dart across `lib/` + `test/`, 284 tests passing, `flutter analyze` clean, zero TODO/stub/placeholder markers in production code. State flows through Riverpod (codegen'd AsyncNotifiers/family providers) end-to-end — no `ChangeNotifier`/prop-drilling remains. `lib/cache/cache_service.dart`'s Hive-backed `_HiveStore` (with recursive `_deepConvert` for nested collections) backs 5 boxes (profile, homepage, bands, tracks, setlists) via a `{data, syncedAt}` envelope on all 10 cache keys, giving every cached screen a staleness badge and connectivity-gated mutations (`isOnlineProvider`, `connectivity_plus`).
+**Shipped state (v1.1, 2026-08-22):** ~24,800 LOC Dart across `lib/` + `test/`, 401 tests passing, `dart analyze` clean, zero TODO/stub/placeholder markers in production code. State flows through Riverpod (codegen'd AsyncNotifiers/family providers) end-to-end. `lib/cache/cache_service.dart`'s Hive-backed `_HiveStore` (with recursive `_deepConvert` for nested collections) backs 5 boxes (profile, homepage, bands, tracks, setlists). The old `{data, syncedAt}` staleness-badge system was retired this milestone: every cached screen now fetches fresh on open when online and falls back to last-fetched cache with a persistent offline warning banner when offline (`OfflineNoCacheException`/`OfflineNoCacheView`), with connectivity-gated mutations unchanged (`isOnlineProvider`, `connectivity_plus`).
 
-**API surface:** Full scope defined in `lib/api/publicapi.yml` (OpenAPI 3.0) — Users (register/login/me/homepage), Bands (CRUD, join, remove-member), Band Tracks (CRUD), Band Setlists (CRUD, add/remove/reorder track, bulk-add), plus a cross-band `GET /api/track/list` and `GET /api/setlist/list` added this milestone for the global filterable tabs. All endpoints except register/login require `sessionAuth`.
+**API surface:** Full scope defined in `lib/api/publicapi.yml` (OpenAPI 3.0) — Users (register/login/me/homepage/password-change), Bands (CRUD, join, remove-member, rotate-invite-code, transfer-ownership), Band Tracks (CRUD), Band Setlists (CRUD, add/remove/reorder track, bulk-add), plus cross-band `POST /api/track/list` and `POST /api/setlist/list` (both `searchQuery`-bearing) for the global filterable tabs. All endpoints except register/login require `sessionAuth`.
 
-**Platform note:** Repo builds for Android, iOS, and web. Offline caching (v1.0) targets Android/iOS only — web stays online-only.
+**Platform note:** Repo builds for Android, iOS, and web. Offline caching targets Android/iOS only — web stays online-only.
 
-**API gaps closed this milestone:** `publicapi.yml` was extended with `UserProfile.id`, `Band.ownerId`, `GET /api/track/list`, `GET /api/setlist/list`, and bulk setlist-track add — all now implemented and integrated.
+**v1.1 schema catch-up (fe72e78, 2026-08-20):** client caught up to a server-side schema update — `POST /api/me/password`, `Band.membersCount`, member `id`/`role` (owner/member enum), `POST /api/band/{bandId}/rotate-invite-code`, `POST /api/band/{bandId}/transfer-ownership`; band/track/setlist mutation permissions loosened from owner-only to any-member (except delete-band, still owner-gated); `/api/track/list` and `/api/setlist/list` converted from GET to POST with a `searchQuery` request body; single-track setlist add/remove consolidated into the bulk `tracks` endpoints (`AddSetlistTracks`/`RemoveSetlistTracks`). App is unreleased, so no backward-compat shims were needed.
 
-**Known non-blocking items carried into next milestone:** one manual accessibility check outstanding (offline-banner text under ≥200% font scaling, Phase 5); Nyquist `/gsd-validate-phase` never run this milestone (coverage TODO, not a compliance failure) — see `.planning/milestones/v1.0-MILESTONE-AUDIT.md`.
+**API gap this milestone:** `publicapi.yml`'s `ListBandTracks` request gained a client-defined `searchQuery` field (SETL-12) — the client sends it, but the backend does not yet implement server-side filtering; the picker degrades to offline substring filtering until backend support ships.
 
-**v1.1 schema catch-up:** `publicapi.yml` was updated server-side ahead of the client in commit `fe72e78` (2026-08-20) — adds `POST /api/me/password`, `Band.membersCount`, member `id`/`role` (owner/member enum), `POST /api/band/{bandId}/rotate-invite-code`, `POST /api/band/{bandId}/transfer-ownership`; loosens band/track/setlist mutation summaries from owner-only to any-member; converts `/api/track/list` and `/api/setlist/list` from GET to POST with a `searchQuery` request body; consolidates single-track setlist add/remove into the existing bulk `tracks` endpoints (`AddSetlistTracks`/`RemoveSetlistTracks`, both now body-driven). App is unreleased, so no backward-compat shims are needed for any of these changes.
+**Known non-blocking items carried into next milestone:** one manual accessibility check outstanding (offline-banner text under ≥200% font scaling, from v1.0 Phase 5); Nyquist `/gsd-validate-phase` never run this or the prior milestone (coverage TODO, not a compliance failure).
 
 ## Constraints
 
@@ -90,6 +87,11 @@ _(v1.1 UI Improvements — see Current Milestone above; REQ-IDs defined in `.pla
 | Monotonic `_version` counter guard on AsyncNotifier background refreshes | Unawaited background `_refresh()` on cache-hit could silently overwrite a local mutation (rename, setBands) that landed first, with no ordering guarantee | ✓ Good — Phase 2 gap-closure (02-06); reused as-is for Tracks/Setlists providers |
 | `ref.exists()` guard before reading a sibling provider's `.notifier` from an unrelated screen | Reading `.notifier` on a never-watched provider instantiates it and fires an unplanned network call as a side effect — broke 3 pre-existing tests when first hit in Phase 2 | ✓ Good — established as the standing pattern for any cross-provider notifier read |
 | Owner-gated mutations use a local-patch pattern: optimistic patch for responses with a usable body (rotate), invalidate+refetch plus a separate list-patch for responses without one (transfer) | Rotate's response returns the new code directly; transfer's 200-with-no-body can't be trusted as a source of truth, so the detail screen refetches while the bands-list badge is patched from the known target userId | ✓ Good — Phase 8; established alongside `updateName()`/`renameBand()` for future owner-gated mutations |
+| Cache behavior flip built as a single reusable template (`_fetchAndCache`/online-first `build()`/tab-switch-refetch/`OfflineNoCacheException`) proven on Bands first, then mirrored verbatim across Home/Profile/Tracks/Setlists | One tracer plan (07-01) established the pattern and caught its edge cases once, instead of each of the 4 remaining plans re-deriving it independently | ✓ Good — Phase 7; zero pattern drift across the 5 plans |
+| Persisted-cache writes must check the same `_version` guard as in-memory state commits, not just the state assignment | Code review (CR-01) found a stale in-flight background refresh could pass the state-level version check's absence and still silently overwrite the on-disk cache with reverted data — the original guard only protected `state`, not the paired `CacheService` write | ✓ Good — Phase 7 gap-closure; both writes now gated by one check |
+| Dropdown filter values must be clamped against their live source list before rendering, not just when set | A selected band-filter id surviving in a persisted provider after its band is deleted/left crashes Flutter's `DropdownButton` assertion (CR-02) — the fix clamps the rendered value without touching the persisted filter, so it "sticks" if the band reappears | ✓ Good — Phase 7 gap-closure; applies to any future filterable dropdown backed by a mutable list |
+| `syncedAt` bump only fires after a confirmed cache write, not unconditionally alongside it | `CacheService.writeX` swallowed exceptions internally, so a failed persisted write could still report a fresh sync time (WR-02); `writeX` now returns `Future<bool>` and every call site gates the bump on `true` | ✓ Good — Phase 7 gap-closure |
+| Removed the entire `XSyncedAt` provider family (10 classes) rather than building a "last synced" UI to consume them | Code review (WR-03) found the providers were maintained on every fetch/mutation but had zero screen consumers — dead infrastructure; no product ask existed for a last-synced indicator, so deletion was the lower-risk choice over building unrequested UI | ✓ Good — Phase 7 gap-closure |
 
 ## Evolution
 
@@ -109,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-21 after Phase 8*
+*Last updated: 2026-08-22 after v1.1 milestone*
