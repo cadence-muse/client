@@ -25,7 +25,7 @@ current_phase_name: Band Owner Tools
 See: .planning/PROJECT.md (updated 2026-08-21)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 10 — Searchable Setlist Track Picker
+**Current focus:** Planning next milestone
 
 ## Current Position
 
@@ -102,8 +102,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 10 (Searchable Setlist Track Picker): backend does not implement the new `searchQuery` field this milestone — client extends `publicapi.yml` now, but the picker must degrade gracefully (e.g. client-side filtering) until backend support ships.
-- Phase 08 code review (WR-01): Copy-invite-code on `band_detail_screen.dart:248-256` is now gated behind `isOnline`, regressing the pre-Phase-8 always-tappable behavior — clipboard copy needs no network and this contradicts both `08-CONTEXT.md` D-07 ("Copy stays visible to everyone as today") and the app's offline-first Core Value. Non-blocking, but worth a quick follow-up fix. See `.planning/phases/08-band-owner-tools/08-REVIEW.md`.
+- v1.1: backend does not implement the `searchQuery` field on `ListBandTracks` — client extends `publicapi.yml` and sends it, but the setlist track picker degrades to offline substring filtering until backend support ships. Carried into next milestone.
+- v1.1 Phase 8 code review (WR-01): Copy-invite-code on `band_detail_screen.dart:248-256` is gated behind `isOnline`, regressing the pre-Phase-8 always-tappable behavior — clipboard copy needs no network and this contradicts both `08-CONTEXT.md` D-07 ("Copy stays visible to everyone as today") and the app's offline-first Core Value. Non-blocking, not fixed this milestone. See `.planning/milestones/v1.1-phases/08-band-owner-tools/08-REVIEW.md`. Carried into next milestone.
 
 ### Quick Tasks Completed
 
@@ -116,6 +116,12 @@ None yet.
 
 ## Deferred Items
 
+Items acknowledged and deferred at milestone close, most recent first:
+
+| Category | Item | Status | Deferred At | Milestone |
+|----------|------|--------|-------------|-----------|
+| verification_gaps | 02/02-VERIFICATION.md | gaps_found | 2026-08-22 | v1.1 |
+
 Items acknowledged and deferred at milestone close on 2026-08-17:
 
 | Category | Item | Status |
@@ -124,9 +130,9 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-22T07:08:09.639Z
-Stopped at: Phase 07 complete, ready to plan Phase 08
-Resume file: .planning/phases/10-searchable-setlist-track-picker/10-UI-SPEC.md
+Last session: 2026-08-22T08:53:50.876Z
+Stopped at: Milestone v1.1 complete and archived
+Resume file: none — start next milestone
 
 ## Operator Next Steps
 
