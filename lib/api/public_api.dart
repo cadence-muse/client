@@ -63,7 +63,7 @@ class PublicApi {
     await _client.send(
       'POST',
       '/api/me/password',
-      body: {'currentPassword': currentPassword, 'password': newPassword},
+      body: {'currentPassword': currentPassword, 'newPassword': newPassword},
     );
   }
 
