@@ -192,7 +192,7 @@ void main() {
       expect(requests.single.url.path, '/api/me/password');
       final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
       expect(body['currentPassword'], 'oldpassword');
-      expect(body['password'], 'newpassword123');
+      expect(body['newPassword'], 'newpassword123');
 
       expect(find.text('Password changed successfully'), findsOneWidget);
       expect(find.byType(ChangePasswordScreen), findsNothing);
