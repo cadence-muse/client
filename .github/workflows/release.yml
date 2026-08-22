@@ -84,7 +84,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release --dart-define=API_BASE_URL=https://cadence.app
+        run: flutter build apk --release --dart-define=API_BASE_URL=https://app.cadence.nightnoryu.com
 
       - name: Calculate hash sum
         run: |
