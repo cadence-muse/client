@@ -456,4 +456,156 @@ void main() {
       expect(find.byType(CheckboxListTile), findsNWidgets(2));
     },
   );
+
+  testWidgets(
+    'offline: typing a search query immediately narrows the checklist to '
+    'title/artist matches, with no debounce delay',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', [
+        {'id': 't1', 'title': 'Wonderwall', 'artist': 'Oasis'},
+        {'id': 't2', 'title': 'Yellow', 'artist': 'Coldplay'},
+      ]);
+      final apiClient = buildApiClient(
+        (request) async => http.Response('', 204),
+      );
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          currentTrackIds: {},
+          isOnline: false,
+          cacheService: cacheService,
+        ),
+      );
+      await openDialog(tester);
+
+      expect(find.byType(CheckboxListTile), findsNWidgets(2));
+
+      await tester.enterText(find.byType(TextField), 'wonder');
+      await tester.pump();
+
+      expect(find.byType(CheckboxListTile), findsNWidgets(1));
+      expect(find.text('Wonderwall'), findsOneWidget);
+      expect(find.text('Yellow'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'offlineEmptySearchMessage: offline search with zero matches shows "No '
+    'tracks match your search" instead of "No more tracks available"',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', [
+        {'id': 't1', 'title': 'Wonderwall', 'artist': 'Oasis'},
+      ]);
+      final apiClient = buildApiClient(
+        (request) async => http.Response('', 204),
+      );
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          currentTrackIds: {},
+          isOnline: false,
+          cacheService: cacheService,
+        ),
+      );
+      await openDialog(tester);
+
+      await tester.enterText(find.byType(TextField), 'nothing matches this');
+      await tester.pump();
+
+      expect(find.text('No tracks match your search'), findsOneWidget);
+      expect(find.text('No more tracks available'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'clearSearchFilter: clearing the search field after a filtered search '
+    'redisplays the full offline track list',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandTracks('b1', [
+        {'id': 't1', 'title': 'Wonderwall', 'artist': 'Oasis'},
+        {'id': 't2', 'title': 'Yellow', 'artist': 'Coldplay'},
+      ]);
+      final apiClient = buildApiClient(
+        (request) async => http.Response('', 204),
+      );
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          currentTrackIds: {},
+          isOnline: false,
+          cacheService: cacheService,
+        ),
+      );
+      await openDialog(tester);
+
+      await tester.enterText(find.byType(TextField), 'wonder');
+      await tester.pump();
+      expect(find.byType(CheckboxListTile), findsNWidgets(1));
+
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pump();
+      expect(find.byType(CheckboxListTile), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    'addTracksWithSearchActive: online, typing a non-empty search query '
+    'does not prevent selecting and submitting tracks — addSetlistTracks '
+    'is still called with exactly the selected trackIds',
+    (tester) async {
+      String? addRequestBody;
+      var addCallCount = 0;
+
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+                {'id': 't2', 'title': 'Track Two', 'artist': 'Artist Two'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks') {
+          addCallCount++;
+          addRequestBody = request.body;
+          return http.Response('', 204);
+        }
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'S',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+
+      await tester.enterText(find.byType(TextField), 'search text');
+      await tester.pump();
+
+      await tester.tap(find.text('Track One'));
+      await tester.tap(find.text('Track Two'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.pumpAndSettle();
+
+      expect(addCallCount, 1);
+      final decoded = jsonDecode(addRequestBody!) as Map<String, dynamic>;
+      expect(decoded['trackIds'], ['t1', 't2']);
+    },
+  );
 }
