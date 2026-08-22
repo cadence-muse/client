@@ -27,6 +27,11 @@ dev_dependencies:
   plugin_platform_interface: ^2.1.8
   riverpod_generator: ^2.6.5
   build_runner: ^2.5.4
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  image_path: "assets/images/logo.png"
 
 flutter:
   uses-material-design: true
