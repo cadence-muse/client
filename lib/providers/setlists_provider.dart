@@ -9,19 +9,6 @@ import '../cache/cache_service.dart';
 
 part 'setlists_provider.g.dart';
 
-/// `bandSetlists` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (mirrors [ProfileSyncedAt], see `profile_provider.dart`).
-/// Set on a cache hit (from the pre-existing cached value) and bumped
-/// unconditionally on every successful
-/// [SetlistListData._fetchAndCache]/[SetlistListData.removeFromList] write.
-@riverpod
-class SetlistListSyncedAt extends _$SetlistListSyncedAt {
-  @override
-  DateTime? build(String bandId) => null;
-
-  void set(DateTime? value) => state = value;
-}
-
 /// Online-first `GET /api/band/{bandId}/setlist/list` data, keyed per band
 /// (D-01/D-03/D-06; family provider — mirrors [BandsListData]'s online-first
 /// shape, see `bands_provider.dart`).
@@ -73,9 +60,6 @@ class SetlistListData extends _$SetlistListData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readBandSetlists(bandId);
         if (cached != null) {
-          ref
-              .read(setlistListSyncedAtProvider(bandId).notifier)
-              .set(await cache.readBandSetlistsSyncedAt(bandId));
           return cached;
         }
         rethrow;
@@ -84,9 +68,6 @@ class SetlistListData extends _$SetlistListData {
 
     final cached = await cache.readBandSetlists(bandId);
     if (cached != null) {
-      ref
-          .read(setlistListSyncedAtProvider(bandId).notifier)
-          .set(await cache.readBandSetlistsSyncedAt(bandId));
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -97,16 +78,7 @@ class SetlistListData extends _$SetlistListData {
     final setlists = await ref
         .read(publicApiProvider)
         .listBandSetlists(bandId);
-    final wrote = await ref
-        .read(cacheServiceProvider)
-        .writeBandSetlists(bandId, setlists);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(setlistListSyncedAtProvider(bandId).notifier)
-          .set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeBandSetlists(bandId, setlists);
     return setlists;
   }
 
@@ -157,14 +129,7 @@ class SetlistListData extends _$SetlistListData {
         // already correct.
         return;
       }
-      final wrote = await ref
-          .read(cacheServiceProvider)
-          .writeBandSetlists(bandId, setlists);
-      if (wrote) {
-        ref
-            .read(setlistListSyncedAtProvider(bandId).notifier)
-            .set(DateTime.now());
-      }
+      await ref.read(cacheServiceProvider).writeBandSetlists(bandId, setlists);
       state = AsyncData(setlists);
     } catch (e, st) {
       if (state.value == null) {
@@ -189,32 +154,9 @@ class SetlistListData extends _$SetlistListData {
     _version++;
     state = AsyncData(filtered);
     unawaited(
-      ref
-          .read(cacheServiceProvider)
-          .writeBandSetlists(bandId, filtered)
-          .then((wrote) {
-            // WR-02: only claim "just synced" if the write actually
-            // succeeded.
-            if (wrote) {
-              ref
-                  .read(setlistListSyncedAtProvider(bandId).notifier)
-                  .set(DateTime.now());
-            }
-          }),
+      ref.read(cacheServiceProvider).writeBandSetlists(bandId, filtered),
     );
   }
-}
-
-/// Family counterpart of [SetlistListSyncedAt] for
-/// `GET /api/band/{bandId}/setlist/{setlistId}`, keyed per `(bandId,
-/// setlistId)` pair to match [SetlistDetailData]'s `build(String bandId,
-/// String setlistId)` shape.
-@riverpod
-class SetlistDetailSyncedAt extends _$SetlistDetailSyncedAt {
-  @override
-  DateTime? build(String bandId, String setlistId) => null;
-
-  void set(DateTime? value) => state = value;
 }
 
 /// Online-first `GET /api/band/{bandId}/setlist/{setlistId}` data (D-01/
@@ -263,9 +205,6 @@ class SetlistDetailData extends _$SetlistDetailData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readSetlistDetail(bandId, setlistId);
         if (cached != null) {
-          ref
-              .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-              .set(await cache.readSetlistDetailSyncedAt(bandId, setlistId));
           return cached;
         }
         rethrow;
@@ -274,9 +213,6 @@ class SetlistDetailData extends _$SetlistDetailData {
 
     final cached = await cache.readSetlistDetail(bandId, setlistId);
     if (cached != null) {
-      ref
-          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-          .set(await cache.readSetlistDetailSyncedAt(bandId, setlistId));
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -290,16 +226,9 @@ class SetlistDetailData extends _$SetlistDetailData {
     final setlist = await ref
         .read(publicApiProvider)
         .getSetlist(bandId, setlistId);
-    final wrote = await ref
+    await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, setlist);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-          .set(DateTime.now());
-    }
     return setlist;
   }
 
@@ -351,14 +280,9 @@ class SetlistDetailData extends _$SetlistDetailData {
         // `state` is already correct.
         return;
       }
-      final wrote = await ref
+      await ref
           .read(cacheServiceProvider)
           .writeSetlistDetail(bandId, setlistId, setlist);
-      if (wrote) {
-        ref
-            .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-            .set(DateTime.now());
-      }
       state = AsyncData(setlist);
     } catch (e, st) {
       if (state.value == null) {
@@ -380,16 +304,9 @@ class SetlistDetailData extends _$SetlistDetailData {
     final updated = {...current, ...patch};
     _version++;
     state = AsyncData(updated);
-    final wrote = await ref
+    await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, updated);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-          .set(DateTime.now());
-    }
   }
 
   /// Patches the cached setlist detail's `tracks` order in-place after a
@@ -416,16 +333,9 @@ class SetlistDetailData extends _$SetlistDetailData {
     _version++;
     final updated = {...current, 'tracks': reordered};
     state = AsyncData(updated);
-    final wrote = await ref
+    await ref
         .read(cacheServiceProvider)
         .writeSetlistDetail(bandId, setlistId, updated);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(setlistDetailSyncedAtProvider(bandId, setlistId).notifier)
-          .set(DateTime.now());
-    }
   }
 }
 
@@ -451,19 +361,6 @@ class SelectedSetlistBandIdFilter extends _$SelectedSetlistBandIdFilter {
   /// outside the notifier itself, per the same pattern established by
   /// `SelectedBandIdFilter.setFilter()` (03-03).
   void setFilter(String? bandId) => state = bandId;
-}
-
-/// `userSetlists` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (mirrors [HomepageSyncedAt], see
-/// `homepage_provider.dart`). Set on a cache hit (from the pre-existing
-/// cached value) and bumped unconditionally on every successful
-/// [UserSetlistsListData._fetchAndCache] write.
-@riverpod
-class UserSetlistsSyncedAt extends _$UserSetlistsSyncedAt {
-  @override
-  DateTime? build() => null;
-
-  void set(DateTime? value) => state = value;
 }
 
 /// Online-first `GET /api/setlist/list` data spanning every band the user
@@ -513,9 +410,6 @@ class UserSetlistsListData extends _$UserSetlistsListData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readUserSetlists(bandIdFilter);
         if (cached != null) {
-          ref
-              .read(userSetlistsSyncedAtProvider.notifier)
-              .set(await cache.readUserSetlistsSyncedAt(bandIdFilter));
           return cached;
         }
         rethrow;
@@ -524,9 +418,6 @@ class UserSetlistsListData extends _$UserSetlistsListData {
 
     final cached = await cache.readUserSetlists(bandIdFilter);
     if (cached != null) {
-      ref
-          .read(userSetlistsSyncedAtProvider.notifier)
-          .set(await cache.readUserSetlistsSyncedAt(bandIdFilter));
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -539,14 +430,9 @@ class UserSetlistsListData extends _$UserSetlistsListData {
     final setlists = await ref
         .read(publicApiProvider)
         .listUserSetlists(bandIdFilter: bandIdFilter);
-    final wrote = await ref
+    await ref
         .read(cacheServiceProvider)
         .writeUserSetlists(bandIdFilter, setlists);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref.read(userSetlistsSyncedAtProvider.notifier).set(DateTime.now());
-    }
     return setlists;
   }
 

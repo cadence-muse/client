@@ -344,33 +344,4 @@ void main() {
       expect(finalState?['name'], 'Fresh Network');
     },
   );
-
-  test(
-    'online build() sets bandDetailSyncedAtProvider(bandId) from the fresh '
-    'fetch, later than the stale seeded cache value',
-    () async {
-      final cacheService = CacheService.inMemory();
-      await cacheService.writeBandDetail('b1', band(name: 'Cached Band'));
-      final seededSyncedAt = await cacheService.readBandDetailSyncedAt('b1');
-
-      final apiClient = buildApiClient((request) async {
-        return http.Response(jsonEncode(band(name: 'Fresh Band')), 200);
-      });
-
-      final container = buildContainer(apiClient, cacheService);
-      final sub = container.listen(bandDetailDataProvider('b1'), (_, _) {});
-      addTearDown(sub.close);
-      final syncedAtSub = container.listen(
-        bandDetailSyncedAtProvider('b1'),
-        (_, _) {},
-      );
-      addTearDown(syncedAtSub.close);
-
-      await container.read(bandDetailDataProvider('b1').future);
-
-      final syncedAt = container.read(bandDetailSyncedAtProvider('b1'));
-      expect(syncedAt, isNotNull);
-      expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
-    },
-  );
 }

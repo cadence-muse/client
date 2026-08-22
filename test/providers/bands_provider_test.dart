@@ -435,37 +435,4 @@ void main() {
       expect(listCallCount, baselineCallCount);
     },
   );
-
-  test(
-    'online build() sets bandsListSyncedAtProvider from the fresh fetch, '
-    'later than the stale seeded cache value',
-    () async {
-      final cacheService = CacheService.inMemory();
-      await cacheService.writeBands([
-        {'id': 'a', 'name': 'Cached Band'},
-      ]);
-      final seededSyncedAt = await cacheService.readBandsSyncedAt();
-
-      final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'items': [
-              {'id': 'a', 'name': 'Fresh Band'},
-            ],
-          }),
-          200,
-        );
-      });
-
-      final container = buildContainer(apiClient, cacheService);
-      container.listen(bandsListDataProvider, (_, _) {});
-      container.listen(bandsListSyncedAtProvider, (_, _) {});
-
-      await container.read(bandsListDataProvider.future);
-
-      final syncedAt = container.read(bandsListSyncedAtProvider);
-      expect(syncedAt, isNotNull);
-      expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
-    },
-  );
 }

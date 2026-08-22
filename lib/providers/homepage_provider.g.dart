@@ -6,43 +6,27 @@ part of 'homepage_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$homepageSyncedAtHash() => r'50ae2aca0da4972743ccd7f2d23bef48a10c1257';
+String _$homepageDataHash() => r'd04b1e6feb258cc2dc44279dbe7d98cf39bdd503';
 
-/// Cache-first `GET /api/homepage` data.
+/// Online-first `GET /api/homepage` data (D-01/D-03/D-06).
 ///
-/// On [build], cached data (if present) is returned immediately with a
-/// background refresh kicked off silently (no loading spinner, no error
-/// surfaced if the background refresh fails — mirrors [ProfileData]'s
-/// cache-first pattern). With no cache, the network fetch happens inline and
-/// any [ApiException] becomes an [AsyncError], which is what drives the
-/// "Couldn't load home" + Retry error state.
+/// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+/// attempted first — a populated cache is not consulted on the happy path.
+/// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+/// distinct error surfaced when a cache hit exists) and only rethrows (as an
+/// [AsyncError], driving "Couldn't load home" + Retry) when there's nothing
+/// cached either. When offline, cached data is served directly with zero
+/// network calls, or [OfflineNoCacheException] is thrown if nothing has ever
+/// been cached (D-06) — recovery from that state is automatic the moment
+/// [isOnlineProvider] flips back to true, since [build] re-watches it. This
+/// provider has no `_version` guard (unlike bands/tracks/setlists) — there
+/// are no local-mutation methods here to race against.
 ///
 /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
 /// a second call while one is already in flight reuses the same [Future]
 /// rather than firing a second network request.
-/// D-05/D-06: `homepage` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp. Set on a cache hit (from the
-/// pre-existing cached value) and bumped unconditionally on every successful
-/// [HomepageData._fetchAndCache] — never on a failed background refresh,
-/// since `_refresh()`'s catch branch never reaches that call.
 ///
-/// Copied from [HomepageSyncedAt].
-@ProviderFor(HomepageSyncedAt)
-final homepageSyncedAtProvider =
-    AutoDisposeNotifierProvider<HomepageSyncedAt, DateTime?>.internal(
-      HomepageSyncedAt.new,
-      name: r'homepageSyncedAtProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$homepageSyncedAtHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$HomepageSyncedAt = AutoDisposeNotifier<DateTime?>;
-String _$homepageDataHash() => r'ba02014a71cb2eccba6ecddc4ba9dafa999baa53';
-
-/// See also [HomepageData].
+/// Copied from [HomepageData].
 @ProviderFor(HomepageData)
 final homepageDataProvider =
     AutoDisposeAsyncNotifierProvider<

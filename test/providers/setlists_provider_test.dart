@@ -412,51 +412,6 @@ void main() {
         ]);
       },
     );
-
-    test(
-      'online build() sets setlistListSyncedAtProvider from the fresh '
-      'fetch, later than the stale seeded cache value',
-      () async {
-        final cacheService = CacheService.inMemory();
-        await cacheService.writeBandSetlists('b1', [
-          {
-            'id': 's1',
-            'name': 'Cached Setlist',
-            'tracksCount': 3,
-            'durationSeconds': 600,
-          },
-        ]);
-        final seededSyncedAt = await cacheService.readBandSetlistsSyncedAt(
-          'b1',
-        );
-
-        final apiClient = buildApiClient((request) async {
-          return http.Response(
-            jsonEncode({
-              'items': [
-                {
-                  'id': 's1',
-                  'name': 'Fresh Setlist',
-                  'tracksCount': 3,
-                  'durationSeconds': 600,
-                },
-              ],
-            }),
-            200,
-          );
-        });
-
-        final container = buildContainer(apiClient, cacheService);
-        container.listen(setlistListDataProvider('b1'), (_, _) {});
-        container.listen(setlistListSyncedAtProvider('b1'), (_, _) {});
-
-        await container.read(setlistListDataProvider('b1').future);
-
-        final syncedAt = container.read(setlistListSyncedAtProvider('b1'));
-        expect(syncedAt, isNotNull);
-        expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
-      },
-    );
   });
 
   group('SetlistDetailData', () {
@@ -999,51 +954,6 @@ void main() {
         expect(callCount, 0);
       },
     );
-
-    test(
-      'online build() sets setlistDetailSyncedAtProvider from the fresh '
-      'fetch, later than the stale seeded cache value',
-      () async {
-        final cacheService = CacheService.inMemory();
-        await cacheService.writeSetlistDetail('b1', 's1', {
-          'id': 's1',
-          'name': 'Cached Setlist',
-          'durationSeconds': 600,
-          'tracks': <Map<String, dynamic>>[],
-        });
-        final seededSyncedAt = await cacheService.readSetlistDetailSyncedAt(
-          'b1',
-          's1',
-        );
-
-        final apiClient = buildApiClient((request) async {
-          return http.Response(
-            jsonEncode({
-              'id': 's1',
-              'name': 'Fresh Setlist',
-              'durationSeconds': 600,
-              'tracks': <Map<String, dynamic>>[],
-            }),
-            200,
-          );
-        });
-
-        final container = buildContainer(apiClient, cacheService);
-        container.listen(setlistDetailDataProvider('b1', 's1'), (_, _) {});
-        container.listen(
-          setlistDetailSyncedAtProvider('b1', 's1'),
-          (_, _) {},
-        );
-
-        await container.read(setlistDetailDataProvider('b1', 's1').future);
-
-        final syncedAt = container.read(
-          setlistDetailSyncedAtProvider('b1', 's1'),
-        );
-        expect(syncedAt, isNotNull);
-        expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
-      },
-    );
   });
 
   group('UserSetlistsListData', () {
@@ -1328,55 +1238,6 @@ void main() {
 
       expect(callCount, 1);
     });
-
-    test(
-      'online build() sets userSetlistsSyncedAtProvider from the fresh '
-      'fetch, later than the stale seeded cache value',
-      () async {
-        final cacheService = CacheService.inMemory();
-        await cacheService.writeUserSetlists(null, [
-          {
-            'id': 's1',
-            'name': 'Cached Setlist',
-            'tracksCount': 3,
-            'durationSeconds': 600,
-            'bandId': 'b1',
-            'bandName': 'Band One',
-          },
-        ]);
-        final seededSyncedAt = await cacheService.readUserSetlistsSyncedAt(
-          null,
-        );
-
-        final apiClient = buildApiClient((request) async {
-          return http.Response(
-            jsonEncode({
-              'items': [
-                {
-                  'id': 's1',
-                  'name': 'Fresh Setlist',
-                  'tracksCount': 3,
-                  'durationSeconds': 600,
-                  'bandId': 'b1',
-                  'bandName': 'Band One',
-                },
-              ],
-            }),
-            200,
-          );
-        });
-
-        final container = buildContainer(apiClient, cacheService);
-        container.listen(userSetlistsListDataProvider, (_, _) {});
-        container.listen(userSetlistsSyncedAtProvider, (_, _) {});
-
-        await container.read(userSetlistsListDataProvider.future);
-
-        final syncedAt = container.read(userSetlistsSyncedAtProvider);
-        expect(syncedAt, isNotNull);
-        expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
-      },
-    );
 
     test(
       'changing selectedSetlistBandIdFilterProvider triggers a rebuild whose '

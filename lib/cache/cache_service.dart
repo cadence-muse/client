@@ -146,9 +146,7 @@ class CacheService {
   /// Returns `true` on a confirmed write, `false` if it threw (WR-02) — a
   /// cache write failure (full disk, Hive box corruption, etc.) is still
   /// non-critical and swallowed here (callers keep serving in-memory/
-  /// network data regardless), but the boolean return lets callers avoid
-  /// bumping their `XSyncedAt` provider on a write that didn't actually
-  /// persist.
+  /// network data regardless).
   Future<bool> writeProfile(Map<String, dynamic> data) async {
     try {
       await _profileStore.put(_profileKey, {
@@ -158,19 +156,6 @@ class CacheService {
       return true;
     } catch (_) {
       return false;
-    }
-  }
-
-  /// D-04/D-05: independent `syncedAt` for the `profile` cache key, written
-  /// atomically alongside `data` in the same [writeProfile] call. `null`
-  /// before any write, or on any read exception.
-  Future<DateTime?> readProfileSyncedAt() async {
-    try {
-      final wrapped = _profileStore.get(_profileKey);
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
     }
   }
 
@@ -199,16 +184,6 @@ class CacheService {
     }
   }
 
-  Future<DateTime?> readHomepageSyncedAt() async {
-    try {
-      final wrapped = _homepageStore.get(_homepageKey);
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<List<Map<String, dynamic>>?> readBands() async {
     try {
       final wrapped = _bandsStore.get(_bandsKey);
@@ -231,16 +206,6 @@ class CacheService {
       return true;
     } catch (_) {
       return false;
-    }
-  }
-
-  Future<DateTime?> readBandsSyncedAt() async {
-    try {
-      final wrapped = _bandsStore.get(_bandsKey);
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
     }
   }
 
@@ -272,16 +237,6 @@ class CacheService {
     }
   }
 
-  Future<DateTime?> readBandDetailSyncedAt(String bandId) async {
-    try {
-      final wrapped = _bandsStore.get(_bandDetailKey(bandId));
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
-    }
-  }
-
   static String _bandDetailKey(String bandId) => 'band_$bandId';
 
   Future<List<Map<String, dynamic>>?> readBandTracks(String bandId) async {
@@ -309,16 +264,6 @@ class CacheService {
       return true;
     } catch (_) {
       return false;
-    }
-  }
-
-  Future<DateTime?> readBandTracksSyncedAt(String bandId) async {
-    try {
-      final wrapped = _tracksStore.get(_bandTracksKey(bandId));
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
     }
   }
 
@@ -356,19 +301,6 @@ class CacheService {
     }
   }
 
-  Future<DateTime?> readBandTrackDetailSyncedAt(
-    String bandId,
-    String trackId,
-  ) async {
-    try {
-      final wrapped = _tracksStore.get(_trackDetailKey(bandId, trackId));
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
-    }
-  }
-
   static String _trackDetailKey(String bandId, String trackId) =>
       'detail_${bandId}_$trackId';
 
@@ -402,16 +334,6 @@ class CacheService {
     }
   }
 
-  Future<DateTime?> readUserTracksSyncedAt(String? bandIdFilter) async {
-    try {
-      final wrapped = _tracksStore.get(_userTracksKey(bandIdFilter));
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
-    }
-  }
-
   static String _userTracksKey(String? bandIdFilter) =>
       'user_tracks_${bandIdFilter ?? 'all'}';
 
@@ -440,16 +362,6 @@ class CacheService {
       return true;
     } catch (_) {
       return false;
-    }
-  }
-
-  Future<DateTime?> readBandSetlistsSyncedAt(String bandId) async {
-    try {
-      final wrapped = _setlistsStore.get(_bandSetlistsKey(bandId));
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
     }
   }
 
@@ -487,19 +399,6 @@ class CacheService {
     }
   }
 
-  Future<DateTime?> readSetlistDetailSyncedAt(
-    String bandId,
-    String setlistId,
-  ) async {
-    try {
-      final wrapped = _setlistsStore.get(_setlistDetailKey(bandId, setlistId));
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
-    }
-  }
-
   static String _setlistDetailKey(String bandId, String setlistId) =>
       'detail_${bandId}_$setlistId';
 
@@ -530,16 +429,6 @@ class CacheService {
       return true;
     } catch (_) {
       return false;
-    }
-  }
-
-  Future<DateTime?> readUserSetlistsSyncedAt(String? bandIdFilter) async {
-    try {
-      final wrapped = _setlistsStore.get(_userSetlistsKey(bandIdFilter));
-      if (wrapped == null) return null;
-      return DateTime.parse(wrapped['syncedAt'] as String);
-    } catch (_) {
-      return null;
     }
   }
 

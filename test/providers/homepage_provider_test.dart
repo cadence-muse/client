@@ -222,34 +222,4 @@ void main() {
 
     expect(callCount, 1);
   });
-
-  test(
-    'online build() sets homepageSyncedAtProvider from the fresh fetch, '
-    'later than the stale seeded cache value',
-    () async {
-      final cacheService = CacheService.inMemory();
-      await cacheService.writeHomepage({
-        'username': 'cacheduser',
-        'bandsCount': 2,
-      });
-      final seededSyncedAt = await cacheService.readHomepageSyncedAt();
-
-      final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({'username': 'freshuser', 'bandsCount': 3}),
-          200,
-        );
-      });
-
-      final container = buildContainer(apiClient, cacheService);
-      container.listen(homepageDataProvider, (_, _) {});
-      container.listen(homepageSyncedAtProvider, (_, _) {});
-
-      await container.read(homepageDataProvider.future);
-
-      final syncedAt = container.read(homepageSyncedAtProvider);
-      expect(syncedAt, isNotNull);
-      expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
-    },
-  );
 }

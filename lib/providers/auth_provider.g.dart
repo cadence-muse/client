@@ -57,7 +57,7 @@ final publicApiProvider = AutoDisposeProvider<PublicApi>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef PublicApiRef = AutoDisposeProviderRef<PublicApi>;
-String _$authSessionHash() => r'1c3374cbf389184d0ddb5f93cf16d9f43f250991';
+String _$authSessionHash() => r'65073b855531000553248db8f60ed11e25a8dd20';
 
 /// Tracks the current auth token and whether the user is signed in.
 ///

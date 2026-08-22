@@ -9,32 +9,6 @@ import '../cache/cache_service.dart';
 
 part 'bands_provider.g.dart';
 
-/// D-04/D-05 (05-01-PLAN.md): independent `syncedAt` for the `bands` list
-/// cache key, mirroring [ProfileSyncedAt]'s shape. Set from the cache's
-/// stored timestamp on a cache hit, and bumped on every successful cache
-/// write (initial fetch, local mutation, or a `_doRefresh` background
-/// fetch that wasn't superseded by a local mutation) — background
-/// `_doRefresh` fetches that lose the `_version` race are discarded before
-/// either the cache write or this bump happens (CR-01 fix), so a bump here
-/// always corresponds to an actual on-disk write.
-@riverpod
-class BandsListSyncedAt extends _$BandsListSyncedAt {
-  @override
-  DateTime? build() => null;
-
-  void set(DateTime? value) => state = value;
-}
-
-/// Family counterpart of [BandsListSyncedAt] for `GET /api/band/{bandId}`,
-/// keyed per band to match [BandDetailData]'s `build(String bandId)` shape.
-@riverpod
-class BandDetailSyncedAt extends _$BandDetailSyncedAt {
-  @override
-  DateTime? build(String bandId) => null;
-
-  void set(DateTime? value) => state = value;
-}
-
 /// Online-first `GET /api/band/list` data (D-01/D-03/D-06).
 ///
 /// On [build], when [isOnlineProvider] is true, a fresh fetch is always
@@ -74,9 +48,6 @@ class BandsListData extends _$BandsListData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readBands();
         if (cached != null) {
-          ref
-              .read(bandsListSyncedAtProvider.notifier)
-              .set(await cache.readBandsSyncedAt());
           return cached;
         }
         rethrow;
@@ -85,9 +56,6 @@ class BandsListData extends _$BandsListData {
 
     final cached = await cache.readBands();
     if (cached != null) {
-      ref
-          .read(bandsListSyncedAtProvider.notifier)
-          .set(await cache.readBandsSyncedAt());
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -96,12 +64,7 @@ class BandsListData extends _$BandsListData {
 
   Future<List<Map<String, dynamic>>> _fetchAndCache() async {
     final bands = await ref.read(publicApiProvider).listBands();
-    final wrote = await ref.read(cacheServiceProvider).writeBands(bands);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeBands(bands);
     return bands;
   }
 
@@ -126,10 +89,7 @@ class BandsListData extends _$BandsListData {
         // `state` is already correct.
         return;
       }
-      final wrote = await ref.read(cacheServiceProvider).writeBands(bands);
-      if (wrote) {
-        ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
-      }
+      await ref.read(cacheServiceProvider).writeBands(bands);
       state = AsyncData(bands);
     } catch (e, st) {
       if (state.value == null) {
@@ -145,7 +105,6 @@ class BandsListData extends _$BandsListData {
   void setBands(List<Map<String, dynamic>> bands) {
     _version++;
     state = AsyncData(bands);
-    ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
   }
 
   /// Patches [bandId]'s name in-place in the cached list after a
@@ -162,14 +121,7 @@ class BandsListData extends _$BandsListData {
     ];
     _version++;
     state = AsyncData(updated);
-    unawaited(
-      ref.read(cacheServiceProvider).writeBands(updated).then((wrote) {
-        // WR-02: only claim "just synced" if the write actually succeeded.
-        if (wrote) {
-          ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
-        }
-      }),
-    );
+    unawaited(ref.read(cacheServiceProvider).writeBands(updated));
   }
 
   /// Patches [bandId]'s `ownerId` in-place in the cached list after a
@@ -192,14 +144,7 @@ class BandsListData extends _$BandsListData {
     ];
     _version++;
     state = AsyncData(updated);
-    unawaited(
-      ref.read(cacheServiceProvider).writeBands(updated).then((wrote) {
-        // WR-02: only claim "just synced" if the write actually succeeded.
-        if (wrote) {
-          ref.read(bandsListSyncedAtProvider.notifier).set(DateTime.now());
-        }
-      }),
-    );
+    unawaited(ref.read(cacheServiceProvider).writeBands(updated));
   }
 }
 
@@ -239,9 +184,6 @@ class BandDetailData extends _$BandDetailData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readBandDetail(bandId);
         if (cached != null) {
-          ref
-              .read(bandDetailSyncedAtProvider(bandId).notifier)
-              .set(await cache.readBandDetailSyncedAt(bandId));
           return cached;
         }
         rethrow;
@@ -250,9 +192,6 @@ class BandDetailData extends _$BandDetailData {
 
     final cached = await cache.readBandDetail(bandId);
     if (cached != null) {
-      ref
-          .read(bandDetailSyncedAtProvider(bandId).notifier)
-          .set(await cache.readBandDetailSyncedAt(bandId));
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -261,16 +200,7 @@ class BandDetailData extends _$BandDetailData {
 
   Future<Map<String, dynamic>> _fetchAndCache(String bandId) async {
     final band = await ref.read(publicApiProvider).getBand(bandId);
-    final wrote = await ref
-        .read(cacheServiceProvider)
-        .writeBandDetail(bandId, band);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(bandDetailSyncedAtProvider(bandId).notifier)
-          .set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
     return band;
   }
 
@@ -295,14 +225,7 @@ class BandDetailData extends _$BandDetailData {
         // `state` is already correct.
         return;
       }
-      final wrote = await ref
-          .read(cacheServiceProvider)
-          .writeBandDetail(bandId, band);
-      if (wrote) {
-        ref
-            .read(bandDetailSyncedAtProvider(bandId).notifier)
-            .set(DateTime.now());
-      }
+      await ref.read(cacheServiceProvider).writeBandDetail(bandId, band);
       state = AsyncData(band);
     } catch (e, st) {
       if (state.value == null) {
@@ -323,16 +246,7 @@ class BandDetailData extends _$BandDetailData {
     final updated = {...current, 'name': newName};
     _version++;
     state = AsyncData(updated);
-    final wrote = await ref
-        .read(cacheServiceProvider)
-        .writeBandDetail(bandId, updated);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(bandDetailSyncedAtProvider(bandId).notifier)
-          .set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeBandDetail(bandId, updated);
   }
 
   /// Merges [newCode] into the currently cached band-detail map after a
@@ -348,15 +262,6 @@ class BandDetailData extends _$BandDetailData {
     final updated = {...current, 'inviteCode': newCode};
     _version++;
     state = AsyncData(updated);
-    final wrote = await ref
-        .read(cacheServiceProvider)
-        .writeBandDetail(bandId, updated);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(bandDetailSyncedAtProvider(bandId).notifier)
-          .set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeBandDetail(bandId, updated);
   }
 }

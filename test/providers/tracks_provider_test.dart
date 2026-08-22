@@ -298,39 +298,6 @@ void main() {
         ]);
       },
     );
-
-    test(
-      'trackListSyncedAtProvider resolves to the cache\'s stored syncedAt '
-      'on an offline cache hit and updates after a successful online fetch',
-      () async {
-        final cacheService = CacheService.inMemory();
-        await cacheService.writeBandTracks('b1', [
-          {'id': 't1', 'title': 'Track', 'artist': 'Artist'},
-        ]);
-        final cachedSyncedAt = await cacheService.readBandTracksSyncedAt('b1');
-
-        final apiClient = buildApiClient((request) async {
-          return http.Response(
-            jsonEncode({
-              'items': [
-                {'id': 't1', 'title': 'Track', 'artist': 'Artist'},
-              ],
-            }),
-            200,
-          );
-        });
-
-        final container = buildContainer(
-          apiClient,
-          cacheService,
-          isOnline: false,
-        );
-        container.listen(trackListDataProvider('b1'), (_, _) {});
-        await container.read(trackListDataProvider('b1').future);
-
-        expect(container.read(trackListSyncedAtProvider('b1')), cachedSyncedAt);
-      },
-    );
   });
 
   group('TrackDetailData', () {
@@ -611,40 +578,6 @@ void main() {
         'title': 'Locally Renamed Track',
         'artist': 'Cached Artist',
       });
-    });
-
-    test('trackDetailSyncedAtProvider resolves to the cache\'s stored syncedAt '
-        'on an offline cache hit', () async {
-      final cacheService = CacheService.inMemory();
-      await cacheService.writeBandTrackDetail('b1', 't1', {
-        'id': 't1',
-        'title': 'Track',
-        'artist': 'Artist',
-      });
-      final cachedSyncedAt = await cacheService.readBandTrackDetailSyncedAt(
-        'b1',
-        't1',
-      );
-
-      final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
-          200,
-        );
-      });
-
-      final container = buildContainer(
-        apiClient,
-        cacheService,
-        isOnline: false,
-      );
-      container.listen(trackDetailDataProvider('b1', 't1'), (_, _) {});
-      await container.read(trackDetailDataProvider('b1', 't1').future);
-
-      expect(
-        container.read(trackDetailSyncedAtProvider('b1', 't1')),
-        cachedSyncedAt,
-      );
     });
   });
 
@@ -946,48 +879,6 @@ void main() {
 
       expect(capturedBandIdFilters, contains('band-x'));
       expect(capturedMethods, everyElement('POST'));
-    });
-
-    test('userTracksSyncedAtProvider resolves to the cache\'s stored syncedAt '
-        'on an offline cache hit', () async {
-      final cacheService = CacheService.inMemory();
-      await cacheService.writeUserTracks(null, [
-        {
-          'id': 't1',
-          'title': 'Track',
-          'artist': 'Artist',
-          'bandId': 'b1',
-          'bandName': 'Band One',
-        },
-      ]);
-      final cachedSyncedAt = await cacheService.readUserTracksSyncedAt(null);
-
-      final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'items': [
-              {
-                'id': 't1',
-                'title': 'Track',
-                'artist': 'Artist',
-                'bandId': 'b1',
-                'bandName': 'Band One',
-              },
-            ],
-          }),
-          200,
-        );
-      });
-
-      final container = buildContainer(
-        apiClient,
-        cacheService,
-        isOnline: false,
-      );
-      container.listen(userTracksListDataProvider, (_, _) {});
-      await container.read(userTracksListDataProvider.future);
-
-      expect(container.read(userTracksSyncedAtProvider), cachedSyncedAt);
     });
   });
 }

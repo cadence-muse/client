@@ -65,25 +65,15 @@ class _FakeSecureStorage extends FlutterSecureStoragePlatform
 /// sign-out) actually runs without depending on real Hive storage.
 class _FakeCacheService implements CacheService {
   final Map<String, dynamic> _profile = {};
-  DateTime? _profileSyncedAt;
   final Map<String, dynamic> _homepage = {};
-  DateTime? _homepageSyncedAt;
   List<Map<String, dynamic>>? _bands;
-  DateTime? _bandsSyncedAt;
   final Map<String, Map<String, dynamic>> _bandDetails = {};
-  final Map<String, DateTime> _bandDetailsSyncedAt = {};
   final Map<String, List<Map<String, dynamic>>> _bandTracks = {};
-  final Map<String, DateTime> _bandTracksSyncedAt = {};
   final Map<String, Map<String, dynamic>> _trackDetails = {};
-  final Map<String, DateTime> _trackDetailsSyncedAt = {};
   final Map<String, List<Map<String, dynamic>>> _userTracks = {};
-  final Map<String, DateTime> _userTracksSyncedAt = {};
   final Map<String, List<Map<String, dynamic>>> _bandSetlists = {};
-  final Map<String, DateTime> _bandSetlistsSyncedAt = {};
   final Map<String, Map<String, dynamic>> _setlistDetails = {};
-  final Map<String, DateTime> _setlistDetailsSyncedAt = {};
   final Map<String, List<Map<String, dynamic>>> _userSetlists = {};
-  final Map<String, DateTime> _userSetlistsSyncedAt = {};
   int clearAllCallCount = 0;
   bool get clearAllCalled => clearAllCallCount > 0;
 
@@ -97,12 +87,8 @@ class _FakeCacheService implements CacheService {
     _profile
       ..clear()
       ..addAll(data);
-    _profileSyncedAt = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readProfileSyncedAt() async => _profileSyncedAt;
 
   @override
   Future<Map<String, dynamic>?> readHomepage() async => _homepage.isEmpty
@@ -114,12 +100,8 @@ class _FakeCacheService implements CacheService {
     _homepage
       ..clear()
       ..addAll(data);
-    _homepageSyncedAt = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readHomepageSyncedAt() async => _homepageSyncedAt;
 
   @override
   Future<List<Map<String, dynamic>>?> readBands() async => _bands == null
@@ -129,12 +111,8 @@ class _FakeCacheService implements CacheService {
   @override
   Future<bool> writeBands(List<Map<String, dynamic>> data) async {
     _bands = List<Map<String, dynamic>>.from(data);
-    _bandsSyncedAt = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readBandsSyncedAt() async => _bandsSyncedAt;
 
   @override
   Future<Map<String, dynamic>?> readBandDetail(String bandId) async =>
@@ -148,13 +126,8 @@ class _FakeCacheService implements CacheService {
     Map<String, dynamic> data,
   ) async {
     _bandDetails[bandId] = Map<String, dynamic>.from(data);
-    _bandDetailsSyncedAt[bandId] = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readBandDetailSyncedAt(String bandId) async =>
-      _bandDetailsSyncedAt[bandId];
 
   @override
   Future<List<Map<String, dynamic>>?> readBandTracks(String bandId) async =>
@@ -168,13 +141,8 @@ class _FakeCacheService implements CacheService {
     List<Map<String, dynamic>> data,
   ) async {
     _bandTracks[bandId] = List<Map<String, dynamic>>.from(data);
-    _bandTracksSyncedAt[bandId] = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readBandTracksSyncedAt(String bandId) async =>
-      _bandTracksSyncedAt[bandId];
 
   @override
   Future<Map<String, dynamic>?> readBandTrackDetail(
@@ -194,15 +162,8 @@ class _FakeCacheService implements CacheService {
     Map<String, dynamic> data,
   ) async {
     _trackDetails['${bandId}_$trackId'] = Map<String, dynamic>.from(data);
-    _trackDetailsSyncedAt['${bandId}_$trackId'] = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readBandTrackDetailSyncedAt(
-    String bandId,
-    String trackId,
-  ) async => _trackDetailsSyncedAt['${bandId}_$trackId'];
 
   @override
   Future<List<Map<String, dynamic>>?> readUserTracks(
@@ -221,13 +182,8 @@ class _FakeCacheService implements CacheService {
   ) async {
     final key = bandIdFilter ?? 'all';
     _userTracks[key] = List<Map<String, dynamic>>.from(data);
-    _userTracksSyncedAt[key] = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readUserTracksSyncedAt(String? bandIdFilter) async =>
-      _userTracksSyncedAt[bandIdFilter ?? 'all'];
 
   @override
   Future<List<Map<String, dynamic>>?> readBandSetlists(String bandId) async =>
@@ -241,13 +197,8 @@ class _FakeCacheService implements CacheService {
     List<Map<String, dynamic>> data,
   ) async {
     _bandSetlists[bandId] = List<Map<String, dynamic>>.from(data);
-    _bandSetlistsSyncedAt[bandId] = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readBandSetlistsSyncedAt(String bandId) async =>
-      _bandSetlistsSyncedAt[bandId];
 
   @override
   Future<Map<String, dynamic>?> readSetlistDetail(
@@ -267,15 +218,8 @@ class _FakeCacheService implements CacheService {
     Map<String, dynamic> data,
   ) async {
     _setlistDetails['${bandId}_$setlistId'] = Map<String, dynamic>.from(data);
-    _setlistDetailsSyncedAt['${bandId}_$setlistId'] = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readSetlistDetailSyncedAt(
-    String bandId,
-    String setlistId,
-  ) async => _setlistDetailsSyncedAt['${bandId}_$setlistId'];
 
   @override
   Future<List<Map<String, dynamic>>?> readUserSetlists(
@@ -294,37 +238,22 @@ class _FakeCacheService implements CacheService {
   ) async {
     final key = bandIdFilter ?? 'all';
     _userSetlists[key] = List<Map<String, dynamic>>.from(data);
-    _userSetlistsSyncedAt[key] = DateTime.now();
     return true;
   }
-
-  @override
-  Future<DateTime?> readUserSetlistsSyncedAt(String? bandIdFilter) async =>
-      _userSetlistsSyncedAt[bandIdFilter ?? 'all'];
 
   @override
   Future<void> clearAll() async {
     clearAllCallCount++;
     _profile.clear();
-    _profileSyncedAt = null;
     _homepage.clear();
-    _homepageSyncedAt = null;
     _bands = null;
-    _bandsSyncedAt = null;
     _bandDetails.clear();
-    _bandDetailsSyncedAt.clear();
     _bandTracks.clear();
-    _bandTracksSyncedAt.clear();
     _trackDetails.clear();
-    _trackDetailsSyncedAt.clear();
     _userTracks.clear();
-    _userTracksSyncedAt.clear();
     _bandSetlists.clear();
-    _bandSetlistsSyncedAt.clear();
     _setlistDetails.clear();
-    _setlistDetailsSyncedAt.clear();
     _userSetlists.clear();
-    _userSetlistsSyncedAt.clear();
   }
 }
 

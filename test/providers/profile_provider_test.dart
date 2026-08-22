@@ -210,31 +210,4 @@ void main() {
 
     expect(callCount, 1);
   });
-
-  test(
-    'online build() sets profileSyncedAtProvider from the fresh fetch, '
-    'later than the stale seeded cache value',
-    () async {
-      final cacheService = CacheService.inMemory();
-      await cacheService.writeProfile({'id': 'u1', 'username': 'cacheduser'});
-      final seededSyncedAt = await cacheService.readProfileSyncedAt();
-
-      final apiClient = buildApiClient((request) async {
-        return http.Response(
-          jsonEncode({'id': 'u1', 'username': 'freshuser'}),
-          200,
-        );
-      });
-
-      final container = buildContainer(apiClient, cacheService);
-      container.listen(profileDataProvider, (_, _) {});
-      container.listen(profileSyncedAtProvider, (_, _) {});
-
-      await container.read(profileDataProvider.future);
-
-      final syncedAt = container.read(profileSyncedAtProvider);
-      expect(syncedAt, isNotNull);
-      expect(syncedAt!.isAfter(seededSyncedAt!), isTrue);
-    },
-  );
 }

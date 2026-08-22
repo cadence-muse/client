@@ -64,21 +64,6 @@ void main() {
     'lib/features/setlists/add_setlist_tracks_dialog.dart',
   ];
 
-  /// The 10 `readXSyncedAt()` accessor names `cache_service.dart` must expose
-  /// — one per cache key pair, established in 05-01 Task 2.
-  const readSyncedAtMethodNames = [
-    'readProfileSyncedAt',
-    'readHomepageSyncedAt',
-    'readBandsSyncedAt',
-    'readBandDetailSyncedAt',
-    'readBandTracksSyncedAt',
-    'readBandTrackDetailSyncedAt',
-    'readUserTracksSyncedAt',
-    'readBandSetlistsSyncedAt',
-    'readSetlistDetailSyncedAt',
-    'readUserSetlistsSyncedAt',
-  ];
-
   test(
     'every cached screen has removed SyncStatusBadge and wires '
     'OfflineNoCacheException (OFFL-07/OFFL-08 regression guard)',
@@ -149,30 +134,6 @@ void main() {
             '$path is expected to render OfflineBanner (OFFL-05 global '
             'offline banner) but the string was not found.',
       );
-    },
-  );
-
-  test(
-    'cache_service.dart exposes a readXSyncedAt() accessor for all 10 cache '
-    'keys (OFFL-04 regression guard)',
-    () {
-      const path = 'lib/cache/cache_service.dart';
-      final file = File(path);
-      expect(
-        file.existsSync(),
-        isTrue,
-        reason: 'Expected file to exist: $path',
-      );
-      final contents = file.readAsStringSync();
-      for (final methodName in readSyncedAtMethodNames) {
-        expect(
-          contents.contains(methodName),
-          isTrue,
-          reason:
-              '$path is expected to expose a $methodName() accessor but the '
-              'string was not found.',
-        );
-      }
     },
   );
 }

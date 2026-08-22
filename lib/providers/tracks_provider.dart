@@ -9,20 +9,6 @@ import '../cache/cache_service.dart';
 
 part 'tracks_provider.g.dart';
 
-/// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
-/// shape, see `profile_provider.dart`). Set from the cache's stored
-/// timestamp on a cache hit (offline, or a failed online fetch falling back
-/// to cache per D-03) and bumped unconditionally on every successful
-/// [TrackListData._fetchAndCache]/[TrackListData.removeFromList].
-@riverpod
-class TrackListSyncedAt extends _$TrackListSyncedAt {
-  @override
-  DateTime? build(String bandId) => null;
-
-  void set(DateTime? value) => state = value;
-}
-
 /// Online-first `GET /api/band/{bandId}/track/list` data (D-01/D-03/D-06),
 /// keyed per band (family provider — mirrors [TrackListData]'s counterpart
 /// [BandsListData] in `bands_provider.dart`).
@@ -65,9 +51,6 @@ class TrackListData extends _$TrackListData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readBandTracks(bandId);
         if (cached != null) {
-          ref
-              .read(trackListSyncedAtProvider(bandId).notifier)
-              .set(await cache.readBandTracksSyncedAt(bandId));
           return cached;
         }
         rethrow;
@@ -76,9 +59,6 @@ class TrackListData extends _$TrackListData {
 
     final cached = await cache.readBandTracks(bandId);
     if (cached != null) {
-      ref
-          .read(trackListSyncedAtProvider(bandId).notifier)
-          .set(await cache.readBandTracksSyncedAt(bandId));
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -87,15 +67,7 @@ class TrackListData extends _$TrackListData {
 
   Future<List<Map<String, dynamic>>> _fetchAndCache(String bandId) async {
     final tracks = await ref.read(publicApiProvider).listBandTracks(bandId);
-    final wrote = await ref
-        .read(cacheServiceProvider)
-        .writeBandTracks(bandId, tracks);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded — otherwise the timestamp would silently overstate what's
-    // actually persisted on disk.
-    if (wrote) {
-      ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeBandTracks(bandId, tracks);
     return tracks;
   }
 
@@ -120,12 +92,7 @@ class TrackListData extends _$TrackListData {
         // already correct.
         return;
       }
-      final wrote = await ref
-          .read(cacheServiceProvider)
-          .writeBandTracks(bandId, tracks);
-      if (wrote) {
-        ref.read(trackListSyncedAtProvider(bandId).notifier).set(DateTime.now());
-      }
+      await ref.read(cacheServiceProvider).writeBandTracks(bandId, tracks);
       state = AsyncData(tracks);
     } catch (e, st) {
       if (state.value == null) {
@@ -150,32 +117,9 @@ class TrackListData extends _$TrackListData {
     _version++;
     state = AsyncData(filtered);
     unawaited(
-      ref.read(cacheServiceProvider).writeBandTracks(bandId, filtered).then((
-        wrote,
-      ) {
-        // WR-02: only claim "just synced" if the write actually succeeded.
-        if (wrote) {
-          ref
-              .read(trackListSyncedAtProvider(bandId).notifier)
-              .set(DateTime.now());
-        }
-      }),
+      ref.read(cacheServiceProvider).writeBandTracks(bandId, filtered),
     );
   }
-}
-
-/// `bandTrackDetail` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
-/// trackId)` pair). Set from the cache's stored timestamp on a cache hit
-/// (offline, or a failed online fetch falling back to cache per D-03) and
-/// bumped unconditionally on every successful
-/// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields].
-@riverpod
-class TrackDetailSyncedAt extends _$TrackDetailSyncedAt {
-  @override
-  DateTime? build(String bandId, String trackId) => null;
-
-  void set(DateTime? value) => state = value;
 }
 
 /// Online-first `GET /api/band/{bandId}/track/{trackId}` data
@@ -215,9 +159,6 @@ class TrackDetailData extends _$TrackDetailData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readBandTrackDetail(bandId, trackId);
         if (cached != null) {
-          ref
-              .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-              .set(await cache.readBandTrackDetailSyncedAt(bandId, trackId));
           return cached;
         }
         rethrow;
@@ -226,9 +167,6 @@ class TrackDetailData extends _$TrackDetailData {
 
     final cached = await cache.readBandTrackDetail(bandId, trackId);
     if (cached != null) {
-      ref
-          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-          .set(await cache.readBandTrackDetailSyncedAt(bandId, trackId));
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -242,16 +180,9 @@ class TrackDetailData extends _$TrackDetailData {
     final track = await ref
         .read(publicApiProvider)
         .getBandTrack(bandId, trackId);
-    final wrote = await ref
+    await ref
         .read(cacheServiceProvider)
         .writeBandTrackDetail(bandId, trackId, track);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-          .set(DateTime.now());
-    }
     return track;
   }
 
@@ -278,14 +209,9 @@ class TrackDetailData extends _$TrackDetailData {
         // correct.
         return;
       }
-      final wrote = await ref
+      await ref
           .read(cacheServiceProvider)
           .writeBandTrackDetail(bandId, trackId, track);
-      if (wrote) {
-        ref
-            .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-            .set(DateTime.now());
-      }
       state = AsyncData(track);
     } catch (e, st) {
       if (state.value == null) {
@@ -307,16 +233,9 @@ class TrackDetailData extends _$TrackDetailData {
     final updated = {...current, ...patch};
     _version++;
     state = AsyncData(updated);
-    final wrote = await ref
+    await ref
         .read(cacheServiceProvider)
         .writeBandTrackDetail(bandId, trackId, updated);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref
-          .read(trackDetailSyncedAtProvider(bandId, trackId).notifier)
-          .set(DateTime.now());
-    }
   }
 }
 
@@ -334,20 +253,6 @@ class SelectedBandIdFilter extends _$SelectedBandIdFilter {
   /// outside the notifier itself, per the same pattern established by
   /// `BandsListData.setBands()` (02-03).
   void setFilter(String? bandId) => state = bandId;
-}
-
-/// `userTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (plain, non-family — mirrors [HomepageSyncedAt]'s
-/// shape). Set from the cache's stored timestamp on a cache hit (offline, or
-/// a failed online fetch falling back to cache per D-03) and bumped
-/// unconditionally on every successful
-/// [UserTracksListData._fetchAndCache].
-@riverpod
-class UserTracksSyncedAt extends _$UserTracksSyncedAt {
-  @override
-  DateTime? build() => null;
-
-  void set(DateTime? value) => state = value;
 }
 
 /// Online-first `GET /api/track/list` data spanning every band the user
@@ -384,9 +289,6 @@ class UserTracksListData extends _$UserTracksListData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readUserTracks(bandIdFilter);
         if (cached != null) {
-          ref
-              .read(userTracksSyncedAtProvider.notifier)
-              .set(await cache.readUserTracksSyncedAt(bandIdFilter));
           return cached;
         }
         rethrow;
@@ -395,9 +297,6 @@ class UserTracksListData extends _$UserTracksListData {
 
     final cached = await cache.readUserTracks(bandIdFilter);
     if (cached != null) {
-      ref
-          .read(userTracksSyncedAtProvider.notifier)
-          .set(await cache.readUserTracksSyncedAt(bandIdFilter));
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -410,14 +309,7 @@ class UserTracksListData extends _$UserTracksListData {
     final tracks = await ref
         .read(publicApiProvider)
         .listUserTracks(bandIdFilter: bandIdFilter);
-    final wrote = await ref
-        .read(cacheServiceProvider)
-        .writeUserTracks(bandIdFilter, tracks);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref.read(userTracksSyncedAtProvider.notifier).set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeUserTracks(bandIdFilter, tracks);
     return tracks;
   }
 

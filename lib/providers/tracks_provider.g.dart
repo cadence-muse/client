@@ -6,7 +6,7 @@ part of 'tracks_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$trackListSyncedAtHash() => r'f2ae10e193362aeb4d6e2f4e2e1f4f94cc04f811';
+String _$trackListDataHash() => r'c3106edb1e2ae930b76c907c5c2a9ff579911ac2';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,264 +29,6 @@ class _SystemHash {
   }
 }
 
-abstract class _$TrackListSyncedAt
-    extends BuildlessAutoDisposeNotifier<DateTime?> {
-  late final String bandId;
-
-  DateTime? build(String bandId);
-}
-
-/// Cache-first `GET /api/band/{bandId}/track/list` data, keyed per band
-/// (family provider — mirrors [BandsListData]'s cache-first shape, see
-/// `bands_provider.dart`).
-///
-/// On [build], cached data (if present) is returned immediately with a
-/// background refresh kicked off silently (no loading spinner, no error
-/// surfaced if the background refresh fails). With no cache, the network
-/// fetch happens inline and any [ApiException] becomes an [AsyncError],
-/// which is what drives the "Couldn't load tracks" + Retry error state.
-///
-/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-/// a second call while one is already in flight reuses the same [Future]
-/// rather than firing a second network request.
-/// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
-/// shape, see `profile_provider.dart`). Set on a cache hit (from the
-/// pre-existing cached value) and bumped unconditionally on every successful
-/// [TrackListData._fetchAndCache]/[TrackListData.removeFromList] — never on
-/// a failed background refresh, since `_refresh()`'s catch branch never
-/// reaches that call.
-///
-/// Copied from [TrackListSyncedAt].
-@ProviderFor(TrackListSyncedAt)
-const trackListSyncedAtProvider = TrackListSyncedAtFamily();
-
-/// Cache-first `GET /api/band/{bandId}/track/list` data, keyed per band
-/// (family provider — mirrors [BandsListData]'s cache-first shape, see
-/// `bands_provider.dart`).
-///
-/// On [build], cached data (if present) is returned immediately with a
-/// background refresh kicked off silently (no loading spinner, no error
-/// surfaced if the background refresh fails). With no cache, the network
-/// fetch happens inline and any [ApiException] becomes an [AsyncError],
-/// which is what drives the "Couldn't load tracks" + Retry error state.
-///
-/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-/// a second call while one is already in flight reuses the same [Future]
-/// rather than firing a second network request.
-/// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
-/// shape, see `profile_provider.dart`). Set on a cache hit (from the
-/// pre-existing cached value) and bumped unconditionally on every successful
-/// [TrackListData._fetchAndCache]/[TrackListData.removeFromList] — never on
-/// a failed background refresh, since `_refresh()`'s catch branch never
-/// reaches that call.
-///
-/// Copied from [TrackListSyncedAt].
-class TrackListSyncedAtFamily extends Family<DateTime?> {
-  /// Cache-first `GET /api/band/{bandId}/track/list` data, keyed per band
-  /// (family provider — mirrors [BandsListData]'s cache-first shape, see
-  /// `bands_provider.dart`).
-  ///
-  /// On [build], cached data (if present) is returned immediately with a
-  /// background refresh kicked off silently (no loading spinner, no error
-  /// surfaced if the background refresh fails). With no cache, the network
-  /// fetch happens inline and any [ApiException] becomes an [AsyncError],
-  /// which is what drives the "Couldn't load tracks" + Retry error state.
-  ///
-  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-  /// a second call while one is already in flight reuses the same [Future]
-  /// rather than firing a second network request.
-  /// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-  /// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
-  /// shape, see `profile_provider.dart`). Set on a cache hit (from the
-  /// pre-existing cached value) and bumped unconditionally on every successful
-  /// [TrackListData._fetchAndCache]/[TrackListData.removeFromList] — never on
-  /// a failed background refresh, since `_refresh()`'s catch branch never
-  /// reaches that call.
-  ///
-  /// Copied from [TrackListSyncedAt].
-  const TrackListSyncedAtFamily();
-
-  /// Cache-first `GET /api/band/{bandId}/track/list` data, keyed per band
-  /// (family provider — mirrors [BandsListData]'s cache-first shape, see
-  /// `bands_provider.dart`).
-  ///
-  /// On [build], cached data (if present) is returned immediately with a
-  /// background refresh kicked off silently (no loading spinner, no error
-  /// surfaced if the background refresh fails). With no cache, the network
-  /// fetch happens inline and any [ApiException] becomes an [AsyncError],
-  /// which is what drives the "Couldn't load tracks" + Retry error state.
-  ///
-  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-  /// a second call while one is already in flight reuses the same [Future]
-  /// rather than firing a second network request.
-  /// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-  /// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
-  /// shape, see `profile_provider.dart`). Set on a cache hit (from the
-  /// pre-existing cached value) and bumped unconditionally on every successful
-  /// [TrackListData._fetchAndCache]/[TrackListData.removeFromList] — never on
-  /// a failed background refresh, since `_refresh()`'s catch branch never
-  /// reaches that call.
-  ///
-  /// Copied from [TrackListSyncedAt].
-  TrackListSyncedAtProvider call(String bandId) {
-    return TrackListSyncedAtProvider(bandId);
-  }
-
-  @override
-  TrackListSyncedAtProvider getProviderOverride(
-    covariant TrackListSyncedAtProvider provider,
-  ) {
-    return call(provider.bandId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'trackListSyncedAtProvider';
-}
-
-/// Cache-first `GET /api/band/{bandId}/track/list` data, keyed per band
-/// (family provider — mirrors [BandsListData]'s cache-first shape, see
-/// `bands_provider.dart`).
-///
-/// On [build], cached data (if present) is returned immediately with a
-/// background refresh kicked off silently (no loading spinner, no error
-/// surfaced if the background refresh fails). With no cache, the network
-/// fetch happens inline and any [ApiException] becomes an [AsyncError],
-/// which is what drives the "Couldn't load tracks" + Retry error state.
-///
-/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-/// a second call while one is already in flight reuses the same [Future]
-/// rather than firing a second network request.
-/// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
-/// shape, see `profile_provider.dart`). Set on a cache hit (from the
-/// pre-existing cached value) and bumped unconditionally on every successful
-/// [TrackListData._fetchAndCache]/[TrackListData.removeFromList] — never on
-/// a failed background refresh, since `_refresh()`'s catch branch never
-/// reaches that call.
-///
-/// Copied from [TrackListSyncedAt].
-class TrackListSyncedAtProvider
-    extends AutoDisposeNotifierProviderImpl<TrackListSyncedAt, DateTime?> {
-  /// Cache-first `GET /api/band/{bandId}/track/list` data, keyed per band
-  /// (family provider — mirrors [BandsListData]'s cache-first shape, see
-  /// `bands_provider.dart`).
-  ///
-  /// On [build], cached data (if present) is returned immediately with a
-  /// background refresh kicked off silently (no loading spinner, no error
-  /// surfaced if the background refresh fails). With no cache, the network
-  /// fetch happens inline and any [ApiException] becomes an [AsyncError],
-  /// which is what drives the "Couldn't load tracks" + Retry error state.
-  ///
-  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
-  /// a second call while one is already in flight reuses the same [Future]
-  /// rather than firing a second network request.
-  /// `bandTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-  /// stored timestamp (family, keyed per band — mirrors [ProfileSyncedAt]'s
-  /// shape, see `profile_provider.dart`). Set on a cache hit (from the
-  /// pre-existing cached value) and bumped unconditionally on every successful
-  /// [TrackListData._fetchAndCache]/[TrackListData.removeFromList] — never on
-  /// a failed background refresh, since `_refresh()`'s catch branch never
-  /// reaches that call.
-  ///
-  /// Copied from [TrackListSyncedAt].
-  TrackListSyncedAtProvider(String bandId)
-    : this._internal(
-        () => TrackListSyncedAt()..bandId = bandId,
-        from: trackListSyncedAtProvider,
-        name: r'trackListSyncedAtProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$trackListSyncedAtHash,
-        dependencies: TrackListSyncedAtFamily._dependencies,
-        allTransitiveDependencies:
-            TrackListSyncedAtFamily._allTransitiveDependencies,
-        bandId: bandId,
-      );
-
-  TrackListSyncedAtProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.bandId,
-  }) : super.internal();
-
-  final String bandId;
-
-  @override
-  DateTime? runNotifierBuild(covariant TrackListSyncedAt notifier) {
-    return notifier.build(bandId);
-  }
-
-  @override
-  Override overrideWith(TrackListSyncedAt Function() create) {
-    return ProviderOverride(
-      origin: this,
-      override: TrackListSyncedAtProvider._internal(
-        () => create()..bandId = bandId,
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        bandId: bandId,
-      ),
-    );
-  }
-
-  @override
-  AutoDisposeNotifierProviderElement<TrackListSyncedAt, DateTime?>
-  createElement() {
-    return _TrackListSyncedAtProviderElement(this);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is TrackListSyncedAtProvider && other.bandId == bandId;
-  }
-
-  @override
-  int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, bandId.hashCode);
-
-    return _SystemHash.finish(hash);
-  }
-}
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin TrackListSyncedAtRef on AutoDisposeNotifierProviderRef<DateTime?> {
-  /// The parameter `bandId` of this provider.
-  String get bandId;
-}
-
-class _TrackListSyncedAtProviderElement
-    extends AutoDisposeNotifierProviderElement<TrackListSyncedAt, DateTime?>
-    with TrackListSyncedAtRef {
-  _TrackListSyncedAtProviderElement(super.provider);
-
-  @override
-  String get bandId => (origin as TrackListSyncedAtProvider).bandId;
-}
-
-String _$trackListDataHash() => r'e1786ad24aa5e63d29430a3aaeee08da1f283382';
-
 abstract class _$TrackListData
     extends BuildlessAutoDisposeAsyncNotifier<List<Map<String, dynamic>>> {
   late final String bandId;
@@ -294,17 +36,93 @@ abstract class _$TrackListData
   FutureOr<List<Map<String, dynamic>>> build(String bandId);
 }
 
-/// See also [TrackListData].
+/// Online-first `GET /api/band/{bandId}/track/list` data (D-01/D-03/D-06),
+/// keyed per band (family provider — mirrors [TrackListData]'s counterpart
+/// [BandsListData] in `bands_provider.dart`).
+///
+/// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+/// attempted first — a populated cache is not consulted on the happy path.
+/// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+/// distinct error surfaced when a cache hit exists) and only rethrows (as an
+/// [AsyncError], driving "Couldn't load tracks" + Retry) when there's
+/// nothing cached either. When offline, cached data is served directly with
+/// zero network calls, or [OfflineNoCacheException] is thrown if nothing has
+/// ever been cached (D-06) — recovery from that state is automatic the
+/// moment [isOnlineProvider] flips back to true, since [build] re-watches
+/// it.
+///
+/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+/// a second call while one is already in flight reuses the same [Future]
+/// rather than firing a second network request.
+///
+/// Copied from [TrackListData].
 @ProviderFor(TrackListData)
 const trackListDataProvider = TrackListDataFamily();
 
-/// See also [TrackListData].
+/// Online-first `GET /api/band/{bandId}/track/list` data (D-01/D-03/D-06),
+/// keyed per band (family provider — mirrors [TrackListData]'s counterpart
+/// [BandsListData] in `bands_provider.dart`).
+///
+/// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+/// attempted first — a populated cache is not consulted on the happy path.
+/// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+/// distinct error surfaced when a cache hit exists) and only rethrows (as an
+/// [AsyncError], driving "Couldn't load tracks" + Retry) when there's
+/// nothing cached either. When offline, cached data is served directly with
+/// zero network calls, or [OfflineNoCacheException] is thrown if nothing has
+/// ever been cached (D-06) — recovery from that state is automatic the
+/// moment [isOnlineProvider] flips back to true, since [build] re-watches
+/// it.
+///
+/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+/// a second call while one is already in flight reuses the same [Future]
+/// rather than firing a second network request.
+///
+/// Copied from [TrackListData].
 class TrackListDataFamily
     extends Family<AsyncValue<List<Map<String, dynamic>>>> {
-  /// See also [TrackListData].
+  /// Online-first `GET /api/band/{bandId}/track/list` data (D-01/D-03/D-06),
+  /// keyed per band (family provider — mirrors [TrackListData]'s counterpart
+  /// [BandsListData] in `bands_provider.dart`).
+  ///
+  /// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+  /// attempted first — a populated cache is not consulted on the happy path.
+  /// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+  /// distinct error surfaced when a cache hit exists) and only rethrows (as an
+  /// [AsyncError], driving "Couldn't load tracks" + Retry) when there's
+  /// nothing cached either. When offline, cached data is served directly with
+  /// zero network calls, or [OfflineNoCacheException] is thrown if nothing has
+  /// ever been cached (D-06) — recovery from that state is automatic the
+  /// moment [isOnlineProvider] flips back to true, since [build] re-watches
+  /// it.
+  ///
+  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+  /// a second call while one is already in flight reuses the same [Future]
+  /// rather than firing a second network request.
+  ///
+  /// Copied from [TrackListData].
   const TrackListDataFamily();
 
-  /// See also [TrackListData].
+  /// Online-first `GET /api/band/{bandId}/track/list` data (D-01/D-03/D-06),
+  /// keyed per band (family provider — mirrors [TrackListData]'s counterpart
+  /// [BandsListData] in `bands_provider.dart`).
+  ///
+  /// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+  /// attempted first — a populated cache is not consulted on the happy path.
+  /// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+  /// distinct error surfaced when a cache hit exists) and only rethrows (as an
+  /// [AsyncError], driving "Couldn't load tracks" + Retry) when there's
+  /// nothing cached either. When offline, cached data is served directly with
+  /// zero network calls, or [OfflineNoCacheException] is thrown if nothing has
+  /// ever been cached (D-06) — recovery from that state is automatic the
+  /// moment [isOnlineProvider] flips back to true, since [build] re-watches
+  /// it.
+  ///
+  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+  /// a second call while one is already in flight reuses the same [Future]
+  /// rather than firing a second network request.
+  ///
+  /// Copied from [TrackListData].
   TrackListDataProvider call(String bandId) {
     return TrackListDataProvider(bandId);
   }
@@ -331,14 +149,52 @@ class TrackListDataFamily
   String? get name => r'trackListDataProvider';
 }
 
-/// See also [TrackListData].
+/// Online-first `GET /api/band/{bandId}/track/list` data (D-01/D-03/D-06),
+/// keyed per band (family provider — mirrors [TrackListData]'s counterpart
+/// [BandsListData] in `bands_provider.dart`).
+///
+/// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+/// attempted first — a populated cache is not consulted on the happy path.
+/// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+/// distinct error surfaced when a cache hit exists) and only rethrows (as an
+/// [AsyncError], driving "Couldn't load tracks" + Retry) when there's
+/// nothing cached either. When offline, cached data is served directly with
+/// zero network calls, or [OfflineNoCacheException] is thrown if nothing has
+/// ever been cached (D-06) — recovery from that state is automatic the
+/// moment [isOnlineProvider] flips back to true, since [build] re-watches
+/// it.
+///
+/// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+/// a second call while one is already in flight reuses the same [Future]
+/// rather than firing a second network request.
+///
+/// Copied from [TrackListData].
 class TrackListDataProvider
     extends
         AutoDisposeAsyncNotifierProviderImpl<
           TrackListData,
           List<Map<String, dynamic>>
         > {
-  /// See also [TrackListData].
+  /// Online-first `GET /api/band/{bandId}/track/list` data (D-01/D-03/D-06),
+  /// keyed per band (family provider — mirrors [TrackListData]'s counterpart
+  /// [BandsListData] in `bands_provider.dart`).
+  ///
+  /// On [build], when [isOnlineProvider] is true, a fresh fetch is always
+  /// attempted first — a populated cache is not consulted on the happy path.
+  /// If that fetch throws, the cache is checked as a silent fallback (D-03; no
+  /// distinct error surfaced when a cache hit exists) and only rethrows (as an
+  /// [AsyncError], driving "Couldn't load tracks" + Retry) when there's
+  /// nothing cached either. When offline, cached data is served directly with
+  /// zero network calls, or [OfflineNoCacheException] is thrown if nothing has
+  /// ever been cached (D-06) — recovery from that state is automatic the
+  /// moment [isOnlineProvider] flips back to true, since [build] re-watches
+  /// it.
+  ///
+  /// [refresh] (the UI's refresh-button entry point) dedupes concurrent calls:
+  /// a second call while one is already in flight reuses the same [Future]
+  /// rather than firing a second network request.
+  ///
+  /// Copied from [TrackListData].
   TrackListDataProvider(String bandId)
     : this._internal(
         () => TrackListData()..bandId = bandId,
@@ -432,253 +288,7 @@ class _TrackListDataProviderElement
   String get bandId => (origin as TrackListDataProvider).bandId;
 }
 
-String _$trackDetailSyncedAtHash() =>
-    r'93fddbb74bbea9ea437f848017dcb9ac8e5ad316';
-
-abstract class _$TrackDetailSyncedAt
-    extends BuildlessAutoDisposeNotifier<DateTime?> {
-  late final String bandId;
-  late final String trackId;
-
-  DateTime? build(String bandId, String trackId);
-}
-
-/// Cache-first `GET /api/band/{bandId}/track/{trackId}` data, keyed per
-/// `(bandId, trackId)` pair (family provider — mirrors [BandDetailData]'s
-/// cache-first shape, see `bands_provider.dart`).
-///
-/// Mirrors [TrackListData]'s cache-first shape: cache hit returns
-/// immediately with a silent background refresh; cache miss fetches inline
-/// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
-/// tracks" + Retry error state).
-/// `bandTrackDetail` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
-/// trackId)` pair). Set on a cache hit (from the pre-existing cached value)
-/// and bumped unconditionally on every successful
-/// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields] — never
-/// on a failed background refresh, since `_refresh()`'s catch branch never
-/// reaches that call.
-///
-/// Copied from [TrackDetailSyncedAt].
-@ProviderFor(TrackDetailSyncedAt)
-const trackDetailSyncedAtProvider = TrackDetailSyncedAtFamily();
-
-/// Cache-first `GET /api/band/{bandId}/track/{trackId}` data, keyed per
-/// `(bandId, trackId)` pair (family provider — mirrors [BandDetailData]'s
-/// cache-first shape, see `bands_provider.dart`).
-///
-/// Mirrors [TrackListData]'s cache-first shape: cache hit returns
-/// immediately with a silent background refresh; cache miss fetches inline
-/// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
-/// tracks" + Retry error state).
-/// `bandTrackDetail` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
-/// trackId)` pair). Set on a cache hit (from the pre-existing cached value)
-/// and bumped unconditionally on every successful
-/// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields] — never
-/// on a failed background refresh, since `_refresh()`'s catch branch never
-/// reaches that call.
-///
-/// Copied from [TrackDetailSyncedAt].
-class TrackDetailSyncedAtFamily extends Family<DateTime?> {
-  /// Cache-first `GET /api/band/{bandId}/track/{trackId}` data, keyed per
-  /// `(bandId, trackId)` pair (family provider — mirrors [BandDetailData]'s
-  /// cache-first shape, see `bands_provider.dart`).
-  ///
-  /// Mirrors [TrackListData]'s cache-first shape: cache hit returns
-  /// immediately with a silent background refresh; cache miss fetches inline
-  /// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
-  /// tracks" + Retry error state).
-  /// `bandTrackDetail` cache key's `syncedAt`, mirrored from
-  /// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
-  /// trackId)` pair). Set on a cache hit (from the pre-existing cached value)
-  /// and bumped unconditionally on every successful
-  /// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields] — never
-  /// on a failed background refresh, since `_refresh()`'s catch branch never
-  /// reaches that call.
-  ///
-  /// Copied from [TrackDetailSyncedAt].
-  const TrackDetailSyncedAtFamily();
-
-  /// Cache-first `GET /api/band/{bandId}/track/{trackId}` data, keyed per
-  /// `(bandId, trackId)` pair (family provider — mirrors [BandDetailData]'s
-  /// cache-first shape, see `bands_provider.dart`).
-  ///
-  /// Mirrors [TrackListData]'s cache-first shape: cache hit returns
-  /// immediately with a silent background refresh; cache miss fetches inline
-  /// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
-  /// tracks" + Retry error state).
-  /// `bandTrackDetail` cache key's `syncedAt`, mirrored from
-  /// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
-  /// trackId)` pair). Set on a cache hit (from the pre-existing cached value)
-  /// and bumped unconditionally on every successful
-  /// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields] — never
-  /// on a failed background refresh, since `_refresh()`'s catch branch never
-  /// reaches that call.
-  ///
-  /// Copied from [TrackDetailSyncedAt].
-  TrackDetailSyncedAtProvider call(String bandId, String trackId) {
-    return TrackDetailSyncedAtProvider(bandId, trackId);
-  }
-
-  @override
-  TrackDetailSyncedAtProvider getProviderOverride(
-    covariant TrackDetailSyncedAtProvider provider,
-  ) {
-    return call(provider.bandId, provider.trackId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'trackDetailSyncedAtProvider';
-}
-
-/// Cache-first `GET /api/band/{bandId}/track/{trackId}` data, keyed per
-/// `(bandId, trackId)` pair (family provider — mirrors [BandDetailData]'s
-/// cache-first shape, see `bands_provider.dart`).
-///
-/// Mirrors [TrackListData]'s cache-first shape: cache hit returns
-/// immediately with a silent background refresh; cache miss fetches inline
-/// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
-/// tracks" + Retry error state).
-/// `bandTrackDetail` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
-/// trackId)` pair). Set on a cache hit (from the pre-existing cached value)
-/// and bumped unconditionally on every successful
-/// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields] — never
-/// on a failed background refresh, since `_refresh()`'s catch branch never
-/// reaches that call.
-///
-/// Copied from [TrackDetailSyncedAt].
-class TrackDetailSyncedAtProvider
-    extends AutoDisposeNotifierProviderImpl<TrackDetailSyncedAt, DateTime?> {
-  /// Cache-first `GET /api/band/{bandId}/track/{trackId}` data, keyed per
-  /// `(bandId, trackId)` pair (family provider — mirrors [BandDetailData]'s
-  /// cache-first shape, see `bands_provider.dart`).
-  ///
-  /// Mirrors [TrackListData]'s cache-first shape: cache hit returns
-  /// immediately with a silent background refresh; cache miss fetches inline
-  /// (any [ApiException] becomes an [AsyncError], driving the "Couldn't load
-  /// tracks" + Retry error state).
-  /// `bandTrackDetail` cache key's `syncedAt`, mirrored from
-  /// `cache_service.dart`'s stored timestamp (family, keyed per `(bandId,
-  /// trackId)` pair). Set on a cache hit (from the pre-existing cached value)
-  /// and bumped unconditionally on every successful
-  /// [TrackDetailData._fetchAndCache]/[TrackDetailData.updateFields] — never
-  /// on a failed background refresh, since `_refresh()`'s catch branch never
-  /// reaches that call.
-  ///
-  /// Copied from [TrackDetailSyncedAt].
-  TrackDetailSyncedAtProvider(String bandId, String trackId)
-    : this._internal(
-        () => TrackDetailSyncedAt()
-          ..bandId = bandId
-          ..trackId = trackId,
-        from: trackDetailSyncedAtProvider,
-        name: r'trackDetailSyncedAtProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$trackDetailSyncedAtHash,
-        dependencies: TrackDetailSyncedAtFamily._dependencies,
-        allTransitiveDependencies:
-            TrackDetailSyncedAtFamily._allTransitiveDependencies,
-        bandId: bandId,
-        trackId: trackId,
-      );
-
-  TrackDetailSyncedAtProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.bandId,
-    required this.trackId,
-  }) : super.internal();
-
-  final String bandId;
-  final String trackId;
-
-  @override
-  DateTime? runNotifierBuild(covariant TrackDetailSyncedAt notifier) {
-    return notifier.build(bandId, trackId);
-  }
-
-  @override
-  Override overrideWith(TrackDetailSyncedAt Function() create) {
-    return ProviderOverride(
-      origin: this,
-      override: TrackDetailSyncedAtProvider._internal(
-        () => create()
-          ..bandId = bandId
-          ..trackId = trackId,
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        bandId: bandId,
-        trackId: trackId,
-      ),
-    );
-  }
-
-  @override
-  AutoDisposeNotifierProviderElement<TrackDetailSyncedAt, DateTime?>
-  createElement() {
-    return _TrackDetailSyncedAtProviderElement(this);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is TrackDetailSyncedAtProvider &&
-        other.bandId == bandId &&
-        other.trackId == trackId;
-  }
-
-  @override
-  int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, bandId.hashCode);
-    hash = _SystemHash.combine(hash, trackId.hashCode);
-
-    return _SystemHash.finish(hash);
-  }
-}
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin TrackDetailSyncedAtRef on AutoDisposeNotifierProviderRef<DateTime?> {
-  /// The parameter `bandId` of this provider.
-  String get bandId;
-
-  /// The parameter `trackId` of this provider.
-  String get trackId;
-}
-
-class _TrackDetailSyncedAtProviderElement
-    extends AutoDisposeNotifierProviderElement<TrackDetailSyncedAt, DateTime?>
-    with TrackDetailSyncedAtRef {
-  _TrackDetailSyncedAtProviderElement(super.provider);
-
-  @override
-  String get bandId => (origin as TrackDetailSyncedAtProvider).bandId;
-  @override
-  String get trackId => (origin as TrackDetailSyncedAtProvider).trackId;
-}
-
-String _$trackDetailDataHash() => r'f71cebc8a0a35ff292f61a952218895a7eda4ab9';
+String _$trackDetailDataHash() => r'2ebec31b1e8aed8fe514effdd7fb360a39b8bcaa';
 
 abstract class _$TrackDetailData
     extends BuildlessAutoDisposeAsyncNotifier<Map<String, dynamic>> {
@@ -688,16 +298,72 @@ abstract class _$TrackDetailData
   FutureOr<Map<String, dynamic>> build(String bandId, String trackId);
 }
 
-/// See also [TrackDetailData].
+/// Online-first `GET /api/band/{bandId}/track/{trackId}` data
+/// (D-01/D-03/D-06), keyed per `(bandId, trackId)` pair (family provider —
+/// mirrors [TrackDetailData]'s counterpart [BandDetailData] in
+/// `bands_provider.dart`).
+///
+/// Mirrors [TrackListData]'s online-first shape exactly: when online, a
+/// fresh fetch is always attempted first (a populated cache is not
+/// consulted on the happy path); a failed online fetch falls back to cache
+/// silently (D-03); offline serves cache directly or throws
+/// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+/// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+/// provider already rebuilds fresh on every `Navigator.push` into
+/// `TrackDetailScreen`.
+///
+/// Copied from [TrackDetailData].
 @ProviderFor(TrackDetailData)
 const trackDetailDataProvider = TrackDetailDataFamily();
 
-/// See also [TrackDetailData].
+/// Online-first `GET /api/band/{bandId}/track/{trackId}` data
+/// (D-01/D-03/D-06), keyed per `(bandId, trackId)` pair (family provider —
+/// mirrors [TrackDetailData]'s counterpart [BandDetailData] in
+/// `bands_provider.dart`).
+///
+/// Mirrors [TrackListData]'s online-first shape exactly: when online, a
+/// fresh fetch is always attempted first (a populated cache is not
+/// consulted on the happy path); a failed online fetch falls back to cache
+/// silently (D-03); offline serves cache directly or throws
+/// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+/// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+/// provider already rebuilds fresh on every `Navigator.push` into
+/// `TrackDetailScreen`.
+///
+/// Copied from [TrackDetailData].
 class TrackDetailDataFamily extends Family<AsyncValue<Map<String, dynamic>>> {
-  /// See also [TrackDetailData].
+  /// Online-first `GET /api/band/{bandId}/track/{trackId}` data
+  /// (D-01/D-03/D-06), keyed per `(bandId, trackId)` pair (family provider —
+  /// mirrors [TrackDetailData]'s counterpart [BandDetailData] in
+  /// `bands_provider.dart`).
+  ///
+  /// Mirrors [TrackListData]'s online-first shape exactly: when online, a
+  /// fresh fetch is always attempted first (a populated cache is not
+  /// consulted on the happy path); a failed online fetch falls back to cache
+  /// silently (D-03); offline serves cache directly or throws
+  /// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+  /// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+  /// provider already rebuilds fresh on every `Navigator.push` into
+  /// `TrackDetailScreen`.
+  ///
+  /// Copied from [TrackDetailData].
   const TrackDetailDataFamily();
 
-  /// See also [TrackDetailData].
+  /// Online-first `GET /api/band/{bandId}/track/{trackId}` data
+  /// (D-01/D-03/D-06), keyed per `(bandId, trackId)` pair (family provider —
+  /// mirrors [TrackDetailData]'s counterpart [BandDetailData] in
+  /// `bands_provider.dart`).
+  ///
+  /// Mirrors [TrackListData]'s online-first shape exactly: when online, a
+  /// fresh fetch is always attempted first (a populated cache is not
+  /// consulted on the happy path); a failed online fetch falls back to cache
+  /// silently (D-03); offline serves cache directly or throws
+  /// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+  /// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+  /// provider already rebuilds fresh on every `Navigator.push` into
+  /// `TrackDetailScreen`.
+  ///
+  /// Copied from [TrackDetailData].
   TrackDetailDataProvider call(String bandId, String trackId) {
     return TrackDetailDataProvider(bandId, trackId);
   }
@@ -724,14 +390,42 @@ class TrackDetailDataFamily extends Family<AsyncValue<Map<String, dynamic>>> {
   String? get name => r'trackDetailDataProvider';
 }
 
-/// See also [TrackDetailData].
+/// Online-first `GET /api/band/{bandId}/track/{trackId}` data
+/// (D-01/D-03/D-06), keyed per `(bandId, trackId)` pair (family provider —
+/// mirrors [TrackDetailData]'s counterpart [BandDetailData] in
+/// `bands_provider.dart`).
+///
+/// Mirrors [TrackListData]'s online-first shape exactly: when online, a
+/// fresh fetch is always attempted first (a populated cache is not
+/// consulted on the happy path); a failed online fetch falls back to cache
+/// silently (D-03); offline serves cache directly or throws
+/// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+/// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+/// provider already rebuilds fresh on every `Navigator.push` into
+/// `TrackDetailScreen`.
+///
+/// Copied from [TrackDetailData].
 class TrackDetailDataProvider
     extends
         AutoDisposeAsyncNotifierProviderImpl<
           TrackDetailData,
           Map<String, dynamic>
         > {
-  /// See also [TrackDetailData].
+  /// Online-first `GET /api/band/{bandId}/track/{trackId}` data
+  /// (D-01/D-03/D-06), keyed per `(bandId, trackId)` pair (family provider —
+  /// mirrors [TrackDetailData]'s counterpart [BandDetailData] in
+  /// `bands_provider.dart`).
+  ///
+  /// Mirrors [TrackListData]'s online-first shape exactly: when online, a
+  /// fresh fetch is always attempted first (a populated cache is not
+  /// consulted on the happy path); a failed online fetch falls back to cache
+  /// silently (D-03); offline serves cache directly or throws
+  /// [OfflineNoCacheException] if nothing has ever been cached (D-06). No
+  /// tab-switch wiring is needed here (D-02) — this `autoDispose` family
+  /// provider already rebuilds fresh on every `Navigator.push` into
+  /// `TrackDetailScreen`.
+  ///
+  /// Copied from [TrackDetailData].
   TrackDetailDataProvider(String bandId, String trackId)
     : this._internal(
         () => TrackDetailData()
@@ -859,39 +553,21 @@ final selectedBandIdFilterProvider =
     );
 
 typedef _$SelectedBandIdFilter = AutoDisposeNotifier<String?>;
-String _$userTracksSyncedAtHash() =>
-    r'27c4a9b97d58e9e5c7d6eb83243aca150baaa4f1';
-
-/// Cache-first `GET /api/track/list` data spanning every band the user
-/// belongs to, optionally narrowed by [SelectedBandIdFilter] (mirrors
-/// [TrackListData]'s cache-first shape, but non-family — [build] watches
-/// [selectedBandIdFilterProvider] directly, so changing the filter
-/// automatically triggers a full rebuild with the new cache key/fetch).
-/// `userTracks` cache key's `syncedAt`, mirrored from `cache_service.dart`'s
-/// stored timestamp (plain, non-family — mirrors [HomepageSyncedAt]'s
-/// shape). Set on a cache hit (from the pre-existing cached value) and
-/// bumped unconditionally on every successful
-/// [UserTracksListData._fetchAndCache] — never on a failed background
-/// refresh, since `_refresh()`'s catch branch never reaches that call.
-///
-/// Copied from [UserTracksSyncedAt].
-@ProviderFor(UserTracksSyncedAt)
-final userTracksSyncedAtProvider =
-    AutoDisposeNotifierProvider<UserTracksSyncedAt, DateTime?>.internal(
-      UserTracksSyncedAt.new,
-      name: r'userTracksSyncedAtProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$userTracksSyncedAtHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
-
-typedef _$UserTracksSyncedAt = AutoDisposeNotifier<DateTime?>;
 String _$userTracksListDataHash() =>
-    r'75d98e73d999a7f939c36a2faa7eab2f1e8a4811';
+    r'2eeb949360a8f1ec746902d7e6ec0ef546545397';
 
-/// See also [UserTracksListData].
+/// Online-first `GET /api/track/list` data spanning every band the user
+/// belongs to, optionally narrowed by [SelectedBandIdFilter] (D-01/D-03/D-06;
+/// mirrors [TrackListData]'s online-first shape, but non-family — [build]
+/// watches [selectedBandIdFilterProvider] directly, so changing the filter
+/// automatically triggers a full rebuild with the new cache key/fetch).
+///
+/// This is the provider backing the cross-band Tracks tab (tab index 2) — a
+/// `ref.listen(selectedTabIndexProvider, ...)` in `TracksScreen` invalidates
+/// it on every re-selection of the Tracks tab (D-01), same shape as
+/// `BandsScreen`'s wiring in `bands_screen.dart`.
+///
+/// Copied from [UserTracksListData].
 @ProviderFor(UserTracksListData)
 final userTracksListDataProvider =
     AutoDisposeAsyncNotifierProvider<

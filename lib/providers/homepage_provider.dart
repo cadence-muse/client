@@ -7,19 +7,6 @@ import '../cache/cache_service.dart';
 
 part 'homepage_provider.g.dart';
 
-/// D-05/D-06: `homepage` cache key's `syncedAt`, mirrored from
-/// `cache_service.dart`'s stored timestamp. Set on a cache hit (from the
-/// pre-existing cached value) and bumped unconditionally on every successful
-/// [HomepageData._fetchAndCache] — never on a failed background refresh,
-/// since `_refresh()`'s catch branch never reaches that call.
-@riverpod
-class HomepageSyncedAt extends _$HomepageSyncedAt {
-  @override
-  DateTime? build() => null;
-
-  void set(DateTime? value) => state = value;
-}
-
 /// Online-first `GET /api/homepage` data (D-01/D-03/D-06).
 ///
 /// On [build], when [isOnlineProvider] is true, a fresh fetch is always
@@ -54,9 +41,6 @@ class HomepageData extends _$HomepageData {
         // silently, the same as a true-offline cache hit.
         final cached = await cache.readHomepage();
         if (cached != null) {
-          ref
-              .read(homepageSyncedAtProvider.notifier)
-              .set(await cache.readHomepageSyncedAt());
           return cached;
         }
         rethrow;
@@ -65,9 +49,6 @@ class HomepageData extends _$HomepageData {
 
     final cached = await cache.readHomepage();
     if (cached != null) {
-      ref
-          .read(homepageSyncedAtProvider.notifier)
-          .set(await cache.readHomepageSyncedAt());
       return cached;
     }
     // D-06: offline with nothing ever cached.
@@ -78,12 +59,7 @@ class HomepageData extends _$HomepageData {
     final apiClient = ref.read(apiClientProvider);
     final data = await apiClient.send('GET', '/api/homepage');
     final homepage = data!;
-    final wrote = await ref.read(cacheServiceProvider).writeHomepage(homepage);
-    // WR-02: only claim "just synced" if the cache write actually
-    // succeeded.
-    if (wrote) {
-      ref.read(homepageSyncedAtProvider.notifier).set(DateTime.now());
-    }
+    await ref.read(cacheServiceProvider).writeHomepage(homepage);
     return homepage;
   }
 
