@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,6 +44,37 @@ class _AddSetlistTracksDialogState
   final Set<String> _selectedTrackIds = {};
   bool _isSubmitting = false;
   String? _errorMessage;
+
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  Timer? _debounceTimer;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  // Drives the offline substring filter immediately (D-02/D-05/D-07, no
+  // debounce delay needed for a pure local computation), and — only while
+  // online — arms a 300ms-debounced network request (D-03/D-04) sent
+  // directly via publicApiProvider rather than trackListDataProvider, so
+  // the shared cache (used by 6+ other call sites) is never keyed by search
+  // variants. That response is intentionally discarded (D-05): the
+  // displayed list never re-filters on it this milestone.
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    _debounceTimer?.cancel();
+    if (!ref.read(isOnlineProvider)) return;
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      ref
+          .read(publicApiProvider)
+          .listBandTracks(widget.bandId, searchQuery: _searchQuery)
+          .catchError((_) => <Map<String, dynamic>>[]);
+    });
+  }
 
   Future<void> _submit() async {
     setState(() {
@@ -111,6 +144,15 @@ class _AddSetlistTracksDialogState
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  decoration: const InputDecoration(
+                    hintText: 'Search by title or artist',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 if (remainingSlots <= 0)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),

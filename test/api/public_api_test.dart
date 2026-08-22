@@ -225,6 +225,50 @@ void main() {
     );
   });
 
+  group('listBandTracks', () {
+    test(
+      'calling with searchQuery sends a GET whose queryParameters contains '
+      'searchQuery',
+      () async {
+        String? capturedSearchQuery;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            capturedSearchQuery = request.url.queryParameters['searchQuery'];
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listBandTracks('b1', searchQuery: 'wonderwall');
+
+        expect(capturedSearchQuery, 'wonderwall');
+      },
+    );
+
+    test(
+      'calling with no searchQuery, or an empty searchQuery, sends a GET '
+      'whose queryParameters does not contain the searchQuery key',
+      () async {
+        var hasSearchQuery = false;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            hasSearchQuery = request.url.queryParameters.containsKey(
+              'searchQuery',
+            );
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listBandTracks('b1');
+        expect(hasSearchQuery, isFalse);
+
+        await api.listBandTracks('b1', searchQuery: '');
+        expect(hasSearchQuery, isFalse);
+      },
+    );
+  });
+
   group('listUserSetlists', () {
     test(
       'calling with bandIdFilter sends POST to /api/setlist/list with '

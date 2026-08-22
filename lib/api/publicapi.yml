@@ -293,6 +293,16 @@ paths:
         - sessionAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/BandId'
+        - name: searchQuery
+          in: query
+          required: false
+          schema:
+            type: string
+          description: >-
+            Search by title or artist, case-insensitive substring match.
+            The backend currently ignores this field and returns the full
+            unfiltered list — client-side spec extension (SETL-12) sent for
+            forward compatibility ahead of server-side filtering support.
       responses:
         '200':
           description: Success

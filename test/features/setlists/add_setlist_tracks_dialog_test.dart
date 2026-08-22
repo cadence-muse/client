@@ -389,4 +389,71 @@ void main() {
       expect(button.onPressed, isNull);
     },
   );
+
+  testWidgets(
+    'renders a search TextField with the title/artist hint above the track '
+    'checklist',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('Search by title or artist'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'while online, typing in the search field sends exactly one debounced '
+    'GET request carrying the typed searchQuery after 300ms, and the '
+    'checklist still shows every available track unfiltered (D-05)',
+    (tester) async {
+      final capturedRequests = <http.Request>[];
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          capturedRequests.add(request);
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+                {'id': 't2', 'title': 'Track Two', 'artist': 'Artist Two'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+
+      expect(capturedRequests, hasLength(1));
+
+      await tester.enterText(find.byType(TextField), 'wonder');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(capturedRequests, hasLength(1));
+
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(capturedRequests, hasLength(2));
+      expect(
+        capturedRequests.last.url.queryParameters['searchQuery'],
+        'wonder',
+      );
+      expect(find.byType(CheckboxListTile), findsNWidgets(2));
+    },
+  );
 }
