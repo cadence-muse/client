@@ -165,9 +165,22 @@ class PublicApi {
   }
 
   /// Returns a band's tracks (`TrackListItem` — id/title/artist +
-  /// optional durationSeconds).
-  Future<List<Map<String, dynamic>>> listBandTracks(String bandId) async {
-    final response = await _client.send('GET', '/api/band/$bandId/track/list');
+  /// optional durationSeconds). [searchQuery] is a client-side spec
+  /// extension (SETL-12, D-03) sent as a `searchQuery` query parameter when
+  /// non-empty — forward-compatible wiring only, since the backend
+  /// currently ignores the field and always returns the full unfiltered
+  /// list (see `publicapi.yml`'s `ListBandTracks` description).
+  Future<List<Map<String, dynamic>>> listBandTracks(
+    String bandId, {
+    String? searchQuery,
+  }) async {
+    final response = await _client.send(
+      'GET',
+      '/api/band/$bandId/track/list',
+      queryParameters: (searchQuery == null || searchQuery.isEmpty)
+          ? null
+          : {'searchQuery': searchQuery},
+    );
     return (response!['items'] as List).cast<Map<String, dynamic>>();
   }
 
