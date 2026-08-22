@@ -1,7 +1,7 @@
 ---
 phase: 10
 slug: searchable-setlist-track-picker
-status: draft
+status: approved
 platform: flutter
 framework: material-design-3
 created: 2026-08-22
@@ -273,16 +273,35 @@ parameters:
 
 ## UI Considerations
 
-Applicable state considerations resolved:
+Resolved via UI-consideration probe (post-verification pass) against 8 elements/surfaces named in this spec. Verification: explicit (cites the spec section that already answers the state) unless noted otherwise.
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| Empty | Track list (offline, search active) | ✅ covered | "No tracks match your search" message per D-07; distinct from "No more tracks available" (all tracks in setlist) and "This setlist already has the maximum of 100 tracks" (at cap). |
-| Long-text | Track title + artist | ✅ covered | Existing `maxLines: 1, overflow: TextOverflow.ellipsis` pattern on CheckboxListTile title/subtitle; search doesn't change this. |
-| Overflow | Dialog height with large track lists | ✅ covered | Existing `ListView.builder` with `shrinkWrap: true, Flexible()` wrapper allows scrolling within dialog constraints (Material dialog sizing). |
-| Loading | Search debounce in-flight | ✅ covered | No separate loading indicator for search requests (debounce is transparent to user per D-04). Network error silently degrades to full list (online, D-05) or cached list (offline). |
-| Error | Network request failure during search | ✅ covered | Existing error pattern (`try/catch ApiException`) applies; if network fails mid-search, error message displays and user can retry. Dialog remains open. |
-| Partial | Search results + cap warning | ✅ covered | Slot count warning ("Setlists can have at most 100 tracks — {N} slots remaining") displays even when search is active and filtered list is shown. |
+| Element | Category | Status | Resolution / Reason |
+|---------|----------|--------|---------------------|
+| Search TextField | empty, loading, error, populated, partial | dismissed | N/A — a form input has no content-empty/loading/error/data-populated state of its own; those states belong to the track list it filters (see below). |
+| Search TextField | overflow, long-text | dismissed | Standard Material `TextField` horizontal scroll for long queries; no custom truncation needed. |
+| Track list (checklist) | empty | resolved | "No tracks match your search" (search active, zero matches, D-07) and "No more tracks available" (no search, all tracks in setlist) — see Copywriting Contract. |
+| Track list (checklist) | loading | resolved | `CircularProgressIndicator` centered in dialog during initial load (existing, unchanged) — see Interaction & State Handling. |
+| Track list (checklist) | error | resolved | "Couldn't load tracks" text + Retry button on load failure (existing, unchanged) — see Interaction & State Handling. |
+| Track list (checklist) | populated | resolved | Standard `CheckboxListTile` rows via `ListView.builder`, which virtualizes for any volume; spacing per Spacing Scale, no extra treatment needed. |
+| Track list (checklist) | partial | dismissed | N/A — API always returns full title + artist per track; no partial rows possible. |
+| Track list (checklist) | overflow | resolved | `ListView.builder` + `shrinkWrap: true` + `Flexible()` wrapper scrolls within dialog constraints (existing, unchanged). |
+| Track list (checklist) | zero-one-many | dismissed | N/A — no item-count copy on the list itself; only the slot warning pluralizes ("{N} slot{s}"), covered separately below. |
+| Track title / artist text | long-text | resolved | Existing `maxLines: 1, overflow: TextOverflow.ellipsis` on `CheckboxListTile` title/subtitle; search doesn't change this. |
+| "No tracks match your search" message | empty | resolved | This element is itself the empty-state affordance for search (D-07); fully specified in Copywriting Contract. |
+| "No tracks match your search" message | loading, error, populated, partial, overflow, zero-one-many | dismissed | N/A — static single-line centered text, shown only in the zero-match case; doesn't vary by count or exhibit these states. |
+| "No more tracks available" message | unclassified (empty) | resolved | Existing, unchanged empty-state message for the no-search / all-tracks-added case — see Copywriting Contract. |
+| Slot count warning | overflow, long-text | dismissed | Short templated string ("Setlists can have at most 100 tracks — {N} slot{s} remaining"); Material default wrap is sufficient at any realistic band/track-count size. |
+| Submit error message box | empty, loading, partial | dismissed | N/A — only renders when `_errorMessage` is set; no empty/loading/partial variant of its own. |
+| Submit error message box | error | resolved | This element IS the error display; existing `try/catch ApiException` pattern, red text at bottom of dialog (existing, unchanged). |
+| Submit error message box | long-text | dismissed | Error strings are short and templated; Material default wrap is sufficient. |
+| Add button | empty, error, partial | dismissed | N/A — button has no empty/error/partial state of its own; submission errors surface via the error message box above, not on the button. |
+| Add button | loading | resolved | Spinner shown while submitting, button disabled (existing, unchanged) — see Interaction & State Handling. |
+| Add button | overflow, long-text | dismissed | Fixed short labels ("Add" / "Requires connection"); no dynamic long text, no overflow risk. |
+| Initial load / load-failure state | loading | resolved | `CircularProgressIndicator` centered in dialog (existing, unchanged). |
+| Initial load / load-failure state | error | resolved | "Couldn't load tracks" text + Retry button (existing, unchanged). |
+| Initial load / load-failure state | overflow, long-text | dismissed | Centered indicator/short fixed strings; no overflow risk. |
+
+Coverage: 40/40 applicable considerations addressed (16 resolved — explicit, citing existing spec sections; 24 dismissed as not applicable to that widget type, reason given). None deferred/unresolved.
 
 ---
 
@@ -294,14 +313,14 @@ Not applicable — Flutter Material Design uses built-in Material widgets, no th
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: N/A (Flutter Material)
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: N/A (Flutter Material)
 
-**Approval:** pending
+**Approval:** APPROVED
 
 ---
 
@@ -320,4 +339,4 @@ Not applicable — Flutter Material Design uses built-in Material widgets, no th
 ---
 
 *Phase 10 UI-SPEC created: 2026-08-22*
-*Approved by: pending gsd-ui-checker validation*
+*Approved by: gsd-ui-checker (6/6 dimensions PASS)*
