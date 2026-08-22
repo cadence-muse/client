@@ -57,6 +57,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
           );
       // Server owns the post-remove durationSeconds/track array (SETL-09) —
       // a full refresh() re-fetches rather than a client-side splice.
+      // force: true (WR-01) — removing two different tracks in quick
+      // succession must not have the second removal's resync silently
+      // absorbed into an in-flight fetch that started before it reached
+      // the server.
       await ref
           .read(
             setlistDetailDataProvider(
@@ -64,11 +68,11 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
               widget.setlistId,
             ).notifier,
           )
-          .refresh();
+          .refresh(force: true);
       if (ref.exists(setlistListDataProvider(widget.bandId))) {
         await ref
             .read(setlistListDataProvider(widget.bandId).notifier)
-            .refresh();
+            .refresh(force: true);
       }
       if (ref.exists(userSetlistsListDataProvider)) {
         ref.invalidate(userSetlistsListDataProvider);

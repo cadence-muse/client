@@ -43,6 +43,16 @@ class SetlistListSyncedAt extends _$SetlistListSyncedAt {
 class SetlistListData extends _$SetlistListData {
   Future<void>? _inFlightRefresh;
 
+  /// Set by [refresh]`(force: true)` when a call arrives while a refresh
+  /// is already in flight. Checked by [_runRefresh] right after the
+  /// in-flight fetch completes: if set, one more `_doRefresh()` is run
+  /// before resolving — otherwise a caller like
+  /// `SetlistDetailScreen._removeTrack` that needs a *guaranteed*
+  /// post-mutation resync could have its refresh() silently absorbed into
+  /// a fetch that started before its mutation landed on the server, and
+  /// never see a resync that actually reflects it (WR-01).
+  bool _refreshPending = false;
+
   /// Monotonic counter bumped by every local-mutation method.
   /// [refresh]/[_doRefresh] capture this before their network await and
   /// discard a fetched result if it changed while the fetch was in flight —
@@ -95,10 +105,34 @@ class SetlistListData extends _$SetlistListData {
   /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
   /// Deduplicates concurrent calls so tapping refresh twice in quick
   /// succession triggers exactly one network request.
-  Future<void> refresh() {
-    return _inFlightRefresh ??= _doRefresh().whenComplete(
-      () => _inFlightRefresh = null,
-    );
+  ///
+  /// [force]: used by mutation call sites that need a *guaranteed*
+  /// post-mutation resync (e.g. `SetlistDetailScreen._removeTrack`'s
+  /// `.refresh()` after `deleteSetlist`/`removeSetlistTrack`), as opposed
+  /// to a plain UI refresh tap. If a refresh is already in flight when a
+  /// forced call arrives, that in-flight fetch might have started *before*
+  /// this call's mutation reached the server — plain dedup would let the
+  /// forced caller's `await` resolve against stale data. `force: true`
+  /// instead queues one more `_doRefresh()` run (via [_refreshPending])
+  /// after the in-flight fetch completes, so the forced caller's `await`
+  /// only resolves once a fetch that started no earlier than its own call
+  /// has completed (WR-01). Omitted (`false`) by plain UI refreshes, so
+  /// "tap refresh twice quickly" still collapses into exactly one network
+  /// call, unchanged.
+  Future<void> refresh({bool force = false}) {
+    if (_inFlightRefresh != null) {
+      if (force) _refreshPending = true;
+      return _inFlightRefresh!;
+    }
+    return _inFlightRefresh = _runRefresh();
+  }
+
+  Future<void> _runRefresh() async {
+    do {
+      _refreshPending = false;
+      await _doRefresh();
+    } while (_refreshPending);
+    _inFlightRefresh = null;
   }
 
   Future<void> _doRefresh() async {
@@ -175,6 +209,16 @@ class SetlistDetailSyncedAt extends _$SetlistDetailSyncedAt {
 class SetlistDetailData extends _$SetlistDetailData {
   Future<void>? _inFlightRefresh;
 
+  /// Set by [refresh]`(force: true)` when a call arrives while a refresh
+  /// is already in flight. Checked by [_runRefresh] right after the
+  /// in-flight fetch completes: if set, one more `_doRefresh()` is run
+  /// before resolving — otherwise `SetlistDetailScreen._removeTrack`
+  /// removing two *different* tracks in quick succession could have the
+  /// second removal's post-mutate resync silently absorbed into a fetch
+  /// that started before that removal reached the server, leaving the
+  /// removed track visible until an unrelated manual refresh (WR-01).
+  bool _refreshPending = false;
+
   /// Monotonic counter bumped by every local-mutation method.
   /// [refresh]/[_doRefresh] capture this before their network await and
   /// discard a fetched result if it changed while the fetch was in flight —
@@ -234,10 +278,35 @@ class SetlistDetailData extends _$SetlistDetailData {
   /// User-initiated refresh (e.g. the refresh button/pull-to-refresh).
   /// Deduplicates concurrent calls so tapping refresh twice in quick
   /// succession triggers exactly one network request.
-  Future<void> refresh() {
-    return _inFlightRefresh ??= _doRefresh().whenComplete(
-      () => _inFlightRefresh = null,
-    );
+  ///
+  /// [force]: used by mutation call sites that need a *guaranteed*
+  /// post-mutation resync (e.g. `SetlistDetailScreen._removeTrack`'s
+  /// `.refresh()` after `removeSetlistTrack`), as opposed to a plain UI
+  /// refresh tap. If a refresh is already in flight when a forced call
+  /// arrives, that in-flight fetch might have started *before* this call's
+  /// mutation reached the server — plain dedup would let the forced
+  /// caller's `await` resolve against stale data (WR-01, reproduced by
+  /// removing two different tracks in quick succession). `force: true`
+  /// instead queues one more `_doRefresh()` run (via [_refreshPending])
+  /// after the in-flight fetch completes, so the forced caller's `await`
+  /// only resolves once a fetch that started no earlier than its own call
+  /// has completed. Omitted (`false`) by plain UI refreshes, so "tap
+  /// refresh twice quickly" still collapses into exactly one network call,
+  /// unchanged.
+  Future<void> refresh({bool force = false}) {
+    if (_inFlightRefresh != null) {
+      if (force) _refreshPending = true;
+      return _inFlightRefresh!;
+    }
+    return _inFlightRefresh = _runRefresh();
+  }
+
+  Future<void> _runRefresh() async {
+    do {
+      _refreshPending = false;
+      await _doRefresh();
+    } while (_refreshPending);
+    _inFlightRefresh = null;
   }
 
   Future<void> _doRefresh() async {

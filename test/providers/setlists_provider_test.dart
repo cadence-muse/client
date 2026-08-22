@@ -691,6 +691,126 @@ void main() {
     });
 
     test(
+      'refresh(force: true) is not silently absorbed into an already '
+      'in-flight refresh() — it is guaranteed a fetch that starts no '
+      'earlier than its own call (WR-01)',
+      () async {
+        final cacheService = CacheService.inMemory();
+        await cacheService.writeSetlistDetail('b1', 's1', {
+          'id': 's1',
+          'name': 'Setlist',
+          'durationSeconds': 400,
+          'tracks': [
+            {
+              'trackId': 't1',
+              'position': 0,
+              'title': 'Song One',
+              'artist': 'Artist One',
+              'durationSeconds': 200,
+            },
+            {
+              'trackId': 't2',
+              'position': 1,
+              'title': 'Song Two',
+              'artist': 'Artist Two',
+              'durationSeconds': 200,
+            },
+          ],
+        });
+
+        var callCount = 0;
+        var initialFetchDone = false;
+        final apiClient = buildApiClient((request) async {
+          callCount++;
+          if (!initialFetchDone) {
+            initialFetchDone = true;
+            // build()'s own online-first fetch — resolves immediately with
+            // both tracks still present.
+            return http.Response(
+              jsonEncode({
+                'id': 's1',
+                'name': 'Setlist',
+                'durationSeconds': 400,
+                'tracks': [
+                  {
+                    'trackId': 't1',
+                    'position': 0,
+                    'title': 'Song One',
+                    'artist': 'Artist One',
+                    'durationSeconds': 200,
+                  },
+                  {
+                    'trackId': 't2',
+                    'position': 1,
+                    'title': 'Song Two',
+                    'artist': 'Artist Two',
+                    'durationSeconds': 200,
+                  },
+                ],
+              }),
+              200,
+            );
+          }
+          if (callCount == 1) {
+            // The first refresh() call (e.g. removing t1's post-mutation
+            // resync) — held open so a second, forced refresh() call (e.g.
+            // removing t2's post-mutation resync) can be requested while
+            // this one is still in flight. Resolves with a stale snapshot
+            // (as if this fetch had started before t2 was removed
+            // server-side).
+            await Future<void>.delayed(const Duration(milliseconds: 100));
+            return http.Response(
+              jsonEncode({
+                'id': 's1',
+                'name': 'Setlist',
+                'durationSeconds': 200,
+                'tracks': [
+                  {
+                    'trackId': 't2',
+                    'position': 0,
+                    'title': 'Song Two',
+                    'artist': 'Artist Two',
+                    'durationSeconds': 200,
+                  },
+                ],
+              }),
+              200,
+            );
+          }
+          // The queued, forced refresh() call's own fetch — reflects both
+          // t1 and t2 having been removed server-side by the time it runs.
+          return http.Response(
+            jsonEncode({
+              'id': 's1',
+              'name': 'Setlist',
+              'durationSeconds': 0,
+              'tracks': <Map<String, dynamic>>[],
+            }),
+            200,
+          );
+        });
+
+        final container = buildContainer(apiClient, cacheService);
+        container.listen(setlistDetailDataProvider('b1', 's1'), (_, _) {});
+        await container.read(setlistDetailDataProvider('b1', 's1').future);
+        callCount = 0;
+
+        final notifier = container.read(
+          setlistDetailDataProvider('b1', 's1').notifier,
+        );
+        final first = notifier.refresh();
+        final second = notifier.refresh(force: true);
+        await Future.wait([first, second]);
+
+        expect(callCount, 2);
+        final finalState = container
+            .read(setlistDetailDataProvider('b1', 's1'))
+            .valueOrNull;
+        expect(finalState?['tracks'], <Map<String, dynamic>>[]);
+      },
+    );
+
+    test(
       'a local updateFields() mutation is not clobbered by a slower '
       'in-flight refresh() (WR-02)',
       () async {
