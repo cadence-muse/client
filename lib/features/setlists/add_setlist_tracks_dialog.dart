@@ -9,6 +9,17 @@ import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
 import '../../providers/tracks_provider.dart';
 
+/// Returns true when [query] is empty, or is a case-insensitive substring
+/// of [track]'s title or artist (D-02). An exact-match query is trivially a
+/// substring of itself, so exact title/artist matches are automatically
+/// covered.
+bool trackMatchesSearchQuery(Map<String, dynamic> track, String query) {
+  if (query.isEmpty) return true;
+  final lowerQuery = query.toLowerCase();
+  return (track['title'] as String).toLowerCase().contains(lowerQuery) ||
+      (track['artist'] as String).toLowerCase().contains(lowerQuery);
+}
+
 /// Multi-select picker (D-12) for adding one or more of the band's existing
 /// tracks to a setlist in a single bulk `addSetlistTracks` call. Only shown
 /// from `SetlistDetailScreen` while in edit mode (D-15).
@@ -132,11 +143,21 @@ class _AddSetlistTracksDialogState
         width: double.maxFinite,
         child: tracksAsync.when(
           data: (tracks) {
-            final availableTracks = [
+            var availableTracks = [
               for (final track in tracks)
                 if (!widget.currentTrackIds.contains(track['id'] as String))
                   track,
             ];
+            // Offline search only visibly filters (D-05/D-06) — online, the
+            // debounced request fires (see _onSearchChanged) but the
+            // displayed list intentionally stays full/unfiltered. Order is
+            // preserved: no sort is introduced here.
+            if (!isOnline && _searchQuery.isNotEmpty) {
+              availableTracks = [
+                for (final track in availableTracks)
+                  if (trackMatchesSearchQuery(track, _searchQuery)) track,
+              ];
+            }
             final remainingSlots =
                 _maxSetlistTracks - widget.currentTrackIds.length;
 
@@ -159,6 +180,13 @@ class _AddSetlistTracksDialogState
                     child: Text(
                       'This setlist already has the maximum of 100 tracks.',
                     ),
+                  )
+                else if (!isOnline &&
+                    _searchQuery.isNotEmpty &&
+                    availableTracks.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(child: Text('No tracks match your search')),
                   )
                 else if (availableTracks.isEmpty)
                   const Padding(
