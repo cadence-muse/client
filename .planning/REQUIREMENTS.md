@@ -34,7 +34,7 @@ Requirements for the v1.1 UI Improvements milestone. Each maps to a roadmap phas
 ### Setlists
 
 - [x] **SETL-11**: Setlist list/detail screens show icons for location and duration
-- [ ] **SETL-12**: Setlist track picker replaces the current all-tracks dialog with a searchable list; `publicapi.yml`'s `ListBandTracks` gains a `searchQuery` request field (client extends the spec now, backend implements separately)
+- [x] **SETL-12**: Setlist track picker replaces the current all-tracks dialog with a searchable list; `publicapi.yml`'s `ListBandTracks` gains a `searchQuery` request field (client extends the spec now, backend implements separately)
 
 ## v2 Requirements
 
@@ -63,7 +63,7 @@ None yet.
 | BAND-12 | Phase 8 | Complete |
 | HOME-01 | Phase 9 | Complete |
 | HOME-02 | Phase 9 | Complete |
-| SETL-12 | Phase 10 | Pending |
+| SETL-12 | Phase 10 | Complete |
 
 **Coverage:**
 

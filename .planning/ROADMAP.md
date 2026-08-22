@@ -28,7 +28,7 @@ Full detail: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 7: Cache Behavior Flip — Online-First** - Online always fetches fresh; offline serves cache with a persistent warning banner; staleness-tier badge system removed (completed 2026-08-21)
 - [x] **Phase 8: Band Owner Tools** - Owner can rotate the invite code and transfer band ownership (completed 2026-08-21)
 - [x] **Phase 9: Homepage Quick Actions** - Add band/song/setlist shortcuts from the Homepage, with a band-picker dialog for song/setlist (completed 2026-08-22)
-- [ ] **Phase 10: Searchable Setlist Track Picker** - Setlist track picker replaces the flat dialog with a searchable list; `ListBandTracks` spec gains a `searchQuery` field
+- [x] **Phase 10: Searchable Setlist Track Picker** - Setlist track picker replaces the flat dialog with a searchable list; `ListBandTracks` spec gains a `searchQuery` field (completed 2026-08-22)
 
 ## Phase Details
 
@@ -180,11 +180,11 @@ Plans:
   3. `lib/api/publicapi.yml`'s `ListBandTracks` request includes a documented `searchQuery` field (client-side spec extension; backend implementation follows in a later milestone).
   4. Selecting one or more filtered tracks and confirming adds exactly those tracks to the setlist, same as the previous dialog's add behavior.
 
-**Plans**: 1 plan
+**Plans**: 1/1 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 10-01-PLAN.md — Searchable track picker end-to-end: searchQuery spec/API extension, debounced online request, offline substring filtering (SETL-12)
+- [x] 10-01-PLAN.md — Searchable track picker end-to-end: searchQuery spec/API extension, debounced online request, offline substring filtering (SETL-12)
 
 **UI hint**: yes
 
@@ -204,4 +204,4 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 7. Cache Behavior Flip — Online-First | v1.1 | 0/5 | Not started | - |
 | 8. Band Owner Tools | v1.1 | 1/1 | Complete    | 2026-08-21 |
 | 9. Homepage Quick Actions | v1.1 | 1/1 | Complete    | 2026-08-22 |
-| 10. Searchable Setlist Track Picker | v1.1 | 0/1 | Not started | - |
+| 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete    | 2026-08-22 |
