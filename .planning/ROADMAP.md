@@ -115,17 +115,17 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 07-01-PLAN.md — Tracer: Bands tab + band detail online-first, shared OfflineNoCacheException/OfflineNoCacheView, banner reword
+- [x] 07-01-PLAN.md — Tracer: Bands tab + band detail online-first, shared OfflineNoCacheException/OfflineNoCacheView, banner reword
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07-02-PLAN.md — Home + Profile tabs online-first
-- [ ] 07-03-PLAN.md — Tracks (list/detail/cross-band) online-first
-- [ ] 07-04-PLAN.md — Setlists (list/detail/cross-band) online-first
+- [x] 07-02-PLAN.md — Home + Profile tabs online-first
+- [x] 07-03-PLAN.md — Tracks (list/detail/cross-band) online-first
+- [x] 07-04-PLAN.md — Setlists (list/detail/cross-band) online-first
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 07-05-PLAN.md — Delete SyncStatusBadge; rewrite aggregate OFFL-07/OFFL-08 regression guard
+- [x] 07-05-PLAN.md — Delete SyncStatusBadge; rewrite aggregate OFFL-07/OFFL-08 regression guard
 
 **UI hint**: yes
 
@@ -201,7 +201,7 @@ Phases execute in numeric order: 6 → 7 → 8 → 9 → 10
 | 4. Setlists | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 5. Offline Trust & Connectivity UX | v1.0 | 5/5 | Complete | 2026-08-17 |
 | 6. Foundation Info & Settings Polish | v1.1 | 4/4 | Complete    | 2026-08-21 |
-| 7. Cache Behavior Flip — Online-First | v1.1 | 0/5 | Not started | - |
+| 7. Cache Behavior Flip — Online-First | v1.1 | 5/5 | Complete    | 2026-08-22 |
 | 8. Band Owner Tools | v1.1 | 1/1 | Complete    | 2026-08-21 |
 | 9. Homepage Quick Actions | v1.1 | 1/1 | Complete    | 2026-08-22 |
 | 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete    | 2026-08-22 |
