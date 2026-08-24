@@ -1,4 +1,4 @@
-name: Release Docker Image & APK
+name: Release
 
 on:
   push:
