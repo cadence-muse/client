@@ -58,6 +58,14 @@ void main() {
   }
 
   Future<void> openCreateTrackScreen(WidgetTester tester) async {
+    // The Duration field's helperText (added for DUR-04) grows the form's
+    // total height past the default 800x600 test viewport, pushing the
+    // Save button below the visible area and causing tap() to miss it.
+    // Widen the viewport so the whole form is on-screen without scrolling.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Open'));
     await tester.pumpAndSettle();
   }
@@ -179,7 +187,44 @@ void main() {
   );
 
   testWidgets(
-    'WR-02: non-numeric Duration input is rejected without an API call',
+    'DUR-04: typing "230" into Duration auto-formats to "2:30" and submits '
+    'durationSeconds 150',
+    (tester) async {
+      String? requestBody;
+      final apiClient = buildApiClient((request) async {
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/track') {
+          requestBody = request.body;
+          return http.Response(jsonEncode({'id': 't1'}), 201);
+        }
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openCreateTrackScreen(tester);
+      await enterTitleAndArtist(tester);
+      await tester.enterText(find.byType(TextFormField).at(2), '230');
+      await tester.pump();
+
+      expect(find.text('2:30'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Save track'));
+      await tester.pumpAndSettle();
+
+      expect(
+        requestBody,
+        jsonEncode({
+          'title': 'My Song',
+          'artist': 'My Artist',
+          'durationSeconds': 150,
+        }),
+      );
+    },
+  );
+
+  testWidgets(
+    'DUR-02: Duration formatted to "5:60" is rejected on submit with the '
+    'seconds-range error, no API call',
     (tester) async {
       var callCount = 0;
       final apiClient = buildApiClient((request) async {
@@ -190,12 +235,15 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openCreateTrackScreen(tester);
       await enterTitleAndArtist(tester);
-      await tester.enterText(find.byType(TextFormField).at(2), 'abc');
+      await tester.enterText(find.byType(TextFormField).at(2), '560');
       await tester.tap(find.widgetWithText(FilledButton, 'Save track'));
       await tester.pump();
 
       expect(callCount, 0);
-      expect(find.text('Enter a whole number'), findsOneWidget);
+      expect(
+        find.text('Seconds must be 0–59 (e.g. 2:30, not 2:75)'),
+        findsOneWidget,
+      );
     },
   );
 
