@@ -39,7 +39,7 @@ Full detail: `.planning/milestones/v1.1-ROADMAP.md`
 
 **Milestone Goal:** Users can switch the app's language between English and Russian, and enter track duration as minutes:seconds instead of raw seconds.
 
-- [ ] **Phase 11: Duration mm:ss Input + Display** - Track duration entered and shown as mm:ss everywhere, with typing auto-format and invalid-input rejection
+- [x] **Phase 11: Duration mm:ss Input + Display** - Track duration entered and shown as mm:ss everywhere, with typing auto-format and invalid-input rejection (completed 2026-08-25)
 - [ ] **Phase 12: Locale + i18n Infrastructure** - LocaleController, ARB/gen-l10n pipeline, and a live no-restart Profile-screen language switch persisted on-device
 - [ ] **Phase 13: String Extraction & Screen Localization** - Every UI string localized EN/RU across all screens, with grammatically correct Russian pluralization for counts
 - [ ] **Phase 14: API Error Localization** - Known API error codes map to localized messages; unmapped codes fall back to raw server text
@@ -188,7 +188,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 8. Band Owner Tools | v1.1 | 1/1 | Complete | 2026-08-21 |
 | 9. Homepage Quick Actions | v1.1 | 1/1 | Complete | 2026-08-22 |
 | 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete | 2026-08-22 |
-| 11. Duration mm:ss Input + Display | v1.2 | 2/2 | In Progress|  |
+| 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
 | 12. Locale + i18n Infrastructure | v1.2 | 0/? | Not started | — |
 | 13. String Extraction & Screen Localization | v1.2 | 0/? | Not started | — |
 | 14. API Error Localization | v1.2 | 0/? | Not started | — |
