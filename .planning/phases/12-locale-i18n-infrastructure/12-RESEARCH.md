@@ -756,19 +756,20 @@ class SettingsScreen extends ConsumerWidget {
 
 [Table is non-empty — assumptions exist that need user confirmation before execution.]
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **IndexedStack locale propagation verification**
+1. **IndexedStack locale propagation verification** — RESOLVED (via automated test in Phase 12)
    - What we know: Flutter's `Localizations` InheritedWidget should handle propagation to all mounted descendants
    - What's unclear: Exact rebuild trigger for inactive `IndexedStack` tabs when locale changes (does child widget's `build()` get called immediately, or only on next visibility?)
    - Recommendation: Phase 13's manual test "Background tab propagation" will confirm. If tabs don't update, an explicit `ref.watch(localeControllerProvider)` in each tab root (or IndexedStack-level) will force rebuild.
+   - Resolution: Elevated to an automated test in Phase 12's plan (`test/locale_live_switch_test.dart`, background-tab-propagation case) rather than deferred to a Phase 13 manual check.
 
-2. **Rapid locale switching (stress test)**
+2. **Rapid locale switching (stress test)** — DEFERRED (Phase 13/14)
    - What we know: SharedPreferences write is asynchronous but each write should overwrite the previous
    - What's unclear: If user taps "English" then "Russian" then "English" in rapid succession, does state end up consistent?
    - Recommendation: Phase 13 or Phase 14 can add an integration test for this; Phase 12 assumes setLocale() is simple enough that race conditions are unlikely (single key write).
 
-3. **Device locale mismatch after SharedPreferences clear**
+3. **Device locale mismatch after SharedPreferences clear** — RESOLVED (D-05 locked decision)
    - What we know: OS Settings → Clear App Cache will clear SharedPreferences, forcing default to English
    - What's unclear: Should the app auto-detect device locale on subsequent launch if SharedPreferences is empty?
    - Recommendation: REQUIREMENTS.md locks "no auto-detect" (D-05, already confirmed by user); default to English is correct behavior.
