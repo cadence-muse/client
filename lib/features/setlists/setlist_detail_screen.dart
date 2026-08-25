@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cadence/features/tracks/track_formatting.dart';
+
 import '../../api/api_exception.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -283,7 +285,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                 children: [
                   Icon(Icons.timer, size: 20, color: colorScheme.primary),
                   const SizedBox(width: 8),
-                  Text(durationSeconds.asMinutesAndSeconds),
+                  Text(durationSeconds.asMinutesSeconds),
                 ],
               ),
               const SizedBox(height: 16),
@@ -329,7 +331,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                     final trackDurationSeconds =
                         track['durationSeconds'] as int?;
                     final durationText =
-                        trackDurationSeconds?.asMinutesAndSeconds ?? '—';
+                        trackDurationSeconds?.asMinutesSeconds ?? '—';
                     return ListTile(
                       key: ValueKey(trackId),
                       leading: ReorderableDragStartListener(
@@ -377,7 +379,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                     final trackDurationSeconds =
                         track['durationSeconds'] as int?;
                     final durationText =
-                        trackDurationSeconds?.asMinutesAndSeconds ?? '—';
+                        trackDurationSeconds?.asMinutesSeconds ?? '—';
                     return ListTile(
                       title: Text(
                         title,

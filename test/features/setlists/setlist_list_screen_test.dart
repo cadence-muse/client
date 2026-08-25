@@ -118,7 +118,7 @@ void main() {
 
       expect(find.text('Friday Show'), findsOneWidget);
       expect(find.text('No date set'), findsOneWidget);
-      expect(find.text('10m 0s'), findsOneWidget);
+      expect(find.text('10:00'), findsOneWidget);
       expect(find.byIcon(Icons.timer), findsOneWidget);
     },
   );
@@ -167,8 +167,8 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('1m 0s'), findsOneWidget);
-      expect(find.text('42m 35s'), findsOneWidget);
+      expect(find.text('1:00'), findsOneWidget);
+      expect(find.text('42:35'), findsOneWidget);
     },
   );
 

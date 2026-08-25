@@ -1,20 +1,13 @@
-/// Formats a setlist's `durationSeconds` in words (D-05), e.g. `2555` ->
-/// `'42m 35s'`. Distinct from Track's `mm:ss` presentation
-/// (`track_formatting.dart`'s `asMinutesSeconds`) — the two features
-/// intentionally use different duration formats per their respective
-/// UI-SPECs.
-extension DurationFormatting on int {
-  String get asMinutesAndSeconds => '${this ~/ 60}m ${this % 60}s';
-}
+import 'package:cadence/features/tracks/track_formatting.dart';
 
 /// Pluralizes a track count for display, e.g. `1` -> `'1 track'`, `8` ->
 /// `'8 tracks'`.
 String pluralizeTracks(int count) => count == 1 ? '1 track' : '$count tracks';
 
-/// Composes a setlist list row's trailing text, e.g. `'8 tracks, 42m 35s'`.
+/// Composes a setlist list row's trailing text, e.g. `'8 tracks, 42:35'`.
 /// Reused unmodified by Plan 05's global cross-band Setlists tab.
 String tracksAndDuration(int tracksCount, int durationSeconds) =>
-    '${pluralizeTracks(tracksCount)}, ${durationSeconds.asMinutesAndSeconds}';
+    '${pluralizeTracks(tracksCount)}, ${durationSeconds.asMinutesSeconds}';
 
 const _monthAbbreviations = [
   'Jan',
