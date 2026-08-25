@@ -45,12 +45,12 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - ✓ Band owner can transfer ownership to another band member (BAND-12) — v1.1 Phase 8
 - ✓ User can start "Add band"/"Add song"/"Add setlist" from Homepage quick actions, with a band-picker dialog for song/setlist (HOME-01, HOME-02) — v1.1 Phase 9
 - ✓ Setlist track picker replaces the flat all-tracks dialog with a searchable list; `publicapi.yml`'s `ListBandTracks` gains a client-side `searchQuery` field (backend implementation deferred) (SETL-12) — v1.1 Phase 10
+- ✓ User enters and views track duration as mm:ss instead of raw seconds; `durationSeconds` API field unchanged (DUR-01, DUR-02, DUR-03, DUR-04) — v1.2 Phase 11
 
 ### Active
 
 - [ ] User can switch app language between English and Russian from Profile settings; change applies live, no restart
 - [ ] All UI strings are localized (EN/RU); known API error codes are mapped to localized messages, unmapped errors fall back to raw server text
-- [ ] User enters and views track duration as mm:ss instead of raw seconds; `durationSeconds` API field unchanged
 
 ### Out of Scope
 
@@ -123,4 +123,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-25 after starting v1.2 milestone*
+*Last updated: 2026-08-25 after Phase 11*
