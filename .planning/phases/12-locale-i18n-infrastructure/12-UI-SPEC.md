@@ -1,7 +1,7 @@
 ---
 phase: 12
 slug: locale-i18n-infrastructure
-status: draft
+status: verified
 design_system: flutter-material
 localization_pipeline: flutter-gen-l10n
 created: 2026-08-25
@@ -412,38 +412,77 @@ flutter:
 
 ---
 
+## UI Considerations
+
+State-shape coverage for each described surface, resolved post-verification via the UI-consideration probe.
+
+**E1 — Language section (RadioGroup<Locale>, two RadioListTile options):**
+
+| Category | Resolution |
+|----------|------------|
+| loading | ⚠ Dismissed — radio selection itself has no async load; the only loading state in this phase is the app-level locale bootstrap (see E2). |
+| error | ⚠ Dismissed — selecting a radio value is a local, synchronous state write; nothing to fail. |
+| long-text | Language option labels are short native names ("English", "Русский") per D-06; RadioListTile wraps to a second line under large system font scaling — no truncation needed at supported sizes. *(verification: backstop — visual check under max accessibility text scale)* |
+
+**E2 — App startup loading (locale preference resolves from SharedPreferences):**
+
+| Category | Resolution |
+|----------|------------|
+| empty | ⚠ Dismissed — not a list/collection; no "zero items" concept for a single locale value. |
+| loading | CircularProgressIndicator shown while `LocaleController.build()` resolves — see State Contract → Loading State (<200ms typical). *(verification: explicit)* |
+| error | `AsyncError` branch shows "Error initializing app: $error" in a centered Scaffold — see `CadenceApp.locale.when()` error branch above. *(verification: explicit)* |
+| populated | Normal state is the app UI with `selectedLocale` applied via `MaterialApp.locale` — the default/happy path once load completes. *(verification: explicit)* |
+| partial | ⚠ Dismissed — locale value is a single scalar (`en`/`ru`), not partial/incomplete data. |
+| overflow | ⚠ Dismissed — no content container involved; app-level bootstrap state, not a scrollable/visual list. |
+| zero-one-many | ⚠ Dismissed — locale is a singleton value, not a collection with cardinality. |
+| long-text | ⚠ Dismissed — no text content renders during bootstrap besides the spinner. |
+
+**E3 — Live locale propagation (visible + inactive `IndexedStack` tabs):**
+
+| Category | Resolution |
+|----------|------------|
+| empty / loading / error / populated / partial / overflow / zero-one-many / long-text | ⚠ Dismissed (all) — this element describes cross-screen state-propagation behavior, not a data-bearing surface with its own render states. Propagation correctness is covered by Localization Testing Strategy manual test 4 (Background tab propagation). *(verification: backstop — manual test 4)* |
+
+**E4 — Persistence (restart, logout, device reset):**
+
+| Category | Resolution |
+|----------|------------|
+| unclassified | Behavior is fully specified in Persistence Contract (State Contract section) — restart, logout-survival (D-04), and SharedPreferences-cleared-defaults-to-English are all named with no error/loading UI shown. Confirmed via Localization Testing Strategy manual tests 3 and 5. *(verification: backstop — manual tests 3 and 5)* |
+
+---
+
 ## Checker Sign-Off
 
-- [ ] Dimension 1 — Copywriting: PASS
-  - [ ] ARB seed strings defined for Settings screen
-  - [ ] Native language labels verified ("English", "Русский")
-  - [ ] No untranslated content introduced outside ARB scope
+- [x] Dimension 1 — Copywriting: PASS
+  - [x] ARB seed strings defined for Settings screen
+  - [x] Native language labels verified ("English", "Русский")
+  - [x] No untranslated content introduced outside ARB scope
   
-- [ ] Dimension 2 — Visuals: PASS
-  - [ ] Settings screen layout matches existing Theme pattern
-  - [ ] RadioListTile Material component used (no custom styling)
-  - [ ] Divider and section header spacing matches "Theme" precedent
+- [x] Dimension 2 — Visuals: PASS
+  - [x] Settings screen layout matches existing Theme pattern
+  - [x] RadioListTile Material component used (no custom styling)
+  - [x] Divider and section header spacing matches "Theme" precedent
   
-- [ ] Dimension 3 — Color: PASS
-  - [ ] Uses existing Material ColorScheme (no new colors)
-  - [ ] Light/dark mode contrast verified via AppTheme
+- [x] Dimension 3 — Color: PASS
+  - [x] Uses existing Material ColorScheme (no new colors)
+  - [x] Light/dark mode contrast verified via AppTheme
   
-- [ ] Dimension 4 — Typography: PASS
-  - [ ] Section headers: 14sp, weight 600
-  - [ ] Labels: 16sp, weight 500 (RadioListTile default)
-  - [ ] Uses Material typography scale (no custom fonts)
+- [x] Dimension 4 — Typography: PASS
+  - [x] Section headers: 14sp, weight 600
+  - [x] Labels: 16sp, weight 500 (RadioListTile default)
+  - [x] Uses Material typography scale (no custom fonts)
   
-- [ ] Dimension 5 — Spacing: PASS
-  - [ ] Section padding: 16/16/16/8 (matches "Theme" section)
-  - [ ] All spacing is 4-point scale (Material standard)
-  - [ ] RadioListTile height: 48px (Material spec)
+- [x] Dimension 5 — Spacing: PASS
+  - [x] Section padding: 16/16/16/8 (matches "Theme" section)
+  - [x] All spacing is 4-point scale (Material standard)
+  - [x] RadioListTile height: 48px (Material spec)
   
-- [ ] Dimension 6 — Registry Safety: PASS
-  - [ ] No third-party registries used
-  - [ ] All dependencies from Pub.dev or Flutter SDK
-  - [ ] No untrusted code blocks
+- [x] Dimension 6 — Registry Safety: PASS
+  - [x] No third-party registries used
+  - [x] All dependencies from Pub.dev or Flutter SDK
+  - [x] No untrusted code blocks
 
-**Approval Status:** pending (awaiting gsd-ui-checker verification)
+**Approval Status:** APPROVED — all 6 dimensions PASS (gsd-ui-checker)
 
 ---
 
