@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeSecureStorage extends FlutterSecureStoragePlatform
     with MockPlatformInterfaceMixin {
@@ -62,6 +63,14 @@ class _FakeSecureStorage extends FlutterSecureStoragePlatform
 }
 
 void main() {
+  setUp(() {
+    // CadenceApp watches localeControllerProvider, which reads
+    // SharedPreferences on startup — mock it so build() resolves
+    // synchronously to the English default instead of hitting a real
+    // (unavailable in tests) platform channel.
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('bottom navigation switches between tabs', (
     WidgetTester tester,
   ) async {

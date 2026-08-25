@@ -45,6 +45,11 @@ class AuthSession extends _$AuthSession {
     state = AsyncData(token);
   }
 
+  /// D-04: The `'app_locale'` SharedPreferences key (see
+  /// `lib/providers/locale_provider.dart`) is a device preference, not
+  /// account data — it must survive sign-out. Do not extend this method to
+  /// clear it or any other local UI-preference state; only clear
+  /// auth-specific keys (token, cache).
   Future<void> signOut() async {
     if (state.value == null || _loggingOut) return;
     _loggingOut = true;

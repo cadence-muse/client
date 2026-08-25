@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Copied from `test/widget_test.dart` — a fake secure-storage backend so
 /// `TokenStorage` never touches the real platform channel in tests.
@@ -410,6 +411,21 @@ void main() {
         expect(container.read(authSessionProvider).value, isNull);
         expect(await TokenStorage().read(), isNull);
         expect(fakeCacheService.clearAllCallCount, 1);
+      },
+    );
+
+    test(
+      'signOut() does not clear the app_locale SharedPreferences key (D-04)',
+      () async {
+        SharedPreferences.setMockInitialValues({'app_locale': 'ru'});
+        final container = buildContainer();
+        await container.read(authSessionProvider.future);
+        await container.read(authSessionProvider.notifier).signIn('new-token');
+
+        await container.read(authSessionProvider.notifier).signOut();
+
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getString('app_locale'), 'ru');
       },
     );
   });
