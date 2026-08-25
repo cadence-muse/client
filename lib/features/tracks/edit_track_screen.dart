@@ -35,7 +35,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
     text: widget.currentTrack['artist'] as String?,
   );
   late final _durationController = TextEditingController(
-    text: (widget.currentTrack['durationSeconds'] as int?)?.toString(),
+    text: (widget.currentTrack['durationSeconds'] as int?)?.asMinutesSeconds,
   );
   late final _tempoController = TextEditingController(
     text: (widget.currentTrack['tempo'] as int?)?.toString(),
@@ -77,6 +77,33 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
     return int.tryParse(text) == null ? 'Enter a whole number' : null;
   }
 
+  /// DUR-02: independently re-validates the mm:ss Duration field at submit
+  /// time — DurationTextInputFormatter only shapes keystrokes and cannot
+  /// guard against paste or programmatic text assignment. An empty field
+  /// remains valid — Duration stays optional (D-06). Duplicated per-file
+  /// (not extracted to a shared helper), matching the existing
+  /// _wholeNumberValidator per-file convention.
+  String? _durationValidator(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    final parts = text.split(':');
+    if (parts.length != 2) {
+      return 'Enter duration in mm:ss format (e.g. 0:30)';
+    }
+    final minutes = int.tryParse(parts[0]);
+    final seconds = int.tryParse(parts[1]);
+    if (minutes == null || seconds == null) {
+      return 'Enter duration in mm:ss format (e.g. 0:30)';
+    }
+    if (minutes < 0 || seconds < 0) {
+      return 'Duration cannot be negative';
+    }
+    if (seconds > 59) {
+      return 'Seconds must be 0–59 (e.g. 2:30, not 2:75)';
+    }
+    return null;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -87,7 +114,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
 
     final title = _titleController.text.trim();
     final artist = _artistController.text.trim();
-    final durationSeconds = int.tryParse(_durationController.text.trim());
+    final durationSeconds = parseDurationSeconds(_durationController.text);
     final tempo = int.tryParse(_tempoController.text.trim());
     final key = _selectedKey;
     final notesText = _notesController.text.trim();
@@ -191,11 +218,14 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                 TextFormField(
                   controller: _durationController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [DurationTextInputFormatter()],
                   decoration: const InputDecoration(
-                    labelText: 'Duration (seconds)',
+                    labelText: 'Duration',
+                    hintText: '0:00',
+                    helperText: 'e.g. 2:30 for 2 minutes 30 seconds',
                     border: OutlineInputBorder(),
                   ),
-                  validator: _wholeNumberValidator,
+                  validator: _durationValidator,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(

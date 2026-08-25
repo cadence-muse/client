@@ -73,6 +73,14 @@ void main() {
   }
 
   Future<void> openEditTrackScreen(WidgetTester tester) async {
+    // The Duration field's helperText (added for DUR-04) grows the form's
+    // total height past the default 800x600 test viewport, pushing the
+    // Save button below the visible area and causing tap() to miss it.
+    // Widen the viewport so the whole form is on-screen without scrolling.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Open'));
     await tester.pumpAndSettle();
   }
