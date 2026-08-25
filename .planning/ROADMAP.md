@@ -121,7 +121,11 @@ Full detail for Phases 6-10: `.planning/milestones/v1.1-ROADMAP.md`
   3. Entering an invalid duration (seconds ≥ 60, negative values, malformed/incomplete text like "2:") shows clear validation feedback and blocks submission.
   4. Every screen showing track or setlist duration (lists, detail views, setlist views) displays the same mm:ss format — the previous two divergent formats (`mm:ss` vs. words-based `"42m 35s"`) no longer both exist.
 
-**Plans**: Not yet planned
+**Plans**: 2 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Duration mm:ss input auto-format, validation, and parsing (create/edit track forms)
+- [ ] 11-02-PLAN.md — Unify track/setlist duration display to mm:ss format
 
 ### Phase 12: Locale + i18n Infrastructure
 
