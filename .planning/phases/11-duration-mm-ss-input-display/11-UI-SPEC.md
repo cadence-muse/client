@@ -1,7 +1,7 @@
 ---
 phase: 11
 slug: duration-mm-ss-input-display
-status: draft
+status: approved
 tool: Flutter Material Design
 preset: none
 created: 2026-08-25
@@ -69,6 +69,8 @@ Declared Material text styles (via `Theme.of(context).textTheme`):
 **Material Theme Integration:**
 All text inherits from `Theme.of(context).textTheme` — no custom font definitions. Duration input placeholder text and validation error messages use Material's `labelMedium` style for consistency with existing form patterns (see `create_track_screen.dart` WR-02).
 
+**Visual Hierarchy (focal point):** Screen title ("Add track" / "Edit track", `titleLarge`) is dominant. Field labels rank below title as supporting structure. Input text (user-entered value) is the primary interactive focus within the form. Error text ranks lowest but gains attention via `error` color when present. Order: Title > Field labels > Input values > Error/helper text.
+
 ---
 
 ## Color
@@ -83,7 +85,7 @@ All text inherits from `Theme.of(context).textTheme` — no custom font definiti
 **Seed Color:** `Colors.green` (Material's default green seed, approximately #4CAF50 in light mode, adapted in dark mode via ColorScheme.fromSeed)
 
 **Accent Reserved For:**
-- Duration input field focus state (blue underline per Material guidelines)
+- Duration input field focus state: primary green underline (inherited from theme seed color via Material Design 3 `TextFormField` default — not Material's standard blue)
 - Submit button (`ElevatedButton`) filled state using primary green
 - Helper text and error labels (Material red for errors, primary green for hints)
 
@@ -481,11 +483,11 @@ Setlist Detail Screen
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS (focal point/hierarchy added post-review)
+- [x] Dimension 3 Color: PASS (focus-state contradiction fixed post-review)
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved
