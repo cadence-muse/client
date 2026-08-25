@@ -46,10 +46,10 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - ✓ User can start "Add band"/"Add song"/"Add setlist" from Homepage quick actions, with a band-picker dialog for song/setlist (HOME-01, HOME-02) — v1.1 Phase 9
 - ✓ Setlist track picker replaces the flat all-tracks dialog with a searchable list; `publicapi.yml`'s `ListBandTracks` gains a client-side `searchQuery` field (backend implementation deferred) (SETL-12) — v1.1 Phase 10
 - ✓ User enters and views track duration as mm:ss instead of raw seconds; `durationSeconds` API field unchanged (DUR-01, DUR-02, DUR-03, DUR-04) — v1.2 Phase 11
+- ✓ User can switch app language between English and Russian from Profile settings; change applies live, no restart; ARB/gen-l10n pipeline and `LocaleController` established as the pattern every later i18n phase builds on (I18N-01, I18N-02, I18N-03) — v1.2 Phase 12
 
 ### Active
 
-- [ ] User can switch app language between English and Russian from Profile settings; change applies live, no restart
 - [ ] All UI strings are localized (EN/RU); known API error codes are mapped to localized messages, unmapped errors fall back to raw server text
 
 ### Out of Scope
@@ -100,6 +100,7 @@ A band member can open the app without signal — at a venue, in a basement, on 
 | `ref.exists()` guard before reading a sibling provider's `.notifier` from an unrelated screen | Reading `.notifier` on a never-watched provider instantiates it and fires an unplanned network call as a side effect — broke 3 pre-existing tests when first hit in Phase 2 | ✓ Good — established as the standing pattern for any cross-provider notifier read |
 | Owner-gated mutations use a local-patch pattern: optimistic patch for responses with a usable body (rotate), invalidate+refetch plus a separate list-patch for responses without one (transfer) | Rotate's response returns the new code directly; transfer's 200-with-no-body can't be trusted as a source of truth, so the detail screen refetches while the bands-list badge is patched from the known target userId | ✓ Good — Phase 8; established alongside `updateName()`/`renameBand()` for future owner-gated mutations |
 | Cache behavior flip built as a single reusable template (`_fetchAndCache`/online-first `build()`/tab-switch-refetch/`OfflineNoCacheException`) proven on Bands first, then mirrored verbatim across Home/Profile/Tracks/Setlists | One tracer plan (07-01) established the pattern and caught its edge cases once, instead of each of the 4 remaining plans re-deriving it independently | ✓ Good — Phase 7; zero pattern drift across the 5 plans |
+| `LocaleController` built as an async `@riverpod` `AsyncNotifier<Locale>` backed by `SharedPreferences`, mirroring `ThemeController`'s shape but adding async persistence | Locale, unlike theme, needs a disk round-trip on both read and write; the async-notifier shape keeps the existing sync `ThemeController` pattern recognizable while accommodating that | ✓ Good — Phase 12; pattern for Phase 13/14 to reuse |
 | Persisted-cache writes must check the same `_version` guard as in-memory state commits, not just the state assignment | Code review (CR-01) found a stale in-flight background refresh could pass the state-level version check's absence and still silently overwrite the on-disk cache with reverted data — the original guard only protected `state`, not the paired `CacheService` write | ✓ Good — Phase 7 gap-closure; both writes now gated by one check |
 | Dropdown filter values must be clamped against their live source list before rendering, not just when set | A selected band-filter id surviving in a persisted provider after its band is deleted/left crashes Flutter's `DropdownButton` assertion (CR-02) — the fix clamps the rendered value without touching the persisted filter, so it "sticks" if the band reappears | ✓ Good — Phase 7 gap-closure; applies to any future filterable dropdown backed by a mutable list |
 | `syncedAt` bump only fires after a confirmed cache write, not unconditionally alongside it | `CacheService.writeX` swallowed exceptions internally, so a failed persisted write could still report a fresh sync time (WR-02); `writeX` now returns `Future<bool>` and every call site gates the bump on `true` | ✓ Good — Phase 7 gap-closure |
@@ -123,4 +124,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-25 after Phase 11*
+*Last updated: 2026-08-25 after Phase 12*

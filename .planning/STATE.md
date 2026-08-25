@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-25)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 12 — Locale + i18n Infrastructure
+**Current focus:** Phase 13 — String Extraction & Screen Localization
 
 ## Current Position
 
