@@ -1,0 +1,11 @@
+{
+  "@@locale": "ru",
+  "appBarSettingsTitle": "Настройки",
+  "sectionThemeTitle": "Тема",
+  "themeSystem": "Система",
+  "themeLight": "Светлая",
+  "themeDark": "Тёмная",
+  "sectionLanguageTitle": "Язык",
+  "languageEnglish": "English",
+  "languageRussian": "Русский"
+}

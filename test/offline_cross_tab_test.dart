@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Copied from `test/widget_test.dart` — a fake secure-storage backend so
 /// `TokenStorage` never touches the real platform channel in tests.
@@ -105,6 +106,11 @@ void main() {
     'reachable from, and stays consistent across, every one of the 5 '
     'bottom-nav tabs',
     (tester) async {
+      // CadenceApp watches localeControllerProvider, which reads
+      // SharedPreferences on startup — mock it so build() resolves
+      // synchronously to the English default instead of hitting a real
+      // (unavailable in tests) platform channel.
+      SharedPreferences.setMockInitialValues({});
       FlutterSecureStoragePlatform.instance = _FakeSecureStorage();
       await TokenStorage().write('test-token');
 
