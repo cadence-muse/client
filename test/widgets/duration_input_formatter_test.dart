@@ -63,5 +63,88 @@ void main() {
       final result = formatter.formatEditUpdate(value(''), value('230'));
       expect(result.selection, TextSelection.collapsed(offset: result.text.length));
     });
+
+    // The following cases simulate REAL chained keystrokes: each call's
+    // oldValue is the literal TextEditingValue returned by the PREVIOUS
+    // formatEditUpdate call, not a hand-built raw-digit string. This is the
+    // only way to reproduce the reported input-lockup bug, where re-parsing
+    // the displayed (already-formatted) text on every keystroke double
+    // -counted the formatter's own synthetic zero-padding.
+
+    TextEditingValue typeNext(TextEditingValue previous, String digit) {
+      final newText = previous.text + digit;
+      return formatter.formatEditUpdate(
+        previous,
+        TextEditingValue(
+          text: newText,
+          selection: TextSelection.collapsed(offset: newText.length),
+        ),
+      );
+    }
+
+    test(
+      'chained real keystrokes 2, 3, 0 into an empty field end at "2:30" '
+      '(pre-fix this locks up at "00:23" after the second keystroke)',
+      () {
+        var current = value('');
+        current = typeNext(current, '2');
+        current = typeNext(current, '3');
+        current = typeNext(current, '0');
+        expect(current.text, '2:30');
+      },
+    );
+
+    test(
+      'a 4th chained real keystroke (5) ends at "23:05" — the digit cap '
+      'boundary now lands at the correct point (4 real digits)',
+      () {
+        var current = value('');
+        current = typeNext(current, '2');
+        current = typeNext(current, '3');
+        current = typeNext(current, '0');
+        current = typeNext(current, '5');
+        expect(current.text, '23:05');
+      },
+    );
+
+    test(
+      'a 5th chained real keystroke (9) is rejected: result equals the '
+      'prior (4-digit) TextEditingValue unchanged, still "23:05"',
+      () {
+        var current = value('');
+        current = typeNext(current, '2');
+        current = typeNext(current, '3');
+        current = typeNext(current, '0');
+        current = typeNext(current, '5');
+        final beforeFifth = current;
+        current = typeNext(current, '9');
+        expect(current, beforeFifth);
+        expect(current.text, '23:05');
+      },
+    );
+
+    test(
+      'one real backspace from the 4-real-keystroke chained state ("23:05") '
+      'reformats to "2:30" — drops the last actually-typed digit (5), not a '
+      'leading synthetic zero',
+      () {
+        var current = value('');
+        current = typeNext(current, '2');
+        current = typeNext(current, '3');
+        current = typeNext(current, '0');
+        current = typeNext(current, '5');
+        expect(current.text, '23:05');
+
+        final backspaced = current.text.substring(0, current.text.length - 1);
+        final result = formatter.formatEditUpdate(
+          current,
+          TextEditingValue(
+            text: backspaced,
+            selection: TextSelection.collapsed(offset: backspaced.length),
+          ),
+        );
+        expect(result.text, '2:30');
+      },
+    );
   });
 }
