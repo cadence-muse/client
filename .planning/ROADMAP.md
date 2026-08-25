@@ -141,10 +141,11 @@ Plans:
   4. After choosing Russian and fully closing/reopening the app, the app reopens in Russian — the selection persisted locally, with no API/account round-trip.
   5. A screen kept alive in the background (an `IndexedStack` bottom-nav tab not visible when the language was switched) shows the new language once navigated to, not stale text from before the switch.
 
-**Plans**: 1 plan
+**Plans**: 1/1 plans executed
 
 Plans:
-- [ ] 12-01-PLAN.md — ARB/gen-l10n pipeline + LocaleController + live Settings-screen language switch, wired end-to-end
+
+- [x] 12-01-PLAN.md — ARB/gen-l10n pipeline + LocaleController + live Settings-screen language switch, wired end-to-end
 
 ### Phase 13: String Extraction & Screen Localization
 
@@ -192,6 +193,6 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 9. Homepage Quick Actions | v1.1 | 1/1 | Complete | 2026-08-22 |
 | 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete | 2026-08-22 |
 | 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
-| 12. Locale + i18n Infrastructure | v1.2 | 0/? | Not started | — |
+| 12. Locale + i18n Infrastructure | v1.2 | 1/1 | In Progress|  |
 | 13. String Extraction & Screen Localization | v1.2 | 0/? | Not started | — |
 | 14. API Error Localization | v1.2 | 0/? | Not started | — |

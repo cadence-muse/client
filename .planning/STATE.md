@@ -4,17 +4,17 @@ milestone: v1.2
 milestone_name: i18n and Duration Input
 current_phase: 12
 current_phase_name: Locale + i18n Infrastructure
-status: planning
+status: verifying
 stopped_at: Phase 12 UI-SPEC approved
-last_updated: "2026-08-25T12:21:57.733Z"
+last_updated: "2026-08-25T13:05:29.114Z"
 last_activity: 2026-08-25
-last_activity_desc: Phase 11 complete, transitioned to Phase 12
-state_head: 09a2795104f8aa26034273f04d9c6d55631dde15
+last_activity_desc: Phase 12 execution started
+state_head: ca5da43895e9dc0f77afb09cff1c54ce2f0a5e16
 progress:
   total_phases: 15
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 3
+  completed_plans: 3
   percent: 7
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-25)
 
 ## Current Position
 
-Phase: 12 — Locale + i18n Infrastructure
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-25 — Phase 11 complete, transitioned to Phase 12
+Phase: 12 (Locale + i18n Infrastructure) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-08-25 — Phase 12 execution started
 
 ## Performance Metrics
 
