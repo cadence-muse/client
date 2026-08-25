@@ -2,11 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: i18n and Duration Input
+current_phase_name: roadmap created, awaiting first phase plan
 status: planning
-last_updated: "2026-08-25T06:35:20.596Z"
+stopped_at: Phase 11 context gathered
+last_updated: "2026-08-25T07:12:58.842Z"
 last_activity: 2026-08-25
+last_activity_desc: v1.2 roadmap created (Phases 11-14), duration phase resequenced before locale phase per user request
+state_head: a2c60f469831501b99b861b3d51eddc0a0a81c82
 progress:
-  total_phases: 4
+  total_phases: 15
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -131,9 +135,9 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-25T06:35:20.596Z
-Stopped at: v1.2 roadmap created (Phases 11-14), no plans yet
-Resume file: none — start Phase 11 planning
+Last session: 2026-08-25T07:12:58.830Z
+Stopped at: Phase 11 context gathered
+Resume file: .planning/phases/11-duration-mm-ss-input-display/11-CONTEXT.md
 
 ## Operator Next Steps
 
