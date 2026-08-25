@@ -48,6 +48,31 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
     return int.tryParse(text) == null ? 'Enter a whole number' : null;
   }
 
+  /// DUR-02: independently re-validates the mm:ss Duration field at submit
+  /// time — DurationTextInputFormatter only shapes keystrokes and cannot
+  /// guard against paste or programmatic text assignment. An empty field
+  /// remains valid — Duration stays optional (D-06).
+  String? _durationValidator(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    final parts = text.split(':');
+    if (parts.length != 2) {
+      return 'Enter duration in mm:ss format (e.g. 0:30)';
+    }
+    final minutes = int.tryParse(parts[0]);
+    final seconds = int.tryParse(parts[1]);
+    if (minutes == null || seconds == null) {
+      return 'Enter duration in mm:ss format (e.g. 0:30)';
+    }
+    if (minutes < 0 || seconds < 0) {
+      return 'Duration cannot be negative';
+    }
+    if (seconds > 59) {
+      return 'Seconds must be 0–59 (e.g. 2:30, not 2:75)';
+    }
+    return null;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -67,7 +92,7 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
             bandId: widget.bandId,
             title: title,
             artist: artist,
-            durationSeconds: int.tryParse(_durationController.text.trim()),
+            durationSeconds: parseDurationSeconds(_durationController.text),
             tempo: int.tryParse(_tempoController.text.trim()),
             key: _selectedKey,
             notes: notes.isEmpty ? null : notes,
@@ -137,11 +162,14 @@ class _CreateTrackScreenState extends ConsumerState<CreateTrackScreen> {
                 TextFormField(
                   controller: _durationController,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [DurationTextInputFormatter()],
                   decoration: const InputDecoration(
-                    labelText: 'Duration (seconds)',
+                    labelText: 'Duration',
+                    hintText: '0:00',
+                    helperText: 'e.g. 2:30 for 2 minutes 30 seconds',
                     border: OutlineInputBorder(),
                   ),
-                  validator: _wholeNumberValidator,
+                  validator: _durationValidator,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
