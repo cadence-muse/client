@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-08-25T06:35:20.596Z"
 last_activity: 2026-08-25
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-08-21)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap created, awaiting first phase plan)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-25 — Milestone v1.2 started
+Status: Roadmap created
+Last activity: 2026-08-25 — v1.2 roadmap created (Phases 11-14), duration phase resequenced before locale phase per user request
 
 ## Performance Metrics
 
@@ -81,6 +81,12 @@ Last activity: 2026-08-25 — Milestone v1.2 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- Roadmap: v1.2 phases continue numbering from v1.1's Phase 10, starting at Phase 11 (Phases 11-14). No phase-number reset requested.
+- Roadmap: User requested Duration mm:ss (originally proposed as Phase 12) be sequenced before the Locale/i18n phases — the two are independent (per research SUMMARY.md dependency graph), so the swap has no correctness cost. Final order: Phase 11 (Duration mm:ss Input + Display) → Phase 12 (Locale + i18n Infrastructure) → Phase 13 (String Extraction & Screen Localization) → Phase 14 (API Error Localization).
+- Roadmap: Phase 11 (Duration mm:ss Input + Display) has no dependency on i18n infrastructure — ships first per explicit user preference.
+- Roadmap: Phase 12 (Locale + i18n Infrastructure) — every other i18n phase depends on `LocaleController`, the ARB/gen-l10n pipeline, and the locale-propagation pattern it establishes; cheapest to build once, before the string-localization sweep (per research SUMMARY.md).
+- Roadmap: Phase 13 (String Extraction & Screen Localization) is sequenced after Phase 12 so the "watch locale" propagation pattern and test-string centralization are already-proven, not invented mid-sweep across 20+ screens; I18N-06 (Russian plural forms) folded into this phase since it's part of the same string-localization surface.
+- Roadmap: Phase 14 (API Error Localization) sequenced last — smallest, most isolated surface (`ApiException` catch blocks only), depends only on Phase 12's ARB pipeline.
 - Roadmap: v1.1 phases continue numbering from v1.0's Phase 5, starting at Phase 6 (Phases 6-10).
 - Roadmap: Phase 6 (low-risk info/settings polish) ships first to establish display patterns before the higher-risk Phase 7 cache-behavior flip.
 - Roadmap: Phase 7 (cache-behavior flip, online-first) sequenced before Phase 8 (owner tools) so rotate-invite-code/transfer-ownership mutations are built against the finalized online-first invalidation model, not the retired cache-first one.
@@ -125,10 +131,10 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-22T08:53:50.876Z
-Stopped at: Milestone v1.1 complete and archived
-Resume file: none — start next milestone
+Last session: 2026-08-25T06:35:20.596Z
+Stopped at: v1.2 roadmap created (Phases 11-14), no plans yet
+Resume file: none — start Phase 11 planning
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 11 (Duration mm:ss Input + Display) with /gsd-plan-phase

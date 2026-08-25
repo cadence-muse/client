@@ -42,22 +42,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| I18N-01 | TBD | Pending |
-| I18N-02 | TBD | Pending |
-| I18N-03 | TBD | Pending |
-| I18N-04 | TBD | Pending |
-| I18N-05 | TBD | Pending |
-| I18N-06 | TBD | Pending |
-| DUR-01 | TBD | Pending |
-| DUR-02 | TBD | Pending |
-| DUR-03 | TBD | Pending |
-| DUR-04 | TBD | Pending |
+| I18N-01 | Phase 12: Locale + i18n Infrastructure | Mapped |
+| I18N-02 | Phase 12: Locale + i18n Infrastructure | Mapped |
+| I18N-03 | Phase 12: Locale + i18n Infrastructure | Mapped |
+| I18N-04 | Phase 13: String Extraction & Screen Localization | Mapped |
+| I18N-05 | Phase 14: API Error Localization | Mapped |
+| I18N-06 | Phase 13: String Extraction & Screen Localization | Mapped |
+| DUR-01 | Phase 11: Duration mm:ss Input + Display | Mapped |
+| DUR-02 | Phase 11: Duration mm:ss Input + Display | Mapped |
+| DUR-03 | Phase 11: Duration mm:ss Input + Display | Mapped |
+| DUR-04 | Phase 11: Duration mm:ss Input + Display | Mapped |
 
 **Coverage:**
 - v1.2 requirements: 10 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 10 ⚠️ (expected — roadmap not yet created)
+- Mapped to phases: 10
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-08-25*
-*Last updated: 2026-08-25 after initial v1.2 definition*
+*Last updated: 2026-08-25 after v1.2 roadmap creation*
