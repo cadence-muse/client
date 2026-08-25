@@ -11,6 +11,16 @@ extension DurationFormatting on int {
 /// minutes never exceed 2 digits, matching D-03's "99:59 maximum" literally
 /// — see the digit-cap correction note in `11-01-PLAN.md`'s `<context>`.
 ///
+/// The raw digit count driving the cap/formatting logic can't be recovered
+/// by re-stripping non-digit characters from the full *displayed* text on
+/// every call — that text is whatever this formatter itself last rendered
+/// (e.g. "0:02" after a single real keystroke), so re-parsing it double
+/// -counts the synthetic zero-padding this formatter injects, over-counting
+/// the digit cap after only 2-3 real keystrokes and appearing to lock up
+/// input. Instead, [_rawTypedDigits] recovers the previously-typed raw digit
+/// count from the prior formatted text, and `formatEditUpdate` diffs the new
+/// text against the old to find only the newly-typed/removed characters.
+///
 /// This formatter only shapes keystrokes; it cannot guard against paste or
 /// programmatic `controller.text` assignment bypassing the shape entirely.
 /// [parseDurationSeconds] independently re-validates at submit time.
@@ -29,16 +39,42 @@ class DurationTextInputFormatter extends TextInputFormatter {
       );
     }
 
-    if (digitsOnly.length > 4) {
+    final digitsNew = digitsOnly;
+    final digitsOld = oldValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final oldRaw = _rawTypedDigits(oldValue.text);
+
+    final String rawDigits;
+    if (digitsNew.length >= digitsOld.length &&
+        digitsNew.startsWith(digitsOld)) {
+      // Append at the end: the common typing/paste-at-end case, since the
+      // cursor is always collapsed to the end by this formatter's own prior
+      // return. Only the newly-added suffix is appended to the previously
+      // -typed raw digits — digitsOld/digitsNew locate which characters are
+      // new, they are never trusted as the raw digit count themselves.
+      rawDigits = oldRaw + digitsNew.substring(digitsOld.length);
+    } else if (digitsNew.length < digitsOld.length &&
+        digitsOld.startsWith(digitsNew)) {
+      // Removal from the end: ordinary backspace.
+      final removed = digitsOld.length - digitsNew.length;
+      rawDigits = oldRaw.length > removed
+          ? oldRaw.substring(0, oldRaw.length - removed)
+          : '';
+    } else {
+      // Full replace/paste over a selection, or a mid-string edit: trust the
+      // new text's digits as the raw source.
+      rawDigits = digitsNew;
+    }
+
+    if (rawDigits.length > 4) {
       return oldValue;
     }
 
     final String formatted;
-    if (digitsOnly.length <= 2) {
-      formatted = '0:${digitsOnly.padLeft(2, '0')}';
+    if (rawDigits.length <= 2) {
+      formatted = '0:${rawDigits.padLeft(2, '0')}';
     } else {
-      final minutes = digitsOnly.substring(0, digitsOnly.length - 2);
-      final seconds = digitsOnly.substring(digitsOnly.length - 2);
+      final minutes = rawDigits.substring(0, rawDigits.length - 2);
+      final seconds = rawDigits.substring(rawDigits.length - 2);
       formatted = '$minutes:$seconds';
     }
 
@@ -50,6 +86,43 @@ class DurationTextInputFormatter extends TextInputFormatter {
       selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
+}
+
+/// Recovers the count of digits the user actually typed from a previously
+/// -rendered `mm:ss` string, undoing [DurationTextInputFormatter]'s own
+/// synthetic zero-padding (the leading `'0:'` minutes placeholder and the
+/// seconds `padLeft(2, '0')`).
+///
+/// Best-effort inverse: for a `minutes == '0'` display the true prior digit
+/// count is inherently ambiguous between 1 and 2 typed digits (both pad
+/// identically), but both interpretations format identically and parse to
+/// the same duration, so the ambiguity is harmless. There is no ambiguity
+/// when `minutes != '0'`.
+String _rawTypedDigits(String formatted) {
+  if (formatted.isEmpty) return '';
+
+  final parts = formatted.split(':');
+  if (parts.length != 2) {
+    // Defensive fallback covering the pre-existing isolated unit tests,
+    // which pass raw digit strings (e.g. '23') as oldValue.text rather than
+    // formatted mm:ss text.
+    return formatted.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+  final minutes = parts[0];
+  final seconds = parts[1];
+
+  if (minutes != '0') {
+    // Exact: the 3-4 digit formatting branch never pads, so concatenation
+    // recovers the original digit sequence with no ambiguity.
+    return minutes + seconds;
+  }
+
+  if (seconds == '00') return '0';
+  if (seconds.length == 2 && seconds.startsWith('0') && seconds != '00') {
+    return seconds.substring(1);
+  }
+  return seconds;
 }
 
 /// Parses a `mm:ss` string into total seconds (DUR-01), or `null` if the
