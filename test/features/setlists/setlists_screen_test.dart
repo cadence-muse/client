@@ -120,8 +120,8 @@ void main() {
       expect(find.text('Setlist Two'), findsOneWidget);
       expect(find.text('Band One'), findsWidgets);
       expect(find.text('Band Two'), findsWidgets);
-      expect(find.text('8 tracks, 42m 35s'), findsOneWidget);
-      expect(find.text('1 track, 3m 20s'), findsOneWidget);
+      expect(find.text('8 tracks, 42:35'), findsOneWidget);
+      expect(find.text('1 track, 3:20'), findsOneWidget);
     },
   );
 
