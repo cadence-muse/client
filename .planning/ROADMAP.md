@@ -162,8 +162,12 @@ Plans:
 **Plans**: 13 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 13-01-PLAN.md — ARB pipeline tracer (Bands tab + Band Detail) + complete phase-wide ARB key batch
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 13-02-PLAN.md — Band simple confirm dialogs (delete/leave/remove member)
 - [ ] 13-03-PLAN.md — Band privileged confirm dialogs (rotate invite code, transfer ownership)
 - [ ] 13-04-PLAN.md — Band CRUD + join dialog (create/edit band, join with code)
@@ -175,6 +179,9 @@ Plans:
 - [ ] 13-10-PLAN.md — Edit setlist + delete-setlist dialog + per-band setlist list
 - [ ] 13-11-PLAN.md — Per-band track list, detail screen, delete-track dialog
 - [ ] 13-12-PLAN.md — Create/edit track forms + global Tracks tab
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 13-13-PLAN.md — Cross-cutting smoke test (widget_test.dart) migration
 
 ### Phase 14: API Error Localization
