@@ -92,7 +92,7 @@ void main() {
         .evaluate()
         .map((e) => (e.widget as TextFormField).controller!.text)
         .toList();
-    expect(fields, ['Old Title', 'Old Artist', '200', '120', 'Old notes']);
+    expect(fields, ['Old Title', 'Old Artist', '3:20', '120', 'Old notes']);
     expect(find.text('C'), findsOneWidget);
   });
 
@@ -205,6 +205,66 @@ void main() {
           'key': 'C',
           'notes': null,
         }),
+      );
+    },
+  );
+
+  testWidgets(
+    'DUR-04: editing Duration to "420" renders "4:20" and submits '
+    'durationSeconds 260',
+    (tester) async {
+      String? requestBody;
+      final apiClient = buildApiClient((request) async {
+        requestBody = request.body;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditTrackScreen(tester);
+      // TextFormFields in order: Title(0), Artist(1), Duration(2),
+      // Tempo(3), Notes(4).
+      await tester.enterText(find.byType(TextFormField).at(2), '420');
+      await tester.pump();
+
+      expect(find.text('4:20'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(
+        requestBody,
+        jsonEncode({
+          'title': 'Old Title',
+          'artist': 'Old Artist',
+          'durationSeconds': 260,
+          'tempo': 120,
+          'key': 'C',
+          'notes': 'Old notes',
+        }),
+      );
+    },
+  );
+
+  testWidgets(
+    'DUR-02: Duration formatted to "5:60" is rejected on submit with the '
+    'seconds-range error, no PUT call',
+    (tester) async {
+      var callCount = 0;
+      final apiClient = buildApiClient((request) async {
+        callCount++;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditTrackScreen(tester);
+      await tester.enterText(find.byType(TextFormField).at(2), '560');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pump();
+
+      expect(callCount, 0);
+      expect(
+        find.text('Seconds must be 0–59 (e.g. 2:30, not 2:75)'),
+        findsOneWidget,
       );
     },
   );
