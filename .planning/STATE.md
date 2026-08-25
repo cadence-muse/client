@@ -1,21 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: UI Improvements
-status: Awaiting next milestone
-stopped_at: Phase 07 complete, ready to plan Phase 08
-last_updated: "2026-08-22T08:53:50.876Z"
-last_activity: 2026-08-22
-last_activity_desc: Milestone v1.1 completed and archived
-state_head: fc063eb9f10ccbb02cd61d1e9da6e202f767cce7
+milestone: v1.2
+milestone_name: i18n and Duration Input
+status: planning
+last_updated: "2026-08-25T06:35:20.596Z"
+last_activity: 2026-08-25
 progress:
-  total_phases: 11
-  completed_phases: 6
-  total_plans: 13
-  completed_plans: 13
-  percent: 55
-current_phase: 08
-current_phase_name: Band Owner Tools
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -29,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-08-21)
 
 ## Current Position
 
-Phase: Milestone v1.1 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-22 — Milestone v1.1 completed and archived
+Status: Defining requirements
+Last activity: 2026-08-25 — Milestone v1.2 started
 
 ## Performance Metrics
 

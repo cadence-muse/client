@@ -8,6 +8,16 @@ Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands 
 
 A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
 
+## Current Milestone: v1.2 i18n and Duration Input
+
+**Goal:** Users can switch the app's language between English and Russian, and enter track duration as minutes:seconds instead of raw seconds.
+
+**Target features:**
+- Full UI string localization (EN/RU), switchable from Profile settings, English default, live locale switch (no restart)
+- Client-side mapping of known API error codes to localized (RU) messages; unmapped errors fall back to raw server text
+- Track duration input/display as mm:ss (client-side format only — `durationSeconds` API field unchanged)
+- Language preference persisted locally on-device (no API/account sync)
+
 ## Requirements
 
 ### Validated
@@ -38,7 +48,9 @@ A band member can open the app without signal — at a venue, in a basement, on 
 
 ### Active
 
-_(none yet — run `/gsd-new-milestone` to define the next milestone's requirements)_
+- [ ] User can switch app language between English and Russian from Profile settings; change applies live, no restart
+- [ ] All UI strings are localized (EN/RU); known API error codes are mapped to localized messages, unmapped errors fall back to raw server text
+- [ ] User enters and views track duration as mm:ss instead of raw seconds; `durationSeconds` API field unchanged
 
 ### Out of Scope
 
@@ -111,4 +123,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-22 after v1.1 milestone*
+*Last updated: 2026-08-25 after starting v1.2 milestone*
