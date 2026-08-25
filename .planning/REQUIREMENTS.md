@@ -20,7 +20,7 @@ Requirements for the v1.2 milestone (i18n and duration input). Each maps to road
 
 - [ ] **DUR-01**: User enters track duration as mm:ss in the create/edit track forms; input converts to `durationSeconds` at submit — the API field itself is unchanged
 - [ ] **DUR-02**: Duration input rejects invalid mm:ss values (seconds ≥ 60, negative values, malformed/incomplete text) with clear validation feedback
-- [ ] **DUR-03**: Track and setlist duration display uses one consistent mm:ss format across every screen (lists, detail views, setlist views) — replacing today's two divergent formats
+- [x] **DUR-03**: Track and setlist duration display uses one consistent mm:ss format across every screen (lists, detail views, setlist views) — replacing today's two divergent formats
 - [ ] **DUR-04**: Duration input auto-formats as the user types (e.g. typing "230" becomes "2:30") to reduce manual colon entry
 
 ## Out of Scope
@@ -50,7 +50,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | I18N-06 | Phase 13: String Extraction & Screen Localization | Mapped |
 | DUR-01 | Phase 11: Duration mm:ss Input + Display | Mapped |
 | DUR-02 | Phase 11: Duration mm:ss Input + Display | Mapped |
-| DUR-03 | Phase 11: Duration mm:ss Input + Display | Mapped |
+| DUR-03 | Phase 11: Duration mm:ss Input + Display | Complete |
 | DUR-04 | Phase 11: Duration mm:ss Input + Display | Mapped |
 
 **Coverage:**
