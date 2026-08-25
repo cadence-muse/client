@@ -648,22 +648,25 @@ flutter test  # Run full suite
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Paste handling behavior — does TextInputFormatter intercept paste on all platforms?**
    - What we know: Android and iOS have different paste behaviors; Web may use a different input mechanism.
    - What's unclear: Does `TextEditingValue.copyWith()` in `formatEditUpdate()` capture pasted text on all platforms?
    - Recommendation: Test paste operations during Wave 0 widget test (iOS simulator, Android emulator, and if web is in scope, web browser). If formatter doesn't intercept paste on a specific platform, add a platform-specific workaround or document the limitation.
+   - **RESOLVED:** `11-01-PLAN.md` specifies paste behavior explicitly in its formatter behavior section — `formatEditUpdate()` runs on any `TextEditingValue` change, paste included, so pasted text is reformatted through the same digit-shift path as typed input. No platform-specific workaround needed.
 
 2. **Max duration cap at 99:59 — should validation error be shown if user tries to exceed?**
    - What we know: D-03 caps at 99:59. Formatter silently rejects keystrokes that would exceed.
    - What's unclear: Should user see an error message ("Duration capped at 99:59") or is silent rejection (field doesn't update) acceptable?
    - Recommendation: Test with actual users during verification phase. If silent rejection is confusing, add a `helperText` ("Max 99:59") or show a tooltip on rejection. This is a UX call, not a technical decision.
+   - **RESOLVED:** `11-01-PLAN.md` implements silent rejection (formatter simply refuses keystrokes past the 4-digit cap, field stops updating) — no separate error message, consistent with D-05 (inline error on submit only, not per-keystroke).
 
 3. **Internationalization of validation error copy — when Phase 12 (i18n) ships, these error messages need to be localized.**
    - What we know: Phase 11 is i18n-independent (CONTEXT.md D-01 notes Phase 11 has no dependency on Phase 12).
    - What's unclear: Should Phase 11's error messages be hardcoded English now, or set up as i18n keys to be filled in by Phase 12?
    - Recommendation: Hardcode English now; Phase 12 will extract these strings to ARB files as part of the string-extraction sweep (no special handling needed). This keeps Phase 11 self-contained.
+   - **RESOLVED:** `11-01-PLAN.md` hardcodes English validation copy now, per this recommendation; Phase 12 owns extraction to ARB files.
 
 ---
 
