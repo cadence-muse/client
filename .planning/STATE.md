@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-21)
+See: .planning/PROJECT.md (updated 2026-08-25)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 11 — Duration mm:ss Input + Display
+**Current focus:** Phase 12 — Locale + i18n Infrastructure
 
 ## Current Position
 
@@ -137,10 +137,10 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-25T07:20:31.266Z
+Last session: 2026-08-25T11:05:33.533Z
 Stopped at: Phase 11 complete, ready to plan Phase 12
-Resume file: .planning/phases/11-duration-mm-ss-input-display/11-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 11 (Duration mm:ss Input + Display) with /gsd-plan-phase
+- Plan Phase 12 (Locale + i18n Infrastructure) with /gsd-plan-phase
