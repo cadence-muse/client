@@ -1,6 +1,7 @@
 FROM nginx:alpine
 
 COPY ./build/web /usr/share/nginx/html
+COPY ./docker/nginx.conf /etc/nginx/nginx.conf
 
 EXPOSE 80
 
