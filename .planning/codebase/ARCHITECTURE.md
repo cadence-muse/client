@@ -1,373 +1,361 @@
-<!-- refreshed: 2026-08-21 -->
+<!-- refreshed: 2026-08-25 -->
 # Architecture
 
-**Analysis Date:** 2026-08-21
+**Analysis Date:** 2026-08-25
 
 ## System Overview
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                      CadenceApp (Root)                       │
-│                    `lib/app.dart`                            │
-│          Manages theme with ListenableBuilder               │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────────┐
-│                      AuthGate                                │
-│                `lib/features/auth/auth_gate.dart`            │
-│     Shows LoginScreen or authenticated app content          │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────────┐
-│              RootScaffold (Bottom Navigation)                │
-│            `lib/navigation/root_scaffold.dart`               │
-│      IndexedStack manages 4 screens via NavigationBar        │
-├──────────┬─────────────┬───────────────┬────────────────────┤
-│   Home   │    Songs    │     Bands     │     Profile        │
-│ Screen   │   Screen    │    Screen     │     Screen         │
-└──────────┴─────────────┴───────────────┴────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    API & Auth Layer                          │
-│                    `lib/api/`                                │
-│  ApiClient - HTTP wrapper, token management, error handling │
-│  AuthSession - Auth state & persistence (ChangeNotifier)   │
-│  PublicApi - High-level API methods (login, register)       │
-│  TokenStorage - Secure token persistence                    │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                        UI Layer                              │
+│  ┌──────────────┬─────────────────┬────────────────────────┐ │
+│  │ Auth         │ Features        │ Navigation             │ │
+│  │ LoginScreen  │ (Bands, Tracks, │ RootScaffold           │ │
+│  │              │  Setlists, etc) │ (bottom nav tabs)      │ │
+│  └──────────────┴─────────────────┴────────────────────────┘ │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+                    ┌────────▼───────┐
+                    │ Riverpod        │
+                    │ Providers       │
+                    │ (State Mgmt)    │
+                    └────────┬────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+    ┌───▼────────┐  ┌───────▼─────┐   ┌─────────▼────┐
+    │ API Layer  │  │ Cache Layer │   │ Config/Theme │
+    │ ApiClient  │  │ CacheService│   │ AppConfig    │
+    │ PublicApi  │  │ (Hive)      │   │ AppTheme     │
+    │ TokenStore │  │             │   │              │
+    └────────────┘  └─────────────┘   └──────────────┘
+        │
+        │ (HTTP)
+        │
+    ┌───▼─────────────────┐
+    │ Backend API         │
+    │ (publicapi.yml)     │
+    └─────────────────────┘
 ```
 
 ## Component Responsibilities
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| CadenceApp | App root, theme management, dependency injection | `lib/app.dart` |
-| AuthGate | Guards app with auth state, shows LoginScreen or authenticated content | `lib/features/auth/auth_gate.dart` |
-| RootScaffold | Bottom navigation, tab management using IndexedStack | `lib/navigation/root_scaffold.dart` |
-| HomeScreen | Home tab (placeholder) | `lib/features/home/home_screen.dart` |
-| SongsScreen | Songs tab (placeholder) | `lib/features/songs/songs_screen.dart` |
-| BandsScreen | Bands tab (placeholder) | `lib/features/bands/bands_screen.dart` |
-| ProfileScreen | Profile tab with settings | `lib/features/profile/profile_screen.dart` |
-| LoginScreen | Auth UI for login/signup | `lib/features/auth/login_screen.dart` |
-| ApiClient | HTTP client with auth token attachment, 403 auto-logout | `lib/api/api_client.dart` |
-| AuthSession | Auth state manager (ChangeNotifier) | `lib/api/auth_session.dart` |
-| PublicApi | Register/login API methods | `lib/api/public_api.dart` |
-| TokenStorage | Secure token persistence using flutter_secure_storage | `lib/api/token_storage.dart` |
-| ThemeController | Theme mode management (ValueNotifier) | `lib/theme/theme_controller.dart` |
-| AppTheme | Light/dark theme definitions | `lib/theme/app_theme.dart` |
-| AppConfig | Build-time configuration (API base URL) | `lib/config/app_config.dart` |
+| **CadenceApp** | App root, theme setup, Riverpod wrapping | `lib/app.dart` |
+| **AuthGate** | Auth state guard, shows login/authenticated content | `lib/features/auth/auth_gate.dart` |
+| **RootScaffold** | Bottom navigation, IndexedStack for tab state, offline banner | `lib/navigation/root_scaffold.dart` |
+| **Feature Screens** | Home, Bands, Tracks, Setlists, Profile tabs | `lib/features/{feature}/{feature}_screen.dart` |
+| **AuthSession** | Auth state provider (token + sign in/out) | `lib/providers/auth_provider.dart` |
+| **ApiClient** | HTTP facade, auth header injection, 403 auto-logout | `lib/api/api_client.dart` |
+| **PublicApi** | Type-safe API methods (register, login, logout, bands, tracks, etc.) | `lib/api/public_api.dart` |
+| **TokenStorage** | Secure token persistence via flutter_secure_storage | `lib/api/token_storage.dart` |
+| **CacheService** | Read-only offline cache via Hive (one box per endpoint) | `lib/cache/cache_service.dart` |
+| **Connectivity Provider** | Device radio state + isOnline boolean signal | `lib/providers/connectivity_provider.dart` |
+| **Data Providers** | Online-first fetch + cache fallback (BandsListData, TracksData, etc.) | `lib/providers/{feature}_provider.dart` |
+| **ThemeController** | Theme mode state (system/light/dark) | `lib/providers/theme_provider.dart` |
 
 ## Pattern Overview
 
-**Overall:** Layered architecture with reactive state management
+**Overall:** Online-first reactive architecture with offline read-only caching
 
 **Key Characteristics:**
-- **Authentication gating:** AuthGate wraps authenticated content, prevents unauthenticated access
-- **Reactive state:** Uses ChangeNotifier (AuthSession, ThemeController) and ListenableBuilder for UI updates
-- **Dependency injection:** Dependencies injected into main widget and propagated down (prop drilling)
-- **Platform-aware:** Uses conditional imports for platform-specific HTTP client implementations
-- **Token persistence:** Secure storage with automatic restoration on app start
-- **Single HTTP client:** Centralized ApiClient handles all requests, auth, and error handling
+- **Riverpod-driven**: All state lives in providers; UI watches providers and reacts to changes
+- **Online-first caching**: Always try network first; if it fails and cache exists, show cached data silently; if offline with no cache, show OfflineNoCacheException
+- **Read-only offline**: No offline mutation queue; offline mode is view-only (all write actions disabled)
+- **Persistent auth**: Token persisted securely; restored on app start; auto-logout on 403
+- **Tab state persistence**: IndexedStack keeps tabs alive between switches; re-selecting a tab invalidates its provider to fetch fresh data
+- **Single connectivity signal**: One global isOnlineProvider watched by all data providers; offline banner at root
+- **Platform-aware HTTP**: Conditional imports for different HTTP client creation per platform (web vs native)
 
 ## Layers
 
 **UI Layer:**
-- Purpose: Display features, handle user interaction
-- Location: `lib/features/*/` and `lib/navigation/`
-- Contains: Feature screens (StatelessWidget/StatefulWidget), navigation widget
-- Depends on: API layer (via dependency injection), theme
-- Used by: Directly rendered by root app
+- Purpose: Display features, handle user interaction, navigate between screens
+- Location: `lib/features/`, `lib/navigation/`, `lib/widgets/`
+- Contains: Feature screens (StatelessWidget/ConsumerWidget), dialogs, navigation structure
+- Depends on: Riverpod providers, app theme
+- Used by: MaterialApp (home) and feature navigation
+- Key files: 
+  - `lib/features/auth/login_screen.dart` - Auth UI (login/signup)
+  - `lib/features/bands/bands_screen.dart` - Bands list tab
+  - `lib/features/tracks/tracks_screen.dart` - Tracks list tab
+  - `lib/features/setlists/setlists_screen.dart` - Setlists tab
+  - `lib/navigation/root_scaffold.dart` - Root navigation with bottom tabs
 
-**API/Auth Layer:**
-- Purpose: HTTP communication, authentication state, token persistence
+**Provider/State Layer:**
+- Purpose: Reactive state management, data fetching, offline logic
+- Location: `lib/providers/`
+- Contains: Riverpod providers (classes with `@riverpod` annotation, generated via code generation)
+- Depends on: API layer (via publicApiProvider), cache layer, connectivity provider
+- Used by: UI layer via `ref.watch()` and `ref.read()`
+- Key files:
+  - `lib/providers/auth_provider.dart` - AuthSession class, token state, apiClientProvider
+  - `lib/providers/bands_provider.dart` - BandsListData, band detail providers
+  - `lib/providers/tracks_provider.dart` - Tracks list and detail providers
+  - `lib/providers/setlists_provider.dart` - Setlists list and detail providers
+  - `lib/providers/connectivity_provider.dart` - isOnlineProvider, connectivity stream
+  - `lib/providers/navigation_provider.dart` - Tab index state
+
+**API Layer:**
+- Purpose: HTTP communication, auth token management, token persistence
 - Location: `lib/api/`
-- Contains: ApiClient, AuthSession, PublicApi, TokenStorage
-- Depends on: http package, flutter_secure_storage
-- Used by: UI layer via dependency injection
+- Contains: ApiClient (HTTP wrapper), PublicApi (business-logic methods), TokenStorage (secure persistence)
+- Depends on: http package, flutter_secure_storage, config (for base URL)
+- Used by: Provider layer (via publicApiProvider and apiClientProvider)
+- Key files:
+  - `lib/api/api_client.dart` - HTTP client with auth header injection, 403 handler
+  - `lib/api/public_api.dart` - API methods (register, login, logout, listBands, getBand, etc.)
+  - `lib/api/token_storage.dart` - Secure storage wrapper
+  - `lib/api/api_exception.dart` - Exception type for API errors (statusCode, code, message)
+  - `lib/api/publicapi.yml` - OpenAPI spec (source of truth for all endpoints)
+
+**Cache Layer:**
+- Purpose: Read-only offline storage via Hive (local database)
+- Location: `lib/cache/`
+- Contains: CacheService with one Hive box per endpoint type (profiles, bands, tracks, setlists)
+- Depends on: Hive package, riverpod_annotation
+- Used by: Provider layer (data providers read/write cache)
+- Key files:
+  - `lib/cache/cache_service.dart` - CacheService singleton, Hive box management, read/write methods for each endpoint
 
 **Config/Theme Layer:**
-- Purpose: App-wide configuration and theming
+- Purpose: App-wide configuration and visual theming
 - Location: `lib/config/`, `lib/theme/`
-- Contains: AppConfig, ThemeController, AppTheme
-- Depends on: Nothing (core Flutter)
-- Used by: Root app widget (CadenceApp)
+- Contains: AppConfig (API base URL), AppTheme (light/dark theme definitions)
+- Depends on: Flutter Material
+- Used by: App root (CadenceApp) and theme provider
+- Key files:
+  - `lib/config/app_config.dart` - API_BASE_URL from dart-define
+  - `lib/theme/app_theme.dart` - ThemeData definitions for light/dark
 
 ## Data Flow
 
-### Primary Request Path (Authenticated API Call)
+### Primary Request Path (Fetch Band List Online)
 
-1. **User action triggers API call** (`lib/features/*/` screen)
-   - Example: LoginScreen calls `publicApi.login(username, password)`
+1. **UI watches provider** → `ref.watch(bandsListDataProvider)` (`lib/features/bands/bands_screen.dart:30`)
+2. **Provider build runs** → `BandsListData.build()` checks `isOnlineProvider` (`lib/providers/bands_provider.dart:39-63`)
+3. **Online, fetch from API** → calls `ref.read(publicApiProvider).listBands()` → `ApiClient.send()` injects auth token (`lib/api/api_client.dart:32-66`)
+4. **Success → cache and return** → `CacheService.writeBands()` stores response, provider emits AsyncData(bands) (`lib/providers/bands_provider.dart:65-69`)
+5. **UI rebuilds** → BandsScreen.build() receives AsyncData(bands), renders list (`lib/features/bands/bands_screen.dart:47-48`)
 
-2. **PublicApi method invokes ApiClient** (`lib/api/public_api.dart:22-31`)
-   - Calls `_client.send('POST', '/api/login', body: {...})`
+### Offline Request Path (Cache Fallback)
 
-3. **ApiClient prepares HTTP request** (`lib/api/api_client.dart:32-62`)
-   - Reads token from `authSession.token`
-   - On native platforms: attaches token as `Cookie` header (web browser does this automatically)
-   - Sends HTTP request via platform-specific `http.Client`
+1. **Same as above until step 3**
+2. **Fetch throws** → catch block runs (`lib/providers/bands_provider.dart:44-54`)
+3. **Try cache** → `CacheService.readBands()` returns previously saved data if exists
+4. **Success → return cached data silently** → no error shown to user (silent fallback)
+5. **If no cache → rethrow as AsyncError** → UI shows error state with Retry button
 
-4. **Response handling**
-   - On 403: `authSession.signOut()` is called (line 53) → auto-logout
-   - On 4xx/5xx: throw `ApiException`
-   - On success: parse JSON and return
+### Offline Request Path (No Cache)
 
-5. **State update** (`lib/api/auth_session.dart:30-35`)
-   - On login: `signIn(token)` → stores token, updates status to `authenticated`, calls `notifyListeners()`
-
-6. **UI reacts to auth state** (`lib/app.dart:24-32`)
-   - `ListenableBuilder` listens to `themeController`
-   - AuthGate listens to `authSession` status
-   - When status changes, UI rebuilds and shows authenticated content
-
-### Theme Change Flow
-
-1. User taps theme toggle in ProfileScreen
-2. Calls `themeController.setThemeMode(mode)` 
-3. ThemeController (ValueNotifier) updates value → notifies listeners
-4. CadenceApp's ListenableBuilder rebuilds (line 24-43)
-5. MaterialApp's `themeMode` is updated → system applies new theme
+1. **UI watches provider** → `ref.watch(bandsListDataProvider)` 
+2. **isOnlineProvider is false** → provider build skips network call
+3. **Try cache** → `CacheService.readBands()` returns null (nothing cached yet)
+4. **Throw OfflineNoCacheException** → provider emits AsyncError(OfflineNoCacheException)
+5. **UI shows OfflineNoCacheView** → message + explanation, Retry button greyed out until online
 
 ### Auth Restoration on App Start
 
-1. `main()` creates AuthSession → passes to CadenceApp
-2. AuthGate.initState() calls `authSession.restore()` (line 31)
-3. TokenStorage reads persisted token from secure storage
-4. AuthSession updates status:
-   - Token found → `authenticated`
-   - No token → `unauthenticated`
-   - Calls `notifyListeners()`
-5. AuthGate rebuilds: shows authenticated content or LoginScreen
+1. **main.dart runs** → `Hive.initFlutter()` + `CacheService.initialize()` then `runApp(ProviderScope(CadenceApp))` (`lib/main.dart:8-14`)
+2. **CadenceApp builds** → AuthGate watches `authSessionProvider` (`lib/app.dart:22`, `lib/features/auth/auth_gate.dart:19`)
+3. **AuthSession.build() runs** → `ref.watch(tokenStorageProvider).read()` restores token from secure storage (`lib/providers/auth_provider.dart:34`)
+4. **Token restored** → AsyncData(token) → AuthGate shows authenticated content
+5. **Token missing/corrupted** → AsyncData(null) → AuthGate shows LoginScreen
+
+### 403 Response Auto-Logout
+
+1. **API request returns 403** → `ApiClient.send()` detects status code (`lib/api/api_client.dart:56-58`)
+2. **onUnauthorized callback fires** → `ref.read(authSessionProvider.notifier).signOut()` (`lib/providers/auth_provider.dart:18`)
+3. **signOut() clears token** → `TokenStorage.delete()` + `CacheService.clearAll()` (`lib/providers/auth_provider.dart:64-66`)
+4. **AuthSession emits AsyncData(null)** → AuthGate automatically switches to LoginScreen
+
+### Theme Change Flow
+
+1. **User toggles theme in settings** → calls `ref.read(themeControllerProvider.notifier).setThemeMode(ThemeMode.dark)` 
+2. **ThemeController state updates** → emits new ThemeMode (`lib/providers/theme_provider.dart:11`)
+3. **CadenceApp watches themeControllerProvider** → `ref.watch(themeControllerProvider)` (`lib/app.dart:14`)
+4. **MaterialApp rebuilds** with new `themeMode` → theme updates across entire app
 
 **State Management:**
-- **Auth state:** ChangeNotifier-based reactive (AuthSession)
-- **Theme state:** ValueNotifier-based reactive (ThemeController)
-- **UI state:** Widget state (LoginScreen, RootScaffold manage local form/navigation state)
-- **Cross-layer communication:** Dependency injection + listener pattern
+- **AuthSession, ThemeController, Providers**: Riverpod classes with `@riverpod` annotation; state mutated via notifier methods
+- **UI State**: Local widget state (TextEditingController, form errors) managed in ConsumerStatefulWidget where needed
+- **Connectivity**: Stream-based (connectivity_plus onConnectivityChanged) mapped to global isOnlineProvider boolean
+- **Cross-layer**: Dependency injection via Riverpod; providers declare dependencies via `ref.watch()` and `ref.read()` at build/action time
 
 ## Key Abstractions
 
-**AuthSession:**
-- Purpose: Single source of truth for auth state and token
-- Examples: `lib/api/auth_session.dart`
-- Pattern: ChangeNotifier with three states (unknown, unauthenticated, authenticated)
+**AuthSession Provider:**
+- Purpose: Single source of truth for auth token and sign-in/out logic
+- Examples: `lib/providers/auth_provider.dart` — defines AuthSession Riverpod class
+- Pattern: AsyncValue<String?> (token or null); signIn(token) and signOut() methods; reentry guard on signOut
 
-**ApiClient:**
-- Purpose: Encapsulate HTTP communication, token injection, error handling
+**ApiClient Facade:**
+- Purpose: Encapsulate HTTP communication, auth header injection, error handling
 - Examples: `lib/api/api_client.dart`
-- Pattern: Facade over http.Client, handles auth headers and 403 auto-logout
+- Pattern: `send(method, path, body?, queryParameters?, requireAuth?)` returns Map or null; throws ApiException on 4xx/5xx
 
-**PublicApi:**
-- Purpose: Type-safe, business-logic-aware API methods
-- Examples: `lib/api/public_api.dart`
-- Pattern: Wraps ApiClient, provides register() and login() methods
+**PublicApi Business Logic:**
+- Purpose: Type-safe API methods corresponding to OpenAPI spec operations
+- Examples: `lib/api/public_api.dart` — `register()`, `login()`, `logout()`, `listBands()`, `getBand()`, etc.
+- Pattern: Methods wrap ApiClient.send(), return typed values (String token, List<Map>, Map, etc.)
+
+**Online-First Data Providers:**
+- Purpose: Reactive fetch with cache fallback and offline detection
+- Examples: `lib/providers/bands_provider.dart` (BandsListData), `lib/providers/tracks_provider.dart` (TracksData)
+- Pattern: Riverpod class with Future<T> build(); watches isOnlineProvider; on build, try network (with cache fallback), or serve cache offline, or throw OfflineNoCacheException
+
+**CacheService Singleton:**
+- Purpose: Centralized Hive-backed read/write access for all offline data
+- Examples: `lib/cache/cache_service.dart`
+- Pattern: One-box-per-endpoint (profileBox, bandsBox, tracksBox, setlistsBox); read(key), write(key, data), clear(); wrapped in cacheServiceProvider
 
 **Feature Screens:**
-- Purpose: Encapsulate feature UI
-- Examples: `lib/features/*/` (HomeScreen, BandsScreen, etc.)
-- Pattern: StatelessWidget for simple screens, StatefulWidget for interactive ones
+- Purpose: Encapsulate feature UI for one tab or detail page
+- Examples: `lib/features/bands/bands_screen.dart`, `lib/features/tracks/tracks_screen.dart`, `lib/features/profile/profile_screen.dart`
+- Pattern: ConsumerWidget/ConsumerStatefulWidget; watch providers for data; handle data/loading/error states; dispatch actions via ref.read()
 
 ## Entry Points
 
-**main():**
+**main.dart:**
 - Location: `lib/main.dart`
-- Triggers: App launch
-- Responsibilities:
-  - Create AuthSession with TokenStorage
-  - Create ApiClient with AuthSession and API base URL
-  - Create PublicApi with ApiClient
-  - Create ThemeController
-  - Launch CadenceApp with all dependencies
+- Triggers: App launch (flutter run)
+- Responsibilities: 
+  - Initialize Flutter bindings (WidgetsFlutterBinding.ensureInitialized)
+  - Initialize Hive (Hive.initFlutter)
+  - Initialize CacheService (load Hive boxes)
+  - Wrap app in ProviderScope (Riverpod root)
+  - Call runApp(CadenceApp)
 
 **CadenceApp:**
 - Location: `lib/app.dart`
 - Triggers: Called from main()
 - Responsibilities:
-  - Set up MaterialApp with theme management
-  - Gate authenticated content with AuthGate
+  - Set up MaterialApp (title, theme, themeMode)
+  - Watch themeControllerProvider for theme changes
+  - Render AuthGate as home (guards authenticated content)
+  - Responsive to theme mode (light/dark/system)
 
 **AuthGate:**
 - Location: `lib/features/auth/auth_gate.dart`
-- Triggers: Rendered as home of MaterialApp
+- Triggers: Rendered as MaterialApp.home
 - Responsibilities:
-  - Restore persisted auth token on app start
-  - Show LoginScreen or authenticated app based on auth status
-  - Handle auto-logout on 403 responses
+  - Watch authSessionProvider to check if user is logged in
+  - Show LoginScreen if token is null
+  - Show builder(context) [RootScaffold] if token exists
+  - Handle loading state (spinner) and error state (error message)
+  - Automatically respond to token changes (e.g., 403 → logout → show LoginScreen)
+
+**LoginScreen:**
+- Location: `lib/features/auth/login_screen.dart`
+- Triggers: Shown by AuthGate when not authenticated
+- Responsibilities:
+  - Collect username/password via form
+  - Call publicApi.register() then publicApi.login() for signup
+  - Call publicApi.login() for login
+  - Store token via authSessionProvider.notifier.signIn()
+  - Handle specific API error codes (401 → invalid credentials, 400 + already_exists → username taken)
+  - Show error messages to user
+
+**RootScaffold:**
+- Location: `lib/navigation/root_scaffold.dart`
+- Triggers: Shown by AuthGate when authenticated
+- Responsibilities:
+  - Render offline banner at top (watches isOnlineProvider)
+  - Render IndexedStack with 5 tabs (Home, Bands, Tracks, Setlists, Profile)
+  - Manage tab selection via selectedTabIndexProvider
+  - Invalidate tab providers on re-select to fetch fresh data
 
 ## Architectural Constraints
 
-- **Dependency injection pattern:** No service locators (like GetIt or Provider); dependencies passed via constructor. This makes testing easier but requires prop drilling from root.
-- **Single HTTP client:** All API calls go through one ApiClient instance, ensuring consistent auth handling and error responses.
-- **State persistence:** Only auth token is persisted; app state is not saved (stateless on restart).
-- **Platform-specific code:** HTTP client creation uses conditional imports for web/native platforms; auth header attachment differs by platform.
-- **No backend state management:** No local database or offline support; app assumes network access.
-- **Authentication ceremony:** Token-based (cookie-like); server validates token on each request. 403 triggers immediate logout.
+- **State management framework**: Riverpod (code-generated `@riverpod` classes); no GetIt or Provider package; no manual ChangeNotifier
+- **Single HTTP client**: All API calls via one ApiClient instance (apiClientProvider); ensures consistent auth handling
+- **Persistent auth token**: Only auth token is saved to disk (TokenStorage); all other state is in-memory (lost on app restart)
+- **Offline scope**: Read-only (no offline write queue, no conflict resolution); simplifies v1 scope; all write actions disabled when offline
+- **Platform-specific HTTP**: Conditional imports for web vs native HTTP client creation; auth header handling differs (web needs cross-origin support)
+- **No local database models**: CacheService stores raw decoded JSON (Map<String, dynamic>) not typed Dart classes; reuses same fromJson-free decode path as network
+- **Tab state persistence via IndexedStack**: Tabs stay alive between switches (not rebuilt), so data providers must be invalidated manually on re-select
+- **Single global connectivity signal**: isOnlineProvider (bool, derived from connectivity_plus stream) watched by all data providers; prevents per-tab connectivity inconsistency
+- **No auth state in local shared preferences**: Token only in flutter_secure_storage (Android Keystore / iOS Keychain); not plain SharedPreferences
+- **Reentrancy guard on signOut**: 403 response triggers onUnauthorized → signOut, which would trigger another 403 if not guarded; _loggingOut flag prevents infinite recursion
 
 ## Anti-Patterns
 
-### Prop Drilling
+### Imperative Cache Management
 
-**What happens:** Dependencies are passed through multiple widget constructors even when intermediate widgets don't use them. Example: `themeController` and `authSession` passed through RootScaffold to ProfileScreen, but RootScaffold doesn't use them.
+**What happens:** Code manually checks cache before fetching, or uses conditional logic to decide when to refresh.
 
-**Why it's wrong:** Creates tight coupling; makes refactoring difficult if you want to remove a dependency from an intermediate component. As the app grows, this becomes unmaintainable.
+**Why it's wrong:** Leads to inconsistent offline behavior across features; harder to maintain; prone to stale data.
 
-**Do this instead:** Introduce a state management library like Provider, Riverpod, or Bloc that allows widgets to access dependencies without constructor injection. This decouples widget hierarchy from dependency flow.
+**Do this instead:** Follow the online-first pattern in `lib/providers/bands_provider.dart` — providers declare offline logic once, UI layer doesn't know about cache.
 
-### Manual Auth Header Management
+### Holding Auth State in Widget Tree
 
-**What happens:** ApiClient manually attaches auth token as cookie header on native platforms (line 42-44 in `api_client.dart`), but relies on browser to do it automatically on web. This split logic is easy to get wrong.
+**What happens:** Passing token or auth status down via constructor parameters or scoped widgets instead of via provider.
 
-**Why it's wrong:** Platform-specific logic scattered across the HTTP client makes it fragile. If cookie requirements change, you must update multiple places.
+**Why it's wrong:** Creates prop drilling; hard to respond to 403 logout from deep in tree; token access becomes scattered.
 
-**Do this instead:** Create an interceptor or middleware layer that transparently handles auth injection for all platforms, possibly using an HTTP package wrapper that abstracts away platform differences.
+**Do this instead:** authSessionProvider is the single source of truth; read it via `ref.read(authSessionProvider)` or `ref.watch(authSessionProvider)` in any provider or widget.
 
-### No Error Recovery
+### Mixing Connectivity State per Tab
 
-**What happens:** LoginScreen shows generic error messages to users but doesn't retry or provide recovery options. Failed API calls are not queued or retried.
+**What happens:** Each tab has its own connectivity listener or re-checks network state independently.
 
-**Why it's wrong:** Poor user experience on network flakiness. Users must manually retry.
+**Why it's wrong:** Tabs can disagree on connectivity state; increases coupling to connectivity_plus; harder to test.
 
-**Do this instead:** Implement exponential backoff retry logic in ApiClient or PublicApi; add user-facing "retry" buttons in error states.
+**Do this instead:** All data providers watch isOnlineProvider (one global boolean); offline banner watches same signal; ensures consistent behavior across app.
+
+### Not Invalidating Provider on Tab Re-select
+
+**What happens:** Tab data stays stale when user re-selects the tab and expects fresh data.
+
+**Why it's wrong:** IndexedStack keeps tab alive; provider build() only runs once per app session; user taps refresh button expecting new data but gets old data.
+
+**Do this instead:** BandsScreen (and other tabs) listen to selectedTabIndexProvider and call `ref.invalidate(bandsListDataProvider)` when re-selected (see `lib/features/bands/bands_screen.dart:26-28`).
+
+### Throwing Raw ApiException in UI
+
+**What happens:** UI layer catches ApiException and tries to switch on statusCode/code inline.
+
+**Why it's wrong:** Scattered error handling; hard to test; error messages not localized.
+
+**Do this instead:** Provider or PublicApi layer should interpret API errors and throw application-level exceptions or map to user-friendly messages; LoginScreen already does this well (401 → "Invalid credentials", 400 + already_exists → "Username taken").
 
 ## Error Handling
 
-**Strategy:** Throw ApiException on any HTTP error; callers catch and handle
+**Strategy:** Exceptions propagate from ApiClient → PublicApi → Providers → UI; each layer adds context; UI layer surfaces errors to user.
 
 **Patterns:**
-- ApiClient throws ApiException for 4xx/5xx responses
-- ApiException parses error response JSON for `code` and `message` fields
-- LoginScreen catches ApiException, inspects statusCode/code, shows user-friendly message
-- 403 responses trigger automatic signOut() in ApiClient before throwing
+- **Network errors**: ApiClient throws ApiException(statusCode, code, message); Provider catches and retries/falls back to cache; UI shows error with Retry button
+- **403 Unauthorized**: ApiClient detects 403, calls onUnauthorized callback immediately, then throws ApiException; callback signs out (clears token/cache); AuthGate automatically shows LoginScreen
+- **Offline with no cache**: Provider throws OfflineNoCacheException; UI shows OfflineNoCacheView with message "No cached data"; Retry button greyed out until online
+- **JSON parsing failures**: ApiClient.fromResponse() catches malformed error JSON, falls back to generic "Request failed" message
+- **Cache write failures**: CacheService write methods return bool; callers treat false as non-critical (network data still served in-memory)
+- **Reentrancy on 403**: AuthSession._loggingOut flag prevents logout() from recursive-calling itself if logout() request gets 403
 
-## CI/CD Pipeline
+## Cross-Cutting Concerns
 
-**Overview:**
-GitHub Actions enforces quality gates on every push/PR and automates release builds for tag-triggered events. Two workflows manage code validation and release distribution across platforms.
+**Logging:** No structured logging in current codebase; no print() statements; consider adding provider-level logging for network calls and cache hits in future iterations.
 
-### Validate Workflow (`.github/workflows/validate.yml`)
+**Validation:** 
+- Client-side form validation in LoginScreen (required fields)
+- Server-side validation on all write operations (returned as 400 errors with `code` field)
+- Special handling: 401 on login (invalid credentials), 400 + "already_exists" on register (username taken), 400 + "invalid_input" on password change (wrong current password)
 
-**Trigger:** Push to `main` branch or pull requests to `main`
+**Authentication:**
+- Token-based via Authorization header
+- Token persisted in flutter_secure_storage (Android Keystore, iOS Keychain)
+- Restored on app start via AuthSession.build()
+- Auto-logout on 403 via ApiClient.onUnauthorized callback
+- Logout best-effort: fires logout() request but always succeeds locally regardless of network outcome
 
-**Purpose:** Enforce code quality and correctness before merge
-
-**Steps:**
-1. **Checkout** (`actions/checkout@v6`) — Clone repo at commit
-2. **Setup Flutter SDK** (`subosito/flutter-action@v2`)
-   - Channel: `stable`
-   - Version: `3.44.x`
-   - Caching enabled for build artifacts
-3. **Install dependencies** (`flutter pub get`) — Restore pubspec.lock dependencies
-4. **Unit tests** (`flutter test`)
-   - Runs all test files in `test/` directory
-   - Blocks merge on test failure
-5. **Static analysis** (`flutter analyze`)
-   - Runs Dart analyzer with `analysis_options.yaml` rules
-   - Includes `package:flutter_lints/flutter.yaml` ruleset
-   - Enforces naming conventions, error handling patterns, unused code detection
-
-**Architectural gates encoded:**
-- Requires passing tests before any code reaches main
-- Lint rules enforce naming (PascalCase classes, camelCase functions, snake_case files)
-- Prevents unintentional introduction of circular imports, unused imports, missing null safety
-- **Failure behavior:** CI fails; PR cannot merge until fixed
-
-### Release Workflow (`.github/workflows/release.yml`)
-
-**Trigger:** Git tag matching pattern `v*.*.*` (semantic versioning)
-
-**Purpose:** Build and publish release artifacts across platforms (Docker, Android APK)
-
-**Permissions:**
-- `contents: write` — Create GitHub releases
-- `packages: write` — Push Docker images to GHCR (GitHub Container Registry)
-
-**Job 1: Docker Release (`deploy-docker`)**
-
-Runs on: `ubuntu-latest`
-
-**Steps:**
-1. **Checkout** at tag commit
-2. **Setup Flutter SDK** (same as validate)
-3. **GHCR login** (`docker/login-action@v3`)
-   - Registry: `ghcr.io`
-   - Auth: `GITHUB_TOKEN` secret
-4. **Extract metadata** (`docker/metadata-action@v5`)
-   - Tags: Semver version + `latest`
-   - Labels: Applied to Docker image
-5. **Setup buildx** (`docker/setup-buildx-action@v3`) — Multi-platform builder
-6. **Install dependencies** (`flutter pub get`)
-7. **Build web** (`flutter build web`)
-   - Target: Web static files in `build/web/`
-   - Dart define: `API_BASE_URL=` (empty; expects env override at runtime)
-   - Artifacts: `build/web/` directory
-8. **Build and push Docker image** (`docker/build-push-action@v6`)
-   - Context: Repository root
-   - Dockerfile: `Dockerfile` (serves web build via nginx alpine)
-   - Push: `true` (to GHCR)
-   - Tags: Semver + latest
-   - Cache: GitHub Actions cache (speed up rebuilds)
-
-**Docker deployment:**
-- Image: `ghcr.io/[owner]/cadence-client:v[version]` and `:latest`
-- Runtime: nginx alpine container
-- Entry: Serves static files from `build/web/` directory on port 80
-- Config: Dockerfile at repo root copies `build/web` → `/usr/share/nginx/html`
-
-**Job 2: Android Release (`release-apk`)**
-
-Runs on: `ubuntu-latest`
-
-**Steps:**
-1. **Checkout** at tag commit
-2. **Setup Flutter SDK** (same as validate)
-3. **Setup Java** (`actions/setup-java@v4`)
-   - Distribution: Zulu (OpenJDK)
-   - Version: `17` (required for Android build tools)
-4. **Install dependencies** (`flutter pub get`)
-5. **Build APK** (`flutter build apk --release`)
-   - Mode: Release (optimization enabled)
-   - Dart define: `API_BASE_URL=https://cadence.app` (hardcoded production URL)
-   - Output: `build/app/outputs/flutter-apk/app-release.apk`
-6. **Calculate hash** (`sha256sum`)
-   - Generates: `app-release.apk.sha256.txt`
-   - Provides integrity verification for users
-7. **Create GitHub release** (`gh release create`)
-   - Attaches APK and hash file
-   - Auto-generated release notes from commits
-   - Title: `Release v[version]`
-
-**Result:** GitHub release with downloadable APK and SHA256 hash for Android users
-
-### Architecture Encoded in Pipelines
-
-**Platform matrix:**
-- **Validation:** Single `ubuntu-latest` matrix (all tests run in Linux environment)
-- **Docker release:** Web artifact built on Linux, pushed to GHCR
-- **APK release:** Android build on Linux with Java 17 toolchain
-- **iOS:** Not automated (requires macOS runner, likely planned for future)
-
-**Configuration management:**
-- Web build uses empty `API_BASE_URL` (backend expects URL to be passed at runtime or set in Docker)
-- APK build uses hardcoded `API_BASE_URL=https://cadence.app`
-- Enables different API targets per platform (web flexible, mobile locked to production)
-
-**Build dependencies locked:**
-- Flutter version pinned to `3.44.x` (stable channel)
-- Dart 3.12.2+ implicitly enforced by Flutter
-- Java 17 required for Android
-- These constraints ensure reproducible builds across CI and developer machines
-
-**Gate ordering:**
-- Validate workflow must pass before merge to main
-- Release workflow only triggers on tagged commits (which are typically from main)
-- Implies: Only validated code can be released (tag-based release requires prior main commit)
-
-**Secrets and permissions:**
-- `GITHUB_TOKEN` injected automatically for GHCR login and release creation
-- No explicit credential files needed (uses OIDC token)
-- APK password/keystore assumed to exist on runner (likely pre-configured in repo secrets)
+**Offline Handling:**
+- Connectivity detection via connectivity_plus (radio state, not active ping)
+- One global isOnlineProvider boolean signal
+- Data providers implement online-first pattern: try network, fallback to cache, or throw OfflineNoCacheException
+- All write actions (create/update/delete) disabled when offline (FloatingActionButton and form buttons disabled)
+- Offline banner shown at top of screen when offline; includes message "Showing cached data — may be out of date"
 
 ---
 
-*Architecture analysis: 2026-08-21*
+*Architecture analysis: 2026-08-25*

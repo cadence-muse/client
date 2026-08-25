@@ -1,117 +1,180 @@
 # External Integrations
 
-**Analysis Date:** 2026-08-21
+**Analysis Date:** 2026-08-25
 
 ## APIs & External Services
 
-**Cadence Backend API:**
-- Service: Custom REST API (OpenAPI spec at `lib/api/publicapi.yml`)
-- What it's used for: User authentication, registration, band/song data management
-  - SDK/Client: Dart `http` package (1.6.0)
-  - Base URL: Configurable via `API_BASE_URL` environment variable
-  - Default: `http://localhost:8080`
-  - Implementation: `lib/api/api_client.dart`
+**Cadence Public API:**
+- Service: Custom REST API (backend service)
+- Purpose: Core business operations (auth, band/track/setlist CRUD, user profile)
+- SDK/Client: `http` 1.6.0 package
+- Base URL: Configurable via `API_BASE_URL` dart-define (defaults to `http://localhost:8080`)
+  - Set at build time: `flutter run --dart-define=API_BASE_URL=https://api.example.com`
+  - Or: `flutter run --dart-define-from-file=env/config.json`
+
+**API Endpoints Summary:**
+- **Auth:** POST `/api/register`, POST `/api/login`, POST `/api/logout`, POST `/api/me/password`
+- **User:** GET `/api/me` (profile), POST `/api/me/password` (change password)
+- **Bands:** GET `/api/band/list`, GET/POST/PUT/DELETE `/api/band/{id}`, POST `/api/band/join`, POST/DELETE member operations, POST `/api/band/{id}/rotate-invite-code`, POST `/api/band/{id}/transfer-ownership`
+- **Tracks:** GET/POST/PUT/DELETE `/api/band/{id}/track/{id}`, GET `/api/band/{id}/track/list` with search support, POST `/api/track/list` (user's all tracks)
+- **Setlists:** GET/POST/PUT/DELETE `/api/band/{id}/setlist/{id}`, GET `/api/band/{id}/setlist/list`, POST/DELETE setlist tracks, PUT reorder, POST `/api/setlist/list` (user's all setlists)
+
+**Full API Contract:**
+- Location: `lib/api/publicapi.yml` (OpenAPI 3.0.0 specification)
+- Authentication: Session-based token auth via `Authorization` header (sessionAuth in spec)
+- Response format: JSON
+- Error responses: Include `code` and `message` fields (parsed in `lib/api/api_exception.dart`)
+
+**HTTP Client Implementation:**
+- Location: `lib/api/api_client.dart`
+- Features:
+  - Automatic token attachment to authenticated requests
+  - HTTP method abstraction (GET, POST, PUT, DELETE)
+  - Query parameter and JSON body support
+  - 403 response handling: automatically triggers `signOut()` on session expiry
+  - 4xx/5xx error parsing: converts to `ApiException` with statusCode, code, message
+- Platform-specific HTTP client factory: `lib/api/http_client_factory*.dart`
+  - `http_client_factory_io.dart` - Android/iOS native (uses `dart:io`)
+  - `http_client_factory_web.dart` - Web platform (uses `dart:html` indirectly via http package)
+  - `http_client_factory_stub.dart` - Stub for testing/analysis
 
 ## Data Storage
 
-**Databases:**
-- Remote: HTTP REST calls to backend via `ApiClient` in `lib/api/api_client.dart`
-- Local: Hive NoSQL database (2.2.3) for offline read-only caching
-  - Purpose: Cache band/track/setlist data for offline access
-  - Integration: `hive_flutter` (1.1.0) handles paths and app directory
-  - No offline mutation (read-only cache in v1)
-
-**Secure Token Storage:**
-- Service: flutter_secure_storage (native platform secure storage)
-- Purpose: Persisting user authentication token between app launches
-- Storage class: `TokenStorage` in `lib/api/token_storage.dart`
-- Token key: `auth_token`
+**Local Databases:**
+- **Hive** (file-based key-value store)
+  - Package: `hive` 2.2.3, `hive_flutter` 1.1.0
+  - Purpose: Offline read-only cache (last-fetched API responses)
+  - Initialization: `Hive.initFlutter()` in `lib/main.dart`, then `CacheService.initialize()` opens boxes
+  - Cache structure: Five Hive boxes (one per endpoint category)
+    - `profileBox` - User profile data
+    - `homepageBox` - Homepage data
+    - `bandsBox` - Band list and detail data
+    - `tracksBox` - Band tracks and user tracks
+    - `setlistsBox` - Band setlists and user setlists
+  - Cache format: Raw JSON response bodies (`Map<String, dynamic>`) with metadata
+    - Each cached entry includes: `{data: {...}, syncedAt: ISO8601_string}`
+  - Implementation: `lib/cache/cache_service.dart`
+    - One-box-per-endpoint design per spec (D-02)
+    - Deep type conversion for Hive's untyped `Map<dynamic, dynamic>` returns
+    - Read-only: no offline write queue, no conflict resolution
+  - Access: Via `cacheServiceProvider` (Riverpod provider in `lib/providers/*_provider.dart`)
+  - Cleared on logout: `CacheService.clearAll()` called from `AuthSession.signOut()`
+  - Platform-specific: Stored in device's default app data directory (Android internal storage, iOS Documents)
 
 **File Storage:**
-- Type: Local filesystem only
-- Assets location: `assets/images/` (app icons, logos)
+- None beyond Hive; no user file uploads or downloads in this milestone
 
-**Caching & Offline:**
-- Type: Local Hive database + network connectivity detection
-- Network detection: `connectivity_plus` (7.3.1) detects online/offline state
-- Logic: Session token cached in memory; Hive backs up fetched data for offline read access
+**Secure Credential Storage:**
+- **flutter_secure_storage** 11.0.0
+  - Purpose: Secure auth token persistence across app restarts
+  - Android: Uses Android KeyStore encryption
+  - iOS: Uses iOS Keychain
+  - Implementation: `lib/api/token_storage.dart`
+    - Single key: `'auth_token'`
+    - Methods: `read()`, `write(token)`, `delete()`
+  - Access: Via `tokenStorageProvider` Riverpod provider
+
+**Caching:**
+- **Offline Read Cache (Hive)** - Last-fetched endpoint responses cached locally for offline access
+  - Strategy: Cache-aside (app tries network first, falls back to cache on error)
+  - Implementation: Each feature provider (e.g., `bandsProvider`, `tracksProvider`) checks cache before/after network calls
+  - Example: `lib/providers/bands_provider.dart` caches band list and detail on successful fetch
+  - Invalidation: Manual on auth logout, or implicit (always re-fetch on network success)
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- Type: Custom token-based authentication
-- Implementation: Cookie and Bearer token via HTTP headers
-- Cookie name: `cadencesession`
-- Token storage: Secure storage via flutter_secure_storage
-- Auth session class: `AuthSession` in `lib/api/auth_session.dart`
+- Custom token-based authentication (no OAuth/OIDC)
+- Implementation: `lib/providers/auth_provider.dart` + `lib/api/public_api.dart`
+- Flow:
+  1. User registers: `PublicApi.register(username, password)` → receives user ID
+  2. User logs in: `PublicApi.login(username, password)` → receives session token
+  3. Token persisted: `TokenStorage.write(token)` to secure storage
+  4. Token restored on startup: `AuthSession.build()` reads from storage
+  5. All API calls: Token attached via `Authorization` header in `ApiClient`
+  6. Logout: `AuthSession.signOut()` → invalidates server session + clears local storage + clears cache
+  7. Session expiry: 403 response triggers automatic `signOut()`
 
-**Auth Flow:**
-1. User registration: POST `/api/register` (username + password)
-2. User login: POST `/api/login` (username + password) → returns token
-3. Authenticated requests: Token passed as `Cookie: cadencesession=<token>` header (native) or browser credentials (web)
-4. Session validation: 403 response triggers automatic sign out
+**Token Persistence:**
+- Secure storage across app restarts via `flutter_secure_storage`
+- Reentrancy guard in `AuthSession.signOut()` prevents recursive logout on nested 403 errors
 
-**Platform-Specific Behavior:**
-- Web: Browser handles cookie jar automatically with `credentials: 'include'`
-- Native (iOS/Android): Token explicitly forwarded as `Cookie` header by `ApiClient`
+**Auth State:**
+- Managed by `authSessionProvider` (Riverpod provider)
+- State: `Future<String?>` (token value or null if unauthenticated)
+- Watcher: `AuthGate` widget decides to show LoginScreen or authenticated content based on state
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Type: None currently implemented
-- Error handling: `ApiException` class in `lib/api/api_exception.dart`
-- HTTP errors (4xx, 5xx) throw exceptions
+- No dedicated error tracking service integrated (Sentry, Crashlytics, etc.)
+- Local error handling: Exceptions caught at UI layer in screen state
+- Error parsing: `ApiException.fromResponse(response)` extracts statusCode, code, message from JSON
 
 **Logs:**
-- Type: Console logging only (via Flutter's print/debugPrint)
-- No external logging service integration
+- No structured logging library (e.g., logger, Sentry)
+- Print statements avoided per project conventions
+- Debug output not visible in final product
+
+**Network Connectivity:**
+- **connectivity_plus** 7.3.1
+  - Purpose: Detect online/offline state for cache fallback strategy
+  - Implementation: `lib/providers/connectivity_provider.dart`
+  - Usage: Providers check connectivity before attempting network calls; fallback to cache on offline
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Multiple targets: iOS App Store, Google Play Store, Web (Docker)
-- Platform-specific builds via Flutter CLI
+- Backend API: Configured per environment via `API_BASE_URL` dart-define
+- App delivery: Google Play Store (Android), Apple App Store (iOS), web (static host or server)
 
 **CI Pipeline:**
-- Type: GitHub Actions (automated on push/PR to main, on release tags)
-- Validation workflow: `.github/workflows/validate.yml`
-- Release workflow: `.github/workflows/release.yml`
-
-**Container Registry:**
-- GitHub Container Registry (GHCR)
-- Push on version tags: `v*.*.*`
-- Image URI: `ghcr.io/${{ github.repository }}`
+- Not detected in codebase (no `.github/workflows`, `.gitlab-ci.yml`, etc.)
+- Implied: Manual builds via `flutter build apk`, `flutter build ios`, `flutter build web`
 
 ## Environment Configuration
 
 **Required env vars:**
-- `API_BASE_URL`: Backend API endpoint
-  - Format: Full URL (e.g., `http://localhost:8080`, `https://cadence.app`)
-  - Default: `http://localhost:8080`
-  - Method: Set via `--dart-define=API_BASE_URL=<url>` or config file
-
-**Optional env vars:**
-- None currently documented
+- `API_BASE_URL` - REST API base URL (e.g., `https://api.cadence.app`)
+  - Defaults to `http://localhost:8080` if not provided
+  - Set via: `--dart-define=API_BASE_URL=...` or `--dart-define-from-file=env/config.json`
 
 **Secrets location:**
-- Configuration: `env/config.example.json`
-- Example format:
-  ```json
-  {
-    "API_BASE_URL": "http://localhost:8080"
-  }
-  ```
-- Usage: `flutter run --dart-define-from-file=env/config.json`
-- Note: Auth token stored in platform-specific secure storage, not in config files
+- Configuration example: `env/config.example.json` (checked in; never contains real secrets)
+- Real configuration: Passed at build time, not stored in repo
+- Auth tokens: Persisted in secure storage at runtime, never checked in
+
+**No .env file:**
+- Dart/Flutter doesn't use .env files; configuration is via dart-define at build time
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None implemented
+- None defined; API is purely request-response
 
 **Outgoing:**
-- None implemented
+- None defined; no background sync or push notifications in this milestone
+
+## Network Behavior
+
+**Request Handling:**
+- All API calls go through single `ApiClient` instance (injected via Riverpod)
+- Automatic bearer token attachment: `Authorization: [token]`
+- JSON request/response bodies
+- Query parameters support (e.g., `bandIdFilter` in track/setlist list endpoints)
+- Retry policy: None built-in; failures propagate to caller
+
+**Error Handling:**
+- HTTP 4xx/5xx responses: Thrown as `ApiException` with parsed error code and message
+- HTTP 403: Interpreted as session expiry; triggers automatic `signOut()` before throwing
+- Network errors (timeout, connection refused): Propagated as exceptions; caught at UI layer
+- Empty response bodies handled gracefully (returns `null` from `ApiClient.send`)
+
+**Offline Fallback:**
+- Cache-aside strategy: Hive cache checked on network failure
+- Read-only offline mode: Users can view last-synced data offline
+- No offline write queue: Mutations require network connectivity
 
 ---
 
-*Integration audit: 2026-08-21*
+*Integration audit: 2026-08-25*

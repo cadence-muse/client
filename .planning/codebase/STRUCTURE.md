@@ -1,317 +1,334 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-08-21
+**Analysis Date:** 2026-08-25
 
 ## Directory Layout
 
 ```
-cadence-client/
-├── lib/                          # App source code (Dart)
-│   ├── main.dart                 # Entry point, dependency setup
-│   ├── app.dart                  # Root widget (CadenceApp)
-│   ├── api/                      # HTTP client, auth, API methods
-│   │   ├── api_client.dart       # HTTP wrapper, token injection, error handling
-│   │   ├── auth_session.dart     # Auth state (ChangeNotifier)
-│   │   ├── public_api.dart       # Login/register API methods
-│   │   ├── token_storage.dart    # Secure token persistence
-│   │   ├── api_exception.dart    # Exception type for API errors
-│   │   ├── http_client_factory.dart     # Platform-agnostic factory
-│   │   ├── http_client_factory_web.dart # Web HTTP client (uses BrowserClient)
-│   │   ├── http_client_factory_io.dart  # Native HTTP client
-│   │   ├── http_client_factory_stub.dart # Fallback implementation
-│   │   └── publicapi.yml         # OpenAPI spec (reference only)
-│   ├── config/                   # App configuration
-│   │   └── app_config.dart       # API base URL (from build-time env vars)
-│   ├── theme/                    # Theme management
-│   │   ├── app_theme.dart        # Light/dark theme definitions
-│   │   └── theme_controller.dart # Theme state (ValueNotifier)
-│   ├── navigation/               # Navigation & routing
-│   │   └── root_scaffold.dart    # Bottom navigation with IndexedStack
-│   └── features/                 # Feature modules (screens & domain logic)
-│       ├── auth/                 # Authentication feature
-│       │   ├── auth_gate.dart    # Auth state gate widget
-│       │   └── login_screen.dart # Login/signup UI
-│       ├── home/                 # Home tab feature
-│       │   └── home_screen.dart  # Home screen UI
-│       ├── songs/                # Songs tab feature
-│       │   └── songs_screen.dart # Songs screen UI
-│       ├── bands/                # Bands tab feature
-│       │   ├── band.dart         # Band model
-│       │   └── bands_screen.dart # Bands screen UI
-│       ├── profile/              # Profile tab feature
-│       │   └── profile_screen.dart # Profile & settings UI
-│       └── settings/             # Settings feature
-│           └── settings_screen.dart # Settings screen UI
-├── test/                         # Test files
-│   └── widget_test.dart          # Widget tests, integration tests
-├── android/                      # Android native scaffolding (generated)
-├── ios/                          # iOS native scaffolding (generated)
-├── web/                          # Web platform scaffolding (generated)
-├── assets/                       # App assets
-│   └── images/
-│       └── logo.png
-├── env/                          # Environment configuration files
-│   └── config.example.json       # Example config (not secrets)
-├── analysis_options.yaml         # Lint rules (extends flutter_lints)
-├── pubspec.yaml                  # Dart dependencies & metadata
-├── pubspec.lock                  # Locked dependency versions (generated)
-├── .planning/                    # Codebase analysis
-│   └── codebase/
-│       ├── ARCHITECTURE.md       # Architecture overview
-│       └── STRUCTURE.md          # This file
-├── .github/                      # GitHub configuration
-│   └── workflows/
-│       ├── validate.yml          # CI: lint, test, analyze on push/PR
-│       └── release.yml           # Release: Docker image + APK on semantic tags
-├── .claude/                      # Claude Code settings
-│   ├── settings.local.json       # Project-specific settings
-│   └── CLAUDE.md                 # Project guidelines
-├── .vscode/                      # VS Code settings
-│   └── launch.json               # Debug configurations
-├── .idea/                        # IDE settings (Android Studio, IntelliJ)
-├── .metadata                     # Flutter project metadata (generated)
-├── Dockerfile                    # Web deployment: nginx serving build/web
-├── LICENSE                       # MIT License (2026 nightnoryu)
-├── .gitignore                    # Git exclusions (Flutter standard)
-└── README.md                     # Project documentation
+cadence/client/
+├── lib/                           # All application source code
+│   ├── main.dart                  # Entry point: initializes Hive, CacheService, ProviderScope
+│   ├── app.dart                   # Root widget: CadenceApp (MaterialApp + theme + AuthGate)
+│   ├── api/                       # HTTP communication layer
+│   │   ├── api_client.dart        # HTTP wrapper, auth injection, 403 handler
+│   │   ├── api_exception.dart     # Exception type (statusCode, code, message)
+│   │   ├── public_api.dart        # Type-safe API methods (register, login, bands, tracks, etc.)
+│   │   ├── publicapi.yml          # OpenAPI spec (source of truth for endpoints)
+│   │   ├── token_storage.dart     # flutter_secure_storage wrapper
+│   │   ├── http_client_factory.dart         # Conditional imports for platform-specific HTTP
+│   │   ├── http_client_factory_io.dart      # Native (Android/iOS) HTTP client factory
+│   │   ├── http_client_factory_web.dart     # Web HTTP client factory
+│   │   └── http_client_factory_stub.dart    # Stub for other platforms
+│   ├── cache/                     # Offline read cache layer (Hive)
+│   │   └── cache_service.dart     # Singleton: Hive boxes, read/write methods per endpoint
+│   ├── config/                    # App-wide configuration
+│   │   └── app_config.dart        # API_BASE_URL from dart-define
+│   ├── theme/                     # Theming
+│   │   └── app_theme.dart         # Light/dark ThemeData definitions
+│   ├── providers/                 # Riverpod state management
+│   │   ├── auth_provider.dart     # AuthSession (token state), apiClient, publicApi, tokenStorage providers
+│   │   ├── auth_provider.g.dart   # (generated by riverpod_generator)
+│   │   ├── bands_provider.dart    # BandsListData, BandDetail, etc. (online-first + cache)
+│   │   ├── bands_provider.g.dart  # (generated)
+│   │   ├── connectivity_provider.dart  # Connectivity stream, isOnlineProvider
+│   │   ├── connectivity_provider.g.dart  # (generated)
+│   │   ├── tracks_provider.dart   # Tracks list and detail (online-first + cache)
+│   │   ├── setlists_provider.dart # Setlists list and detail (online-first + cache)
+│   │   ├── profile_provider.dart  # User profile data (online-first + cache)
+│   │   ├── homepage_provider.dart # Homepage summary data
+│   │   ├── theme_provider.dart    # ThemeMode state (system/light/dark)
+│   │   ├── navigation_provider.dart  # Selected tab index
+│   │   ├── offline_no_cache_exception.dart  # Exception for offline with no cache
+│   │   └── [*_provider.g.dart]    # Generated files for all providers
+│   ├── features/                  # Feature-specific screens and UI
+│   │   ├── auth/
+│   │   │   ├── auth_gate.dart     # Auth state guard (shows login or authenticated content)
+│   │   │   └── login_screen.dart  # Login/signup screen (form + auth calls)
+│   │   ├── home/
+│   │   │   └── home_screen.dart   # Home tab (placeholder or dashboard)
+│   │   ├── bands/
+│   │   │   ├── bands_screen.dart  # Bands list tab
+│   │   │   ├── band_detail_screen.dart  # Full band details (members, invite code, settings)
+│   │   │   ├── create_band_screen.dart  # Create band form
+│   │   │   ├── edit_band_screen.dart    # Edit band name
+│   │   │   ├── band_avatar.dart   # Band avatar widget
+│   │   │   ├── join_band_dialog.dart    # Join band via code dialog
+│   │   │   ├── confirm_delete_band_dialog.dart
+│   │   │   ├── confirm_leave_band_dialog.dart
+│   │   │   ├── confirm_remove_member_dialog.dart
+│   │   │   ├── confirm_rotate_invite_code_dialog.dart
+│   │   │   └── confirm_transfer_ownership_dialog.dart
+│   │   ├── tracks/
+│   │   │   ├── tracks_screen.dart # Tracks list tab
+│   │   │   ├── track_detail_screen.dart
+│   │   │   ├── create_track_screen.dart
+│   │   │   ├── edit_track_screen.dart
+│   │   │   └── [other track dialogs]
+│   │   ├── setlists/
+│   │   │   ├── setlists_screen.dart  # Setlists list tab
+│   │   │   ├── setlist_detail_screen.dart
+│   │   │   ├── create_setlist_screen.dart
+│   │   │   └── [other setlist dialogs]
+│   │   ├── profile/
+│   │   │   └── profile_screen.dart # Profile/settings tab (user info, password change, logout)
+│   │   ├── settings/
+│   │   │   └── settings_screen.dart # Settings (theme toggle, etc.)
+│   │   └── songs/
+│   │       └── (empty or placeholder)
+│   ├── navigation/
+│   │   └── root_scaffold.dart     # Root navigation: bottom nav bar, IndexedStack, offline banner
+│   └── widgets/                   # Shared reusable widgets
+│       ├── offline_banner.dart    # "Showing cached data" banner (shown when isOnline=false)
+│       └── offline_no_cache_view.dart  # "No cached data available" message + Retry button
+├── test/                          # Test suite
+│   ├── widget_test.dart           # Basic smoke test
+│   ├── offline_cross_tab_test.dart # Cross-tab offline behavior
+│   ├── api/
+│   │   └── api_client_test.dart
+│   ├── providers/
+│   │   ├── auth_provider_test.dart
+│   │   ├── bands_provider_test.dart
+│   │   ├── connectivity_provider_test.dart
+│   │   └── [*_provider_test.dart]
+│   ├── features/
+│   │   ├── auth/
+│   │   │   └── login_screen_test.dart
+│   │   └── [feature tests]
+│   ├── cache/
+│   │   └── cache_service_test.dart
+│   ├── widgets/
+│   │   └── offline_banner_test.dart
+│   └── regression/
+│       └── [regression tests]
+├── android/                       # Android native scaffolding
+│   ├── app/src/main/kotlin/...   # Android app entry point
+│   └── build.gradle.kts
+├── ios/                           # iOS native scaffolding
+│   ├── Runner/                    # Xcode project
+│   └── Runner.xcworkspace
+├── web/                           # Web build output
+│   ├── index.html
+│   └── icons/
+├── assets/
+│   └── images/                    # App images (logos, etc.)
+├── env/
+│   └── config.example.json        # Example config for dart-define
+├── pubspec.yaml                   # Dart dependencies
+├── pubspec.lock                   # Dependency lock file
+├── analysis_options.yaml          # Dart linter config (extends flutter_lints)
+├── .github/
+│   └── workflows/                 # CI/CD pipelines
+├── docker/
+│   └── [Docker build files]
+└── .planning/
+    └── codebase/
+        ├── ARCHITECTURE.md        # This file: architecture patterns, layers, data flow
+        └── STRUCTURE.md           # Directory layout and naming conventions
 ```
 
 ## Directory Purposes
 
-**`lib/`:**
-- Purpose: All Dart application source code
-- Contains: Widgets, business logic, API clients, configuration, themes
-- Structure: Organized by functional layers (api/, config/, theme/, features/) and feature modules
+**lib/**
+- Purpose: All application source code (compiled into APK/IPA/web bundle)
+- Contains: Dart/Flutter code organized by layer and feature
+- Key principles: Single responsibility per file; feature-based grouping; no circular imports
 
-**`lib/api/`:**
+**lib/api/**
 - Purpose: HTTP communication, authentication, token persistence
-- Contains: ApiClient (HTTP wrapper), AuthSession (auth state), PublicApi (business methods), TokenStorage (persistence), platform-specific HTTP clients
-- Key files: `api_client.dart`, `auth_session.dart`, `public_api.dart`, `token_storage.dart`
+- Contains: ApiClient (HTTP facade), PublicApi (business-logic methods), TokenStorage (secure storage), ApiException (error type)
+- Key principles: Encapsulate HTTP details; token injection; 403 auto-logout; platform-aware HTTP client
 
-**`lib/config/`:**
-- Purpose: App-wide configuration loaded at build/runtime
-- Contains: API base URL and other static configuration
-- Key files: `app_config.dart` (reads API_BASE_URL from environment)
+**lib/cache/**
+- Purpose: Read-only offline data storage via Hive (local database)
+- Contains: CacheService singleton with one Hive box per endpoint type
+- Key principles: Raw JSON storage (Map<String, dynamic>), not typed models; fallback source when network fails; cleared on logout
 
-**`lib/theme/`:**
-- Purpose: Visual design (light/dark themes) and theme state management
-- Contains: Theme definitions (AppTheme), theme state management (ThemeController)
-- Key files: `app_theme.dart`, `theme_controller.dart`
+**lib/config/**
+- Purpose: App-wide build-time configuration
+- Contains: AppConfig with API_BASE_URL from dart-define
+- Key principles: Static constants; set via `--dart-define=API_BASE_URL=...` at build/run time
 
-**`lib/navigation/`:**
-- Purpose: App navigation structure and routing
-- Contains: Bottom navigation widget, screen management
-- Key files: `root_scaffold.dart` (manages tab switching via IndexedStack)
+**lib/theme/**
+- Purpose: Visual theming (light/dark color schemes)
+- Contains: AppTheme with ThemeData definitions
+- Key principles: Material 3 color schemes; seeded color approach
 
-**`lib/features/`:**
-- Purpose: Feature-organized app functionality
-- Structure: One subdirectory per major feature (auth, home, songs, bands, profile, settings)
-- Each feature contains: Screens, models, and logic specific to that feature
-- Files follow naming: `{feature}_screen.dart` for UI, `{model}.dart` for data classes
+**lib/providers/**
+- Purpose: Riverpod state management, data fetching, offline logic
+- Contains: Riverpod classes with `@riverpod` annotation (AuthSession, BandsListData, etc.); generated .g.dart files
+- Key principles: Online-first caching; reactive watchers; single connectivity signal; dependency injection via ref
 
-**`lib/features/auth/`:**
-- Purpose: User authentication (login/signup)
-- Key files: `auth_gate.dart` (guards authenticated content), `login_screen.dart` (auth UI)
+**lib/features/**
+- Purpose: Feature-specific UI screens and dialogs, organized by feature
+- Contains: Screen widgets (ConsumerWidget/ConsumerStatefulWidget), feature-specific dialogs, forms
+- Key principles: One feature per directory; each screen watches providers and dispatches actions; no business logic (that's in providers)
 
-**`lib/features/home/`:**
-- Purpose: Home tab (currently placeholder)
-- Key files: `home_screen.dart`
+**lib/navigation/**
+- Purpose: App navigation structure (bottom nav, tab management)
+- Contains: RootScaffold (main navigation widget with IndexedStack)
+- Key principles: IndexedStack keeps tabs alive; offline banner at root; tab invalidation on re-select
 
-**`lib/features/songs/`:**
-- Purpose: Songs/repertoire management tab (currently placeholder)
-- Key files: `songs_screen.dart`
+**lib/widgets/**
+- Purpose: Shared reusable widgets used across multiple features
+- Contains: OfflineBanner, OfflineNoCacheView (generic offline UI)
+- Key principles: Generic, feature-agnostic; used by multiple screens
 
-**`lib/features/bands/`:**
-- Purpose: Band management tab
-- Key files: `bands_screen.dart` (UI), `band.dart` (Band model)
+**test/**
+- Purpose: Test suite (unit, widget, integration tests)
+- Contains: Tests organized by layer/feature (mirrors lib/ structure); Riverpod test helpers
+- Key principles: One test file per source file; mock providers and CacheService; use overrideWithValue for testing
 
-**`lib/features/profile/`:**
-- Purpose: User profile and app settings tab
-- Key files: `profile_screen.dart`
+**android/, ios/, web/**
+- Purpose: Platform-specific build configuration and native code
+- Contains: Gradle configs (Android), Xcode projects (iOS), web index.html
+- Key principles: Minimal native code; flutter_secure_storage handles platform differences; HTTP client factory handles platform HTTP
 
-**`lib/features/settings/`:**
-- Purpose: App settings (currently separate from profile, but may merge)
-- Key files: `settings_screen.dart`
+**assets/**
+- Purpose: Static app resources (images, fonts, etc.)
+- Contains: Images directory with logos, icons
+- Key principles: Committed to git; referenced in pubspec.yaml
 
-**`test/`:**
-- Purpose: Test files
-- Contents: Widget tests, unit tests, integration tests
-- Key files: `widget_test.dart` (example: navigation test with mocked auth)
-
-**`android/`, `ios/`, `web/`:**
-- Purpose: Platform-specific scaffolding (generated by `flutter create`)
-- Rarely edited by hand; contain native code, build configs, and platform assets
-- Android: Gradle build configuration, app signing, permissions
-- iOS: Xcode project structure, native code, entitlements
-- Web: HTML entry point, assets configuration, JavaScript interop
-
-**`assets/`:**
-- Purpose: App resources (images, fonts, etc.)
-- Key files: `images/logo.png`
-
-**`env/`:**
-- Purpose: Environment configuration examples
-- Files: `config.example.json` (safe to commit; shows structure, no secrets)
-- Usage: Copy to `env/config.json` and populate with actual values via `flutter run --dart-define-from-file=`
-
-**`.planning/codebase/`:**
-- Purpose: Codebase analysis documentation
-- Files: ARCHITECTURE.md, STRUCTURE.md, CONVENTIONS.md, TESTING.md, CONCERNS.md
-
-**`.github/workflows/`:**
-- Purpose: GitHub Actions CI/CD automation
-- `validate.yml`: Runs tests and analysis on every push/PR to main (blocks merge on failure)
-- `release.yml`: Builds and publishes Docker image + Android APK on semantic version tags (v*.*.*)
-- Both workflows use Flutter 3.44.x stable channel (pinned)
+**env/**
+- Purpose: Build-time environment configuration examples
+- Contains: config.example.json (template for dart-define values)
+- Key principles: example.json shows all required vars; actual config.json not committed (in .gitignore)
 
 ## Key File Locations
 
 **Entry Points:**
-- `lib/main.dart`: App entry point, sets up dependencies and launches CadenceApp
-
-**Root Widget:**
-- `lib/app.dart`: CadenceApp root, theme management, AuthGate setup
-
-**Authentication:**
-- `lib/features/auth/auth_gate.dart`: Guards app with auth state
-- `lib/features/auth/login_screen.dart`: Login/signup UI
-- `lib/api/auth_session.dart`: Auth state management
-- `lib/api/token_storage.dart`: Secure token persistence
-
-**Navigation:**
-- `lib/navigation/root_scaffold.dart`: Bottom navigation, tab management
-
-**API Communication:**
-- `lib/api/api_client.dart`: HTTP client with auth header injection
-- `lib/api/public_api.dart`: Login/register API methods
-- `lib/api/api_exception.dart`: Error handling
+- `lib/main.dart` - App launch; Hive/CacheService init; ProviderScope wrapper
+- `lib/app.dart` - Root widget (CadenceApp); MaterialApp + AuthGate
+- `lib/features/auth/auth_gate.dart` - Auth guard; redirects to LoginScreen or RootScaffold
+- `lib/features/auth/login_screen.dart` - Auth UI (login/signup form)
+- `lib/navigation/root_scaffold.dart` - Authenticated app root; bottom nav + tab management
 
 **Configuration:**
-- `lib/config/app_config.dart`: API base URL configuration
-- `pubspec.yaml`: Dependencies and app metadata
-- `analysis_options.yaml`: Lint rules
-- `.metadata`: Flutter project metadata (platform support, versions)
+- `lib/config/app_config.dart` - API base URL (from dart-define)
+- `lib/theme/app_theme.dart` - Light/dark themes
+- `analysis_options.yaml` - Dart linter rules (extends flutter_lints)
+- `pubspec.yaml` - Dependencies and build config
 
-**Theming:**
-- `lib/theme/app_theme.dart`: Theme definitions
-- `lib/theme/theme_controller.dart`: Theme state
+**API & Authentication:**
+- `lib/api/api_client.dart` - HTTP client with auth header injection
+- `lib/api/public_api.dart` - Type-safe API methods
+- `lib/api/token_storage.dart` - Secure token persistence
+- `lib/api/publicapi.yml` - OpenAPI spec (endpoint definitions)
+- `lib/providers/auth_provider.dart` - AuthSession, token state, API dependencies
 
-**Feature Screens:**
-- `lib/features/auth/login_screen.dart`: Login/signup
-- `lib/features/home/home_screen.dart`: Home tab
-- `lib/features/songs/songs_screen.dart`: Songs tab
-- `lib/features/bands/bands_screen.dart`: Bands tab
-- `lib/features/profile/profile_screen.dart`: Profile/settings tab
+**Offline & Caching:**
+- `lib/cache/cache_service.dart` - Hive-backed cache (one box per endpoint)
+- `lib/providers/connectivity_provider.dart` - Connectivity state + isOnlineProvider
+- `lib/widgets/offline_banner.dart` - Offline indicator banner
+- `lib/widgets/offline_no_cache_view.dart` - No cached data UI
+
+**Core Features:**
+- `lib/features/bands/` - Band management screens (list, detail, create, join, etc.)
+- `lib/features/tracks/` - Track management screens (list, detail, create, etc.)
+- `lib/features/setlists/` - Setlist management screens
+- `lib/features/profile/` - User profile and settings
 
 **Testing:**
-- `test/widget_test.dart`: Widget test examples
-
-**Deployment:**
-- `Dockerfile`: Web deployment — nginx alpine container serving `build/web/` on port 80
-- `.github/workflows/validate.yml`: CI validation (tests + analysis)
-- `.github/workflows/release.yml`: Release automation (Docker + APK)
-- `LICENSE`: MIT license (copyright 2026 nightnoryu)
+- `test/providers/` - Provider unit and integration tests
+- `test/features/` - Feature/screen tests
+- `test/api/` - API layer tests
+- `test/cache/` - Cache service tests
 
 ## Naming Conventions
 
 **Files:**
-- `{feature}_screen.dart`: Screen/page UI widgets
-- `{entity}.dart`: Model classes (e.g., `band.dart` for Band model)
-- `{name}_controller.dart`: State management classes (e.g., `theme_controller.dart`)
-- `{feature}_gate.dart`: Auth/access control widgets (e.g., `auth_gate.dart`)
+- Dart files use `snake_case`: `auth_session.dart`, `api_client.dart`, `login_screen.dart`
+- Screen files end with `_screen`: `bands_screen.dart`, `band_detail_screen.dart`, `profile_screen.dart`
+- Dialog files end with `_dialog`: `join_band_dialog.dart`, `confirm_delete_band_dialog.dart`
+- Test files mirror source structure with `_test` suffix: `lib/api/api_client.dart` → `test/api/api_client_test.dart`
+- Generated files end with `.g.dart`: `auth_provider.dart` → `auth_provider.g.dart` (via riverpod_generator)
 
 **Directories:**
-- `lib/api/`: HTTP and authentication
-- `lib/config/`: Configuration
-- `lib/theme/`: Design and theming
-- `lib/navigation/`: Routing and navigation
-- `lib/features/{feature}/`: Feature-specific code
-- `test/`: Tests (mirrors `lib/` structure expected, though currently minimal)
+- Feature directories are PascalCase inside `lib/features/`: `auth`, `bands`, `tracks`, `setlists`, `profile`, `settings`, `home`, `songs`
+- Layer directories are lowercase: `api`, `cache`, `config`, `theme`, `providers`, `navigation`, `widgets`
+- Test directories mirror source structure: `test/api/`, `test/providers/`, `test/features/`, `test/cache/`, `test/widgets/`
 
 **Classes:**
-- PascalCase: `CadenceApp`, `AuthSession`, `LoginScreen`
-- Exception types: `ApiException`
-- Enum types: `AuthStatus`, `_AuthMode`
+- All classes use PascalCase: `AuthSession`, `ApiClient`, `PublicApi`, `TokenStorage`, `CacheService`, `BandsListData`, `AuthGate`, `LoginScreen`
+- Internal State classes prefixed with underscore: `_LoginScreenState`
+- Exception classes named explicitly: `ApiException`, `OfflineNoCacheException`
 
-**Variables/Functions:**
-- camelCase: `authSession`, `themeController`, `signIn()`, `_selectedIndex`
-- Private members: Leading underscore: `_token`, `_AuthMode`, `_authSession`, `_submit()`
+**Enums:**
+- Enum cases use lowercase: `ConnectivityStatus.online`, `ConnectivityStatus.offline`, `_AuthMode.login`, `_AuthMode.signUp`
 
-**Dart-specific:**
-- Mixin/abstract base classes: Use `abstract interface class` or `mixin`
-- Extension methods: Extend existing types for utility functions
-- Late initialization: Use `late` for non-nullable fields set after construction
+**Functions & Methods:**
+- All functions/methods use camelCase: `listBands()`, `getBand()`, `createBand()`, `signIn()`, `signOut()`, `refresh()`, `send()`
+- Private methods prefixed with underscore: `_doRefresh()`, `_fetchAndCache()`, `_buildContent()`, `_showCreateJoinMenu()`
+
+**Variables & Properties:**
+- Local variables and properties use camelCase: `_token`, `_status`, `_errorMessage`, `_isSubmitting`, `baseUrl`, `authSession`
+- Private/internal variables prefixed with underscore: `_httpClient`, `_formKey`, `_usernameController`, `_passwordController`, `_inFlightRefresh`
+- Static constants use UPPER_SNAKE_CASE: `const _tokenKey = 'auth_token'`, `const _profileKey = 'profile'`
+- Configuration values exposed as static constants: `AppConfig.apiBaseUrl`
 
 ## Where to Add New Code
 
-**New Feature (e.g., Repertoire Management):**
-- Primary code: `lib/features/{feature}/` - create new subdirectory
-- Screen UI: `lib/features/{feature}/{feature}_screen.dart`
-- Models: `lib/features/{feature}/{model}.dart`
-- Add route to navigation: `lib/navigation/root_scaffold.dart` (add to screens list and NavigationBar destinations)
-- Tests: `test/{feature}_test.dart` (or co-locate with feature)
+**New Feature (e.g., Notifications Tab):**
+1. Create `lib/features/notifications/` directory
+2. Add `notifications_screen.dart` (main tab screen)
+3. Add feature-specific dialogs/screens as needed (e.g., `notification_detail_screen.dart`)
+4. Add provider in `lib/providers/notifications_provider.dart` (follow online-first pattern in `bands_provider.dart`)
+5. Add tests in `test/features/notifications/` and `test/providers/notifications_provider_test.dart`
+6. Add to `RootScaffold` bottom navigation (`lib/navigation/root_scaffold.dart`)
+7. Add to cache if offline viewing needed (add read/write methods in `lib/cache/cache_service.dart`)
 
 **New API Endpoint:**
-- Method: Add to `lib/api/public_api.dart` (high-level API wrapper)
-- Implementation: Call `_client.send()` internally
-- Error handling: Wrap with try/catch for ApiException, handle specific status codes
-- Auth requirement: Set `requireAuth` parameter appropriately
+1. Add operation to `lib/api/publicapi.yml` (OpenAPI spec)
+2. Add method to `lib/api/public_api.dart` (calls apiClient.send, returns typed value)
+3. Add provider in `lib/providers/` if data is displayed (watch isOnlineProvider, implement online-first)
+4. Add cache read/write in `lib/cache/cache_service.dart` if offline viewing needed
+5. Add UI in appropriate feature screen
 
-**New Widget/Component:**
-- Shared utilities: `lib/widgets/` (create if needed for reusable UI components)
-- Feature-specific: Keep in `lib/features/{feature}/` subdirectory
+**New Dialog/Modal:**
+1. Create `lib/features/{feature}/{dialog_name}_dialog.dart`
+2. Follow pattern from `lib/features/bands/join_band_dialog.dart` (ConsumerWidget with showDialog)
+3. Call `showDialog(context: context, builder: (_) => DialogWidget())`
+4. Dispatch actions via `ref.read(provider.notifier).action()` or `ref.invalidate(provider)`
 
-**Configuration:**
-- Build-time env vars: Update `lib/config/app_config.dart` with new String.fromEnvironment() constants
-- Runtime config: Use AppConfig to access
+**Utility/Helper:**
+- If used by multiple features, add to `lib/widgets/` (reusable widgets) or create new utility file
+- If specific to one feature, keep in feature directory
+- If related to API, add to `lib/api/`
+- If related to caching, add to `lib/cache/`
 
-**Theming:**
-- Color schemes: `lib/theme/app_theme.dart` - update light/dark ThemeData
-- Theme state: Extend `ThemeController` if need new reactive theme properties
-
-**Authentication/Auth:**
-- Token handling: Already centralized in `lib/api/auth_session.dart`
-- Auth flow: Modify `lib/features/auth/login_screen.dart` for new steps
-- Protected routes: Wrap with AuthGate or add auth checks in screen
-
-**Tests:**
-- Test files: Create in `test/` directory, mirror lib structure
-- Mocking auth: Use `_FakeSecureStorage` pattern from `widget_test.dart`
-- Widget tests: Use `WidgetTester` and `flutter_test` APIs
-
-**CI/CD:**
-- Add workflow: `.github/workflows/{name}.yml` using GitHub Actions syntax
-- Validate workflow: Modify `.github/workflows/validate.yml` to add new checks (e.g., coverage, type checking)
-- Release pipeline: Extend `.github/workflows/release.yml` for new platforms (e.g., iOS App Store, Windows Store)
+**Testing New Feature:**
+- Create `test/features/{feature}/` directory matching feature directory
+- Create test files for each screen/dialog (e.g., `{feature}_screen_test.dart`)
+- Create `test/providers/{feature}_provider_test.dart` for provider tests
+- Use `mockito` for mocking PublicApi, CacheService, connectivity
+- Use `riverpod`'s testing utilities (`ref`) to override providers with test doubles
 
 ## Special Directories
 
-**`.dart_tool/`:**
-- Purpose: Generated Dart toolchain files (plugin registry, package config)
-- Generated: Yes
-- Committed: No (in .gitignore)
+**lib/providers/ (Code Generation):**
+- Purpose: Riverpod state and data providers
+- Generated: `.g.dart` files automatically generated by `flutter pub run build_runner build`
+- Committed: Only `.dart` source files committed; `.g.dart` files regenerated on build
+- Pattern: All providers use `@riverpod` annotation; builds are run before commit (see git hook or CI config)
 
-**`build/`:**
-- Purpose: Build outputs (compiled code, assets)
-- Generated: Yes
-- Committed: No (in .gitignore)
-- Subdirectories: `build/web/` (web static files), `build/app/` (Android/iOS artifacts)
+**lib/api/publicapi.yml:**
+- Purpose: OpenAPI 3.0 specification (single source of truth for backend API)
+- Generated: No; hand-written by backend team
+- Committed: Yes
+- Usage: Referenced in comments; PublicApi methods correspond to operations in this spec
 
-**`.idea/` and `.vscode/`:**
-- Purpose: IDE configuration and settings
-- Generated: Partially (some committed for project consistency)
-- Committed: Partially (safe project settings, no personal overrides)
+**.planning/codebase/:**
+- Purpose: GSD codebase analysis documents (ARCHITECTURE.md, STRUCTURE.md, etc.)
+- Generated: Yes; written by GSD mapping agent
+- Committed: Yes (alongside code)
+- Usage: Referenced by /gsd-plan-phase and /gsd-execute-phase to understand patterns
 
-**`android/`, `ios/`, `web/`:**
-- Purpose: Platform-specific scaffolding and native code
-- Generated: Partially (created by `flutter create`, modified for platform-specific logic)
-- Committed: Yes (part of source tree)
-
-**`.github/`:**
-- Purpose: GitHub Actions workflows and configuration
-- Workflows: `.github/workflows/` contains CI/CD automation
-- Committed: Yes (CI/CD is version-controlled)
+**env/ and config files:**
+- Purpose: Build-time configuration examples and environment variables
+- config.example.json: Committed; shows template
+- config.json: NOT committed (in .gitignore); user creates from example
+- .env files: NOT committed; contain secrets
+- Usage: `flutter run --dart-define-from-file=env/config.json` loads API_BASE_URL
 
 ---
 
-*Structure analysis: 2026-08-21*
+*Structure analysis: 2026-08-25*

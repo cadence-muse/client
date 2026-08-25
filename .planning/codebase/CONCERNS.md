@@ -1,357 +1,101 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-08-13
+**Analysis Date:** 2026-08-25
 
 ## Tech Debt
 
-### Incomplete Feature Implementation
+**Cache-Write Race in Refresh Cycles (CR-01):**
+- Issue: Local mutations (e.g., `removeFromList()`, `updateFields()`) correctly guard in-memory `state` with a `_version` counter to prevent stale background refreshes from reverting them. However, `_fetchAndCache()` writes to the persistent cache **unconditionally** before `_doRefresh()` checks the version guard. A slower background refresh that started before a mutation can therefore overwrite the mutation's cache write with stale data, defeating offline-cache-trust guarantees.
+- Files: `lib/providers/tracks_provider.dart` (lines 68-72, 83-103), `lib/providers/setlists_provider.dart` (lines 77-83, 118-140), `lib/providers/bands_provider.dart` (lines 77-84, 96-140)
+- Impact: App UI shows correct state (in-memory), but if force-closed offline or if in-memory state is lost (via `autoDispose`), persisted cache serves stale data. Reappearance of deleted items or reverted edits on app restart.
+- Fix approach: Gate the `cacheService.writeX()` call on the same version check as the `state` commit. Move version check before cache write, or restructure to make network call + cache commit + state commit atomic. Add regression tests asserting `cacheService.readX()` (not just `state`) after the WR-02 race for list + detail providers.
 
-**Areas affected:**
-- `lib/features/home/home_screen.dart` - Shows placeholder text "Home" only
-- `lib/features/songs/songs_screen.dart` - Shows placeholder text "Songs" only
-- `lib/features/profile/profile_screen.dart` (line 25-29) - Shows hardcoded "Username" text instead of fetching actual user data
-- `lib/features/bands/bands_screen.dart` (line 8-12) - Uses hardcoded mock data instead of API calls
-
-**Impact:** Screens are not functional. Users cannot view real band, song, or profile data. Mock data is not representative of actual API responses.
-
-**Fix approach:** Replace placeholder implementations with:
-1. API client methods to fetch bands, songs, and user profile from backend
-2. State management to handle loading/error states
-3. Display actual data in UI based on API responses
-
-### Theme Persistence Not Implemented
-
-**Files:** `lib/theme/theme_controller.dart` (line 3-6)
-
-**Issue:** ThemeController creates a fresh ThemeMode.system on app startup. Selected theme preference is not persisted across app restarts.
-
-**Impact:** Users lose their theme preference every time they close and reopen the app.
-
-**Fix approach:** 
-1. Add persistent storage (SharedPreferences) to ThemeController
-2. Load saved theme on app startup in main.dart or ThemeController constructor
-3. Save theme changes when user selects new theme
-
-### RadioGroup Widget Missing from pubspec.yaml
-
-**File:** `lib/features/settings/settings_screen.dart` (line 17)
-
-**Issue:** Code uses `RadioGroup<ThemeMode>` but this widget is not imported or defined anywhere in the codebase. It's also not in `pubspec.yaml` dependencies.
-
-**Impact:** Code will not compile. SettingsScreen will fail at runtime if somehow compiled.
-
-**Fix approach:**
-1. Either add missing dependency to pubspec.yaml, or
-2. Replace RadioGroup with standard Flutter widgets (RadioListTile works without wrapper as shown in lines 26-37)
+**Stale Band-Filter Selection Crashes DropdownButton (CR-02):**
+- Issue: `selectedBandIdFilterProvider` and `selectedSetlistBandIdFilterProvider` persist a chosen `bandId` indefinitely. When the filtered band disappears from the bands list (user leaves, band deleted, or ownership transferred elsewhere), `DropdownButton` is given a `value` that has no matching item, triggering constructor assertion: "There should be exactly one item with [DropdownButton]'s value". Hard crash in debug/profile/test builds.
+- Files: `lib/features/songs/tracks_screen.dart` (lines 65-86), `lib/features/setlists/setlists_screen.dart` (lines 62-89), `lib/providers/tracks_provider.dart` (lines 270-284, `SelectedBandIdFilter`), `lib/providers/setlists_provider.dart` (lines 301-323, `SelectedSetlistBandIdFilter`)
+- Impact: User leaves band A while it's the active filter → hard crash on returning to Tracks/Setlists tab. Reproduction: join bands A+B, filter to A, leave A from another screen, return to Tracks tab → crash.
+- Fix approach: Clamp the persisted filter value against the live bands list at render time (not just at set time). When `selectedBandIdFilter` no longer exists in the current bands list, fall back to `null` ("All bands"). Add regression test exercising "filtered band disappears" scenario.
 
 ## Known Bugs
 
-### Async Token Restoration Without Error Handling
-
-**File:** `lib/features/auth/auth_gate.dart` (line 31)
-
-**Issue:** `authSession.restore()` is called in `initState()` without `await`. The restore call is a Future but not awaited, meaning the UI can render before token is restored.
-
-**Symptoms:** 
-- First screen flash shows loading indicator briefly even when token is cached
-- Race condition between UI build and token read from secure storage
-
-**Workaround:** None - UI will flash loading state
-
-**Fix approach:** 
-1. Use FutureBuilder or defer build until restore() completes
-2. Or handle restore() completion notification properly
-
-### Auth Session Restore May Fail Silently
-
-**File:** `lib/api/auth_session.dart` (line 24-28)
-
-**Issue:** `restore()` calls `tokenStorage.read()` with no error handling. If secure storage access fails (permission denied, storage corrupted), exception is not caught or reported.
-
-**Impact:** Token may not be restored if secure storage is unavailable, silently signing user out.
-
-**Fix approach:** Add try-catch in restore() to handle storage errors gracefully and log them.
-
-## Security Considerations
-
-### Weak Password Validation
-
-**File:** `lib/features/auth/login_screen.dart` (line 129)
-
-**Issue:** Password validation only checks minimum length (8 characters). No validation for:
-- Complexity (uppercase, lowercase, numbers, special characters)
-- Common patterns or dictionary words
-- User data in password (username, etc.)
-
-**Risk:** Users can set weak passwords that are vulnerable to brute force or dictionary attacks.
-
-**Current mitigation:** Server-side validation (assumed)
-
-**Recommendations:**
-1. Add client-side password strength meter
-2. Implement password policy validation (complexity requirements)
-3. Warn users about weak passwords before submission
-
-### No Input Sanitization on Login
-
-**File:** `lib/features/auth/login_screen.dart` (line 41-42)
-
-**Issue:** Username and password are read directly from form fields with only trim() on username, then sent to server.
-
-**Risk:** If server-side sanitization is missing, could be vulnerable to injection attacks. Client should validate format.
-
-**Current mitigation:** Server-side validation (assumed)
-
-**Recommendations:**
-1. Add max length validation for username (e.g., max 255 chars)
-2. Validate username format (alphanumeric + allowed special chars only)
-3. Implement rate limiting on login attempts
-
-### No Timeout on HTTP Requests
-
-**File:** `lib/api/api_client.dart` (line 49)
-
-**Issue:** HTTP requests have no timeout configured. Network hangs could cause app to freeze indefinitely.
-
-**Risk:** DoS vulnerability - malicious server or network conditions could hang app.
-
-**Current mitigation:** None
-
-**Recommendations:**
-1. Add 30-second timeout to all HTTP requests in ApiClient
-2. Display error message to user if timeout occurs
-3. Implement retry logic with exponential backoff
-
-### Cookie-Based Auth on Native Platforms
-
-**File:** `lib/api/api_client.dart` (line 42-43)
-
-**Issue:** Tokens are passed as `Cookie` header on native platforms (iOS/Android). HttpClient cookie jar is in-memory only and lost on restart (per comments), which is why we explicitly forward tokens.
-
-**Risk:** 
-- If HttpClient auto-manages cookies, there's no guarantee our explicit header matches
-- Cookie storage is not persistent by design
-- Inconsistent auth behavior between web and native
-
-**Current mitigation:** Token is stored in secure storage and restored on app startup
-
-**Recommendations:**
-1. Document the auth flow clearly for future maintainers
-2. Consider adding integration tests for auth on each platform
-3. Log auth failures for debugging
-
-## Performance Bottlenecks
-
-### Bottom Navigation Keeps All Screens in Memory
-
-**File:** `lib/navigation/root_scaffold.dart` (line 33)
-
-**Issue:** `IndexedStack` creates all four screen widgets (Home, Songs, Bands, Profile) at app startup and keeps them all in memory, even though only one is visible.
-
-**Symptoms:** 
-- Higher memory usage than necessary
-- Slower app startup if screens become complex
-- All screens make API calls on app launch (if implemented)
-
-**Cause:** IndexedStack maintains state of all children for instant tab switching
-
-**Improvement path:**
-1. For simple screens, IndexedStack is acceptable
-2. For complex screens with API calls, implement lazy loading:
-   - Use PageView or custom navigation
-   - Only build screen when tab is selected
-   - Cache screen state once built
-
-### No API Response Caching
-
-**File:** `lib/api/api_client.dart` and `lib/api/public_api.dart`
-
-**Issue:** Every screen reload or navigation back to a screen makes a fresh API call. No response caching implemented.
-
-**Impact:** Unnecessary network requests, slower perceived performance, higher server load.
-
-**Improvement path:**
-1. Add simple in-memory cache layer in ApiClient
-2. Implement cache invalidation strategy (TTL or manual)
-3. Add "pull-to-refresh" UI pattern to allow manual cache refresh
-
-## Fragile Areas
-
-### AuthSession State Management
-
-**Files:** `lib/api/auth_session.dart`, `lib/features/auth/auth_gate.dart`
-
-**Why fragile:**
-- Multiple paths modify state: signIn(), signOut(), restore()
-- 403 responses auto-call signOut() in ApiClient, which also modifies AuthSession
-- No logging of state transitions makes debugging difficult
-- No validation that state transitions are valid (e.g., can't restore while authenticated)
-
-**Safe modification:**
-1. Always use setter methods (signIn, signOut, restore) - never modify _status or _token directly
-2. Add logging to each state transition
-3. Add state validation in each method
-4. Consider using a state machine pattern for clearer transitions
-
-**Test coverage gaps:**
-- No tests for restore() with missing token
-- No tests for restore() with corrupted token
-- No tests for signOut() while offline
-- No tests for 403 response triggering signOut()
-
-### Login Screen Error Handling
-
-**File:** `lib/features/auth/login_screen.dart` (lines 44-76)
-
-**Why fragile:**
-- Nested try-catch blocks with different error handling paths
-- Code path differs based on auth mode (login vs sign-up)
-- Error messages are user-facing strings built in setState() callback
-- If _isSubmitting flag is not set properly, button can be tapped multiple times
-
-**Safe modification:**
-1. Extract error handling to separate methods
-2. Use constants for user-facing error messages
-3. Add comprehensive error tests
-4. Test each auth mode separately
-
-**Test coverage gaps:**
-- No tests for username already exists scenario
-- No tests for invalid credentials
-- No tests for network errors
-- No tests for concurrent submissions (race conditions)
-
-### HTTP Client Factory Platform Detection
-
-**Files:** `lib/api/http_client_factory.dart`, `lib/api/http_client_factory_*.dart`
-
-**Why fragile:**
-- Conditional imports rely on Dart compile-time detection
-- Stub fallback (`http_client_factory_stub.dart`) may be used unexpectedly
-- No tests to verify correct client is instantiated on each platform
-- Silent fallback makes bugs hard to detect
-
-**Safe modification:**
-1. Add logging when http client is created
-2. Add unit tests that verify correct client is used
-3. Consider asserting in app startup that correct client was selected
-
-**Test coverage gaps:**
-- No tests verify web client has credentials enabled
-- No tests verify native client creates correct http.Client
-- No tests for credential handling differences
-
-## Scaling Limits
-
-### Authentication System Hardcoded for Single Backend
-
-**Files:** `lib/config/app_config.dart`, `lib/api/public_api.dart`
-
-**Issue:** API base URL is hardcoded per environment. If backend is deployed across regions or multiple instances, no way to handle:
-- Failover to alternate server
-- Region-specific endpoints
-- Load balancing across endpoints
-
-**Limit:** Single point of failure - if backend is down, app cannot function
-
-**Scaling path:**
-1. Implement service discovery or configuration server
-2. Add fallback endpoints for redundancy
-3. Implement health checks to detect dead backends
-4. Add region selection UI if multi-region needed
-
-## Missing Critical Features
-
-### No Error Logging or Analytics
-
-**Issue:** Errors in API requests, auth failures, or app crashes are not logged anywhere. No way to debug issues in production.
-
-**Blocks:** Cannot diagnose user-reported bugs. Cannot identify patterns of failures.
-
-**Fix approach:**
-1. Add logging framework (e.g., logger package)
-2. Log all API errors with full stack trace
-3. Implement crash reporting (Firebase Crashlytics or Sentry)
-4. Add analytics to track auth failures
-
-### No Network State Detection
-
-**Issue:** App doesn't detect when network is offline. API errors look like server errors.
-
-**Blocks:** Cannot show "You're offline" UI or queue requests for retry when online.
-
-**Fix approach:**
-1. Add connectivity_plus package to detect network state
-2. Show banner/snackbar when offline
-3. Implement request queuing for offline mode
-
-### No Global Error Handling
-
-**Issue:** Each screen/API call handles errors independently. No consistent error handling or user feedback.
-
-**Blocks:** Inconsistent user experience, some errors may be silently ignored.
-
-**Fix approach:**
-1. Add error boundary widget (global error handler)
-2. Implement consistent error UI (snackbars, dialogs, error screens)
-3. Add logging middleware to all API calls
+**Copy Invite Code Incorrectly Gated Behind Offline Status (WR-01):**
+- Symptoms: Copy button is disabled when offline, even though copying to clipboard is a synchronous local operation with no network dependency. Regression from pre-Phase-8 behavior where Copy was always enabled. Contradicts both `08-CONTEXT.md` D-07 decision ("Copy stays visible to everyone as today") and project Core Value ("band member can open app without signal... and still see... setlist").
+- Files: `lib/features/bands/band_detail_screen.dart` (lines 248-256)
+- Trigger: Go offline, navigate to band detail, attempt to copy invite code — button is disabled and shows tooltip "Requires connection".
+- Workaround: Go online before copying invite code.
+- Fix approach: Un-gate the Copy button's `onPressed` from `isOnline`. Change `onPressed: isOnline ? () => _copyInviteCode(...) : null` to `onPressed: () => _copyInviteCode(...)`. Keep visual Tooltip/IconButton upgrade; restore pre-Phase-8 unconditional availability for clipboard operations.
 
 ## Test Coverage Gaps
 
-### Integration Tests Missing for Auth Flow
+**Cache-Write Race Untested in WR-02 Regression Tests:**
+- What's not tested: Every WR-02 test asserts in-memory `state` correctness after a mutation race with a slow refresh, but none verify that `cacheService.readX()` remains correct. Cache corruption is therefore undetected by existing tests.
+- Files: `test/providers/tracks_provider_test.dart`, `test/providers/setlists_provider_test.dart`, `test/providers/bands_provider_test.dart` (WR-02 test sections)
+- Risk: Stale cache regression can ship unnoticed; users experience data reappearance on app restart after mutations.
+- Priority: High — add cache read assertions to existing WR-02 tests for at least one list provider and one detail provider.
 
-**File:** `test/widget_test.dart`
+**Band Filter Disappearance Scenario Unguarded:**
+- What's not tested: Leaving/deleting/losing ownership of the currently filtered band while on Tracks/Setlists tab, then returning to the tab (or viewing immediately).
+- Files: `test/features/songs/tracks_screen_test.dart`, `test/features/setlists/setlists_screen_test.dart`
+- Risk: Hard crash in debug/test builds; undefined dropdown state in release builds.
+- Priority: High — add test exercising "filtered band disappears from list" scenario for both screens.
 
-**What's not tested:**
-- Login with invalid credentials
-- Sign-up flow with validation errors
-- Token restoration on cold start
-- Session timeout (403 response)
-- Logout flow
-- Network errors during auth
+## Fragile Areas
 
-**Files affected:**
-- `lib/features/auth/login_screen.dart` (0% coverage - no unit tests)
-- `lib/api/auth_session.dart` (0% coverage)
-- `lib/api/api_client.dart` (0% coverage)
+**Provider Refresh Deduplication with Forced Resync (Setlist/Tracks/Bands Providers):**
+- Files: `lib/providers/setlists_provider.dart` (lines 102-117, `refresh()` with `force` parameter), `lib/providers/tracks_provider.dart`, `lib/providers/bands_provider.dart`
+- Why fragile: Complex state machine with `_inFlightRefresh` Future reuse and `_refreshPending` flag managing overlapping calls. Forced (`force: true`) resync must queue a second refresh if one is already in flight, but a plain refresh tap should dedupe. Any misstep (e.g., forgetting to check `_inFlightRefresh` before setting `_refreshPending`, or reordering the `do-while` loop) silently breaks mutation-resync guarantees documented in extensive comments (WR-01, WR-02). Not easily caught by tests because timing-dependent race conditions are fragile under different execution speeds.
+- Safe modification: Document the exact call sequence and intent before changing. Add regression tests specifically exercising rapid `refresh()` calls interleaved with `refresh(force: true)` calls. Avoid "optimization" attempts to simplify the dedup logic without confirming the full state machine behavior first.
+- Test coverage: Regression tests exist in provider tests but exercise only the happy path. Missing: explicit tests for the race windows documented in comment blocks (e.g., "if refresh is already in flight when a forced call arrives...").
 
-**Risk:** Auth system changes could break security without being caught.
+**Riverpod Async Mutation Ordering (State Commit Timing):**
+- Files: All provider classes with mutation methods (`BandsListData.setBands()`, `TrackListData.removeFromList()`, `SetlistDetailData.reorderTracks()`, etc.)
+- Why fragile: The `_version++` counter must be incremented **before** `state = AsyncData(...)` to guard downstream code. If reversed, in-memory state update appears to refresh before the version counter is bumped, allowing a concurrent `_doRefresh()` to observe a stale version but see a newer state. This must be done identically in every mutation method across 6+ provider classes — a copy-paste bug waiting to happen if any instance is missed. `flutter analyze` doesn't catch this; only integration tests and code review catch version-ordering errors.
+- Safe modification: Any new mutation method must follow the exact pattern used in existing methods: `_version++` first, then `state = AsyncData(...)`, then cache write via `unawaited()`. Treat as a cargo-cult pattern (do exactly as written, not as understood), and document via an example in each provider's header comment.
+- Test coverage: Existing WR-02 tests verify state correctness but don't specifically assert "version was bumped before state change" — they only test the end result. Fragility: a test-pass doesn't guarantee the mutation code is correct.
 
-**Priority:** High - auth is critical path
+## Scaling Limits
 
-### No Unit Tests for API Client
+**Setlist Track Limit (100 Track Cap):**
+- Current capacity: Reorder operations are capped at 100 tracks per setlist (server-side `ReorderSetlistTracksRequestBody`'s `trackIds` constraint per `publicapi.yml`).
+- Limit: Setlists with more than 100 tracks cannot be reordered via the client UI — reorder attempts deterministically fail with "Can't reorder — this setlist has more than 100 tracks" (see `setlist_detail_screen.dart`, line 134-145, `_maxSetlistTracks` guard).
+- Scaling path: Server-side limitation. If future versions support larger setlists, the client-side guard (hardcoded `_maxSetlistTracks = 100`) must be updated in tandem. Consider making this a server-side error response (don't send invalid payloads) rather than a client-side preventive check, so the limit can change server-side without client updates.
 
-**Files affected:**
-- `lib/api/api_client.dart` (no tests)
-- `lib/api/api_exception.dart` (no tests)
-- `lib/api/public_api.dart` (no tests)
+## Missing Critical Features
 
-**Missing tests:**
-- HTTP status code handling (4xx, 5xx)
-- Request body encoding
-- Response parsing
-- Cookie header on native platforms
-- 403 auto-logout behavior
+**Backend searchQuery Field Not Implemented:**
+- Problem: `publicapi.yml` spec defines `searchQuery` as a query parameter on `ListBandTracks` endpoint (SETL-12, D-03 addition). Client sends it (see `lib/api/public_api.dart`, lines 168-185), but server ignores it and always returns the full unfiltered list. Setlist track picker (Phase 10) degrades to offline substring filtering until backend support ships.
+- Blocks: Efficient server-side search on setlist track picker; client currently filters ~all tracks offline, which does not scale well for bands with hundreds of tracks.
 
-**Risk:** API changes could silently fail. Cookie handling could diverge between platforms.
+**Backend currentPassword Validation:**
+- Problem: `publicapi.yml` specifies that `changePassword` expects `currentPassword` in the request body, but backend validation of it may land separately. On wrong `currentPassword`, server responds with `400` and `ErrorCode.invalid_input` (never `401`). Client code (see `lib/api/public_api.dart`, lines 51-68) documents this assumption and branches on `statusCode == 400 && code == 'invalid_input'`.
+- Blocks: Full password-change flow without additional backend landing.
 
-**Priority:** High
+## Dependencies at Risk
 
-### No Tests for Form Validation
+**No Critical Dependencies at Risk:**
+- All major dependencies (Flutter, Riverpod, Hive, http, connectivity_plus) are on stable versions with active maintenance and regular updates. No known CVEs or EOL dates.
+- Note: `pubspec.yaml` uses range constraints (e.g., `^1.6.0`, `^2.6.1`) which allow automatic patch + minor version updates. Consider pinning major.minor if you require stability across team builds (see `.pubspec.lock`).
 
-**Files affected:**
-- `lib/features/auth/login_screen.dart` - username/password validation not tested
+## Security Considerations
 
-**Missing tests:**
-- Empty username validation
-- Short password validation
-- Long input handling
-- Special characters in username
+**Token Persistence via flutter_secure_storage:**
+- Risk: Session tokens are persisted securely on-device via `flutter_secure_storage` (see `lib/api/token_storage.dart`). If device is compromised (rooted, jailbroken, or physically accessed), tokens can be extracted.
+- Files: `lib/api/token_storage.dart`, `lib/providers/auth_provider.dart`
+- Current mitigation: Uses platform-native secure storage (Keychain on iOS, Keystore on Android). Tokens are never logged or exposed in plaintext. 403 responses trigger immediate `signOut()`.
+- Recommendations: (1) Add token expiration / refresh token support if the backend implements it (see `publicapi.yml` for session schema). (2) Consider implementing device-binding (e.g., check device ID, IP, or cert pinning on critical endpoints) to reduce token reuse risk if stolen. (3) Document token revocation procedure (user should call `signOut()` if device is lost).
 
-**Risk:** Form validation could be broken by refactoring.
+**No Validation of Backend Responses:**
+- Risk: Client accepts and uses all fields from API responses without schema validation. If backend is compromised or returns malformed data, the app will accept it. Example: `bandAsync.valueOrNull?['name'] as String?` assumes the response matches the expected shape but does no runtime validation.
+- Files: All provider classes that call `publicApiProvider` methods (e.g., `lib/providers/bands_provider.dart`, `lib/providers/tracks_provider.dart`)
+- Current mitigation: TypeScript-like compile-time Dart typing catches obvious shape mismatches. `publicapi.yml` serves as a schema reference. Runtime cast failures throw exceptions caught at the UI layer.
+- Recommendations: (1) Consider adding a lightweight schema validator (e.g., generated from `publicapi.yml` or using a package like `json_schema`) to catch backend drift early. (2) Log/alert on response shape mismatches to detect compromised or misconfigured backend.
 
-**Priority:** Medium
+**Offline Data Visibility Without Encryption:**
+- Risk: Cached data (bands, tracks, setlists) is persisted via Hive to unencrypted files on-device. On a compromised device, an attacker can read the cache files directly without needing the token.
+- Files: `lib/cache/cache_service.dart`, Hive box initialization in `lib/main.dart`
+- Current mitigation: `flutter_secure_storage` for tokens only; cache is not encrypted. Device physical security and OS-level file permissions are the primary defense.
+- Recommendations: (1) If band/track data is sensitive (private repertoires), consider encrypting Hive boxes (Hive supports encryption via `encryptionCipher`). (2) Clearly document that cached data is visible to any app/user with file-system access on the device. (3) Offer a "Clear Cache" option in settings (currently missing).
 
 ---
 
-*Concerns audit: 2026-08-13*
+*Concerns audit: 2026-08-25*

@@ -1,26 +1,22 @@
 # Technology Stack
 
-**Analysis Date:** 2026-08-21
+**Analysis Date:** 2026-08-25
 
 ## Languages
 
 **Primary:**
-- Dart 3.12.2+ - Core app language, cross-platform compilation
-- Kotlin - Android native code (platform scaffolding)
-- Swift - iOS native code (platform scaffolding)
+- Dart 3.12.2+ - Core app language, cross-platform compilation for Android, iOS, and web
 
 **Secondary:**
-- JavaScript - Web build target
+- Kotlin - Android native scaffolding (minimal; Flutter handles most logic)
+- Swift - iOS native scaffolding (minimal; Flutter handles most logic)
+- JavaScript - Web build target compilation target
 
 ## Runtime
 
 **Environment:**
-- Flutter SDK (latest stable, version 3.44.x pinned in CI)
-- Dart 3.12.2+ via Flutter SDK (constraint: >=3.12.2 <4.0.0 from `pubspec.lock`)
-- Android Runtime (APK build target)
-- iOS Runtime (iPhone/iPad)
-- Web browser (web build target)
-- Flutter SDK constraint (from `pubspec.lock`): >=3.38.4
+- Flutter SDK (latest stable) - UI framework and runtime for all platforms
+- Dart 3.12.2+ via Flutter SDK
 
 **Package Manager:**
 - Pub (Dart package manager)
@@ -30,146 +26,116 @@
 ## Frameworks
 
 **Core:**
-- Flutter - UI framework for iOS, Android, and web
-  - Material Design widgets used throughout
-  - Navigation via custom `root_scaffold.dart`
+- Flutter - UI framework for iOS, Android, and web (`flutter` SDK dependency in `pubspec.yaml`)
+- Material Design - UI design system (enabled via `flutter.uses-material-design: true`)
 
 **State Management:**
-- flutter_riverpod 2.6.1 - Reactive state management and dependency injection
-- riverpod_annotation 2.6.1 - Annotations for Riverpod code generation
-- riverpod_generator 2.6.5 (dev) - Code generator for Riverpod providers
+- flutter_riverpod 2.6.1 - Reactive state management with generated providers
+- riverpod_annotation 2.6.1 - Annotation API for Riverpod
+- riverpod_generator 2.6.5 - Code generation for Riverpod providers (build_runner)
 
 **Testing:**
 - flutter_test - Built-in Flutter testing framework
 - Test runner via `flutter test` command
 
-**Build/Dev:**
+**Build & Code Generation:**
+- build_runner 2.5.4 - Code generation runner (for riverpod_generator, etc.)
+- flutter_launcher_icons 0.14.4 - App icon generation
+
+**Linting & Analysis:**
 - flutter_lints 6.0.0 - Linting rules (extends `package:flutter_lints/flutter.yaml`)
 - Analysis runner via `flutter analyze`
-- build_runner 2.5.4 (dev) - Code generation runner for Riverpod and Hive
 
 ## Key Dependencies
 
 **Critical:**
 - http 1.6.0 - HTTP client for REST API communication (`lib/api/api_client.dart`)
+  - Used for all authenticated and unauthenticated API calls
+  - Platform-aware implementation via conditional imports (`http_client_factory_*.dart`)
+
+**Infrastructure:**
 - flutter_secure_storage 11.0.0 - Secure token persistence on native platforms
-- flutter_secure_storage_platform_interface 2.0.3 - Platform abstraction layer
+  - Android: Uses Android KeyStore
+  - iOS: Uses iOS Keychain
+  - Implementation: `lib/api/token_storage.dart`
 
-**Local Caching & Offline:**
-- hive 2.2.3 - Local NoSQL database for offline read caching
-- hive_flutter 1.1.0 - Flutter integration for Hive (handles paths and app directory)
-- connectivity_plus 7.3.1 - Network connectivity detection (enables offline-first cache logic)
+- flutter_secure_storage_platform_interface 2.0.3 - Platform abstraction layer for secure storage
 
-**UI:**
-- cupertino_icons 1.0.8 - iOS-style icon font
+- hive 2.2.3 - In-memory and file-based local database
+  - Used for offline read caching via `lib/cache/cache_service.dart`
+  - Stores raw JSON response bodies (no typed models)
+
+- hive_flutter 1.1.0 - Flutter integration for Hive
+  - Initialization: `Hive.initFlutter()` in `lib/main.dart`
+
+- connectivity_plus 7.3.1 - Network connectivity detection
+  - Used to determine online/offline state for caching strategy
+  - Provider: `lib/providers/connectivity_provider.dart`
+
+- cupertino_icons 1.0.8 - iOS-style icon font (Material Design fallback)
+
+- plugin_platform_interface 2.1.8 - Platform channel abstraction support
 
 ## Configuration
 
 **Environment:**
-- Dart define variables (`--dart-define=` flag)
-- Configuration file: `env/config.example.json`
-- Example: `flutter run --dart-define-from-file=env/config.json`
-- AppConfig located at: `lib/config/app_config.dart`
+- Dart define variables via `--dart-define=KEY=VALUE` flag or `--dart-define-from-file=path/config.json`
+- Configuration class: `lib/config/app_config.dart`
+- Required configuration:
+  - `API_BASE_URL` - REST API base URL (defaults to `http://localhost:8080`)
+  - Example: `flutter run --dart-define=API_BASE_URL=https://api.cadence.app`
 
 **Build:**
-- `analysis_options.yaml` - Dart analyzer configuration (includes `package:flutter_lints/flutter.yaml`)
-- Android: `android/build.gradle.kts`, `android/app/build.gradle.kts`
-- iOS: `ios/Runner.xcodeproj`, `ios/Runner.xcworkspace`
-- Web: Flutter web build tooling (auto-configured)
+- `pubspec.yaml` - Package manifest with dependencies and Flutter configuration
+- `analysis_options.yaml` - Dart analyzer rules (includes `package:flutter_lints/flutter.yaml`)
+- `android/build.gradle.kts` - Android Gradle build configuration
+- `android/app/build.gradle.kts` - Android app-level configuration
+  - compileSdk: 37
+  - targetSdk: set by Flutter
+  - minSdk: set by Flutter
+  - Java compatibility: JVM 17
+  - Namespace: `com.example.cadence`
+
+- `ios/Runner.xcworkspace` - Xcode workspace (primary build target)
+- `ios/Runner.xcodeproj` - Xcode project
+- `web/manifest.json` - Web app manifest (minimal; web excluded from current milestone)
 
 ## Platform Requirements
 
 **Development:**
 - Flutter SDK installed with Dart 3.12.2+
-- For Android: Android Studio or command-line Android SDK, Java 17+
-- For iOS: Xcode and Apple development tools (macOS)
+- For Android: Android Studio or command-line Android SDK (compileSdk 37, JVM 17)
+- For iOS: Xcode and Apple development tools (macOS required)
 - For web: No additional requirements beyond Flutter
 
-**Production:**
-- Android deployment: Google Play Store (APK/AAB)
-- iOS deployment: Apple App Store (IPA)
-- Web deployment: Docker container (nginx-based) or static web host
+**Production Deployment:**
+- Android: Google Play Store (APK/AAB generated by `flutter build apk` or `flutter build appbundle`)
+- iOS: Apple App Store (IPA generated by `flutter build ios` then Xcode/xcrun)
+- Web: Static web host or Flutter web server (generated by `flutter build web`)
 
-## Web Deployment
+## Package Structure
 
-**Containerization:**
-- Dockerfile: `Dockerfile` (nginx:alpine base)
-- Build target: `flutter build web --dart-define=API_BASE_URL=`
-- Deploy method: Docker image pushed to GitHub Container Registry (GHCR)
-- Serving: Nginx static file server on port 80, `build/web/` mounted to `/usr/share/nginx/html`
-
-## CI/CD
-
-**Pipelines:**
-- Validation: `.github/workflows/validate.yml` - Runs on push/PR to main
-- Release: `.github/workflows/release.yml` - Runs on version tags (v*.*.*)
-
-**Validate Workflow (`.github/workflows/validate.yml`):**
-- **Trigger:** Push to main branch, pull requests to main
-- **Runner:** ubuntu-latest
-- **Flutter version:** 3.44.x (pinned, stable channel)
-- **Jobs:**
-  - Checkout code
-  - Setup Flutter SDK with caching enabled
-  - Install dependencies: `flutter pub get`
-  - Run unit tests: `flutter test`
-  - Run static analysis: `flutter analyze`
-- **Caching:** GitHub Actions cache for Flutter SDK enabled
-
-**Release Workflow (`.github/workflows/release.yml`):**
-- **Trigger:** Git tags matching `v*.*.*` pattern
-- **Runner:** ubuntu-latest
-- **Flutter version:** 3.44.x (pinned, stable channel)
-- **Permissions:** contents:write, packages:write
-- **Registry:** GitHub Container Registry (GHCR) at `ghcr.io`
-
-  **Job: deploy-docker**
-  - Checkout code
-  - Setup Flutter SDK with caching
-  - Log in to GHCR using `${{ secrets.GITHUB_TOKEN }}`
-  - Extract Docker metadata (tags: semver pattern + latest)
-  - Set up Docker buildx
-  - Install dependencies: `flutter pub get`
-  - Build web static files: `flutter build web --dart-define=API_BASE_URL=`
-  - Build and push Docker image
-    - Uses `docker/build-push-action@v6`
-    - Context: repository root
-    - Caching: GitHub Actions cache for Docker (mode=max)
-    - Publishes to: `ghcr.io/${{ github.repository }}`
-
-  **Job: release-apk**
-  - Checkout code
-  - Setup Flutter SDK with caching
-  - Setup Java: version 17 (Zulu distribution) for Android build
-  - Install dependencies: `flutter pub get`
-  - Build APK (release mode): `flutter build apk --release --dart-define=API_BASE_URL=https://cadence.app`
-  - Calculate SHA256 hash: stored in `app-release.apk.sha256.txt`
-  - Create GitHub Release using `gh release create`
-    - Attaches APK and SHA256 checksum files
-    - Generates release notes automatically
-
-**Build Targets:**
-- Android: APK (release) via `flutter build apk`
-- Web: Static assets via `flutter build web`
-- Docker: Web build containerized (nginx) and published to GHCR
-- iOS: Not automated in CI/CD (requires macOS runner and signing certificates)
-
-**Environment Variables:**
-- `API_BASE_URL` - Passed at build time via `--dart-define`
-  - Web/Docker build: empty (configuration-agnostic)
-  - APK build: `https://cadence.app`
-
-**Actions Used:**
-- `actions/checkout@v6` - Code checkout
-- `subosito/flutter-action@v2` - Flutter SDK setup
-- `actions/setup-java@v4` - Java environment for Android build
-- `docker/login-action@v3` - GHCR authentication
-- `docker/metadata-action@v5` - Docker image metadata and tags
-- `docker/setup-buildx-action@v3` - Docker buildx setup
-- `docker/build-push-action@v6` - Docker build and push
+```
+pubspec.yaml                    # Package manifest
+pubspec.lock                    # Dependency lock file (checked in)
+analysis_options.yaml           # Dart/Flutter linting configuration
+lib/
+├── main.dart                   # App entry point; initializes Hive, CacheService
+├── app.dart                    # CadenceApp root widget, theme setup
+├── api/                        # HTTP client, auth, token storage
+├── cache/                      # Offline read cache (Hive-backed)
+├── config/                     # Build-time configuration (API base URL)
+├── features/                   # Feature screens (auth, bands, tracks, setlists, etc.)
+├── providers/                  # Riverpod providers (state management)
+├── navigation/                 # Root navigation structure
+├── theme/                      # Light/dark theme definitions
+└── widgets/                    # Shared UI components
+android/                        # Android native scaffolding
+ios/                            # iOS native scaffolding
+web/                            # Web platform scaffolding
+env/config.example.json         # Example configuration file
+```
 
 ---
 
-<!-- refreshed: 2026-08-21 -->
-
-*Stack analysis: 2026-08-21*
+*Stack analysis: 2026-08-25*

@@ -1,198 +1,242 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-08-13
+**Analysis Date:** 2026-08-25
 
 ## Naming Patterns
 
 **Files:**
-- Dart files use snake_case: `auth_session.dart`, `api_client.dart`, `token_storage.dart`
-- Screen files end with `_screen`: `login_screen.dart`, `home_screen.dart`, `bands_screen.dart`
-- Directories group by feature or layer: `lib/features/`, `lib/api/`, `lib/theme/`, `lib/navigation/`, `lib/config/`
+- Dart files use snake_case: `auth_provider.dart`, `api_client.dart`, `token_storage.dart`
+- Screen files end with `_screen`: `login_screen.dart`, `bands_screen.dart`, `setlists_screen.dart`
+- Generated files end with `.g.dart`: `auth_provider.g.dart` (Riverpod generator output)
+- Test files named after subject with directory structure mirroring source: `test/providers/auth_provider_test.dart`
 
 **Classes:**
-- Use PascalCase for all classes: `AuthSession`, `ApiClient`, `TokenStorage`, `AuthGate`, `LoginScreen`
-- Internal State classes prefixed with underscore: `_AuthGateState`, `_LoginScreenState`, `_RootScaffoldState`
-- Exception classes named explicitly: `ApiException`
-- Enum cases use lowercase: `AuthStatus.unknown`, `AuthStatus.authenticated`, `AuthStatus.unauthenticated`, `_AuthMode.login`, `_AuthMode.signUp`
+- All classes use PascalCase: `AuthSession`, `ApiClient`, `LoginScreen`, `OfflineNoCacheException`
+- Private internal State classes prefixed with underscore: `_LoginScreenState`, `_FakeCacheService`
+- Exception classes named explicitly: `ApiException`, `OfflineNoCacheException`
 
-**Functions and Methods:**
-- Use camelCase for all functions and methods: `signIn()`, `signOut()`, `restore()`, `register()`, `login()`, `send()`, `setThemeMode()`
-- Private methods prefixed with underscore: `_submit()`, `_toggleMode()`
-- Named parameters preferred for clarity: `register(username: username, password: password)`
+**Functions/Methods:**
+- All methods use camelCase: `signIn()`, `signOut()`, `restore()`, `register()`, `login()`, `send()`, `setThemeMode()`
+- Private methods prefixed with underscore: `_submit()`, `_toggleMode()`, `_fetchAndCache()`, `_deepConvert()`
+- Async methods return `Future`: `Future<String?>`, `Future<void>`, `Future<List<Map<String, dynamic>>>`
 
-**Variables:**
-- Use camelCase for local variables and properties: `_token`, `_status`, `_storage`, `_errorMessage`, `_isSubmitting`, `baseUrl`, `authSession`
-- Private/internal variables prefixed with underscore: `_httpClient`, `_formKey`, `_usernameController`, `_passwordController`
-- Static constants use UPPER_SNAKE_CASE: `_tokenKey = 'auth_token'` (when stored as String constant)
+**Variables/Properties:**
+- Public properties: camelCase (`baseUrl`, `authSession`, `httpClient`)
+- Private properties: prefix with underscore and camelCase (`_httpClient`, `_formKey`, `_usernameController`, `_errorMessage`, `_isSubmitting`)
+- Mutable state in StatefulWidget: `_token`, `_status`, `_version`
+- Static constants: UPPER_SNAKE_CASE for stored keys/strings (`_tokenKey = 'auth_token'`), but config values may use camelCase (`apiBaseUrl`)
 
-**Constants:**
-- Configuration values exposed as static constants: `AppConfig.apiBaseUrl`
-- Private constants prefixed with underscore: `const _tokenKey = 'auth_token'`
+**Enumerations:**
+- Enum cases use lowercase: `ThemeMode.system`, `_AuthMode.login`, `_AuthMode.signUp`
+- Private enums for local widget state: `enum _AuthMode { login, signUp }`
+- Public enums for API/domain state: `enum AuthStatus { unknown, authenticated, unauthenticated }`
+
+**Named Parameters:**
+- Preferred for multi-parameter functions: `register(username: username, password: password)`
+- Constructor parameters follow: `{super.key, required this.field}`
 
 ## Code Style
 
 **Formatting:**
-- Dart's built-in formatter (dartfmt) is the standard - apply via `flutter analyze` and `flutter format`
+- Dart's built-in formatter (dartfmt) is the standard
+- Apply via `flutter format lib/` and `flutter analyze`
 - Line length: follows Dart conventions (typically 80-120 characters)
 - Indentation: 2 spaces (Flutter default)
-- No explicit import/export aliases - use full relative paths
 
 **Linting:**
 - Tool: `flutter_lints` 6.0.0 (extends `package:flutter_lints/flutter.yaml`)
 - Config: `analysis_options.yaml` at repository root
-- Run with: `flutter analyze`
-- Default flutter_lints rules are used with no overrides
+- Run: `flutter analyze`
+- All default flutter_lints rules are enabled with no custom overrides
 
-**Const Constructors:**
-- All Widget constructors use `const` when possible: `const HomeScreen({super.key})`, `const CadenceApp({super.key, ...})`
-- Improves performance and tree stability
+**Widget Constructors:**
+- Always use `const` when possible: `const HomeScreen({super.key})`, `const CadenceApp({super.key, ...})`
+- Improves performance and widget tree stability
+- Private state class: `@override ConsumerState<LoginScreen> createState() => _LoginScreenState();`
+
+**No Aliases:**
+- All imports use explicit relative paths from root: `import 'package:cadence/...'` for package-relative
+- Relative `../` paths used for cross-directory imports within lib/
+- No import/export aliases configured
 
 ## Import Organization
 
-**Order:**
-1. Dart imports: `import 'dart:convert';`, `import 'dart:async';`
-2. Flutter imports: `import 'package:flutter/material.dart';`, `import 'package:flutter/foundation.dart'`
-3. Package imports: `import 'package:http/http.dart' as http;`, `import 'package:flutter_secure_storage/flutter_secure_storage.dart'`
-4. Relative imports: `import '../api/auth_session.dart';`, `import 'login_screen.dart';`
+**Order (strictly observed):**
+1. Dart imports: `import 'dart:async';`, `import 'dart:io';`, `import 'dart:convert';`
+2. Flutter imports: `import 'package:flutter/material.dart';`, `import 'package:flutter/foundation.dart';`
+3. External packages: `import 'package:flutter_riverpod/flutter_riverpod.dart';`, `import 'package:hive/hive.dart';`
+4. Relative package imports: `import 'package:cadence/...'`
+5. Relative path imports: `import '../api/api_client.dart';`
 
-**Path Aliases:**
-- Not used in current codebase
-- All imports use explicit relative paths from root: `import 'package:cadence/...'` for package-relative, or relative `../` paths
-
-**Example from `lib/app.dart`:**
+Example from `lib/main.dart`:
 ```dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-import 'api/api_client.dart';
-import 'api/auth_session.dart';
-import 'api/public_api.dart';
-import 'api/token_storage.dart';
 import 'app.dart';
-import 'config/app_config.dart';
-import 'theme/theme_controller.dart';
+import 'cache/cache_service.dart';
 ```
 
 ## Error Handling
 
 **Exception Types:**
-- Use `ApiException` for HTTP-level errors with statusCode, code, and message
-- Can be constructed manually or via factory: `ApiException.fromResponse(response)`
-- Implements `Exception` interface
+- Use `ApiException` for HTTP-level errors with `statusCode`, `code`, and `message` fields
+- Construct manually: `ApiException(statusCode: 403, code: 'unauthorized', message: '...')`
+- Construct via factory: `ApiException.fromResponse(response)` parses JSON error shape
+- Implements `Exception` interface, toStringifies to `message`
 
-**Error Flow:**
-- Exceptions caught at the UI layer in screen state (`LoginScreen._submit()`)
-- Specific status codes handled with custom messages: 403 (unauthorized), 401 (invalid credentials), 400 (already_exists)
-- Re-throw pattern used to propagate unexpected errors up the stack
-- Error state stored in widget state: `_errorMessage` displayed to user
+**Catching and Transformation:**
+- Caught at UI layer in screen state (`LoginScreen._submit()`)
+- Status-code-specific messages: `403` → "unauthorized", `401` → "Invalid credentials", `400` + `already_exists` → "This username is already taken"
+- Re-throw pattern to propagate unexpected errors up the stack (see `lib/features/auth/login_screen.dart` lines 48-75)
+- Displayed to user via state: `_errorMessage` shown in UI
 
-**Pattern Example from `lib/features/auth/login_screen.dart`:**
-```dart
-try {
-  await widget.publicApi.register(username: username, password: password);
-} on ApiException catch (e) {
-  if (e.statusCode == 400 && e.code == 'already_exists') {
-    throw ApiException(...);  // Convert to user-friendly message
-  }
-  rethrow;
-}
-```
+**Parsing Resilience:**
+- JSON parsing failures silently caught and fallback to generic message: `catch (_) { ... }` (see `lib/api/api_exception.dart` line 19)
+- Non-empty checks before parsing: `if (response.body.isNotEmpty)` (see `lib/api/api_exception.dart` line 9)
+- Status code 403 triggers automatic `signOut()` before throwing (see `lib/api/api_client.dart` lines 56-59)
 
-**Fallback Handling:**
-- JSON parsing failures silently caught and fallback to generic message: `catch (_) { ... }`
-- Non-empty checks before parsing: `if (response.body.isNotEmpty)`
+**Offline/Network Errors:**
+- Caught as `SocketException` in best-effort server-side logout path (see `lib/providers/auth_provider.dart` lines 51-62)
+- Swallowed without re-throw to allow local sign-out to complete regardless of network outcome
 
 ## Logging
 
-**Framework:** No explicit logging framework (console use only via `print()`)
+**Current Practice:**
+- No `print()` statements in production code
+- Console/debug output not used for diagnostics
+- Error states communicated to user via UI (`_errorMessage` displayed in screens)
 
-**Patterns:**
-- Current codebase does not use `print()` for debugging
-- Console/debug output not visible in final product
-
-**Recommendation:** If logging becomes needed, consider `package:logger` or `package:talker`
+**Comments serve as inline documentation** where diagnostic info is needed:
+- Explain edge cases: "Without this guard, that nested call would see `state.value` still non-null and re-attempt `logout()`" (line 36-40 in `auth_provider.dart`)
+- Document workarounds: "This milestone has no offline mutation queue (see CLAUDE.md), so any failure here (offline, timeout, 403, etc.) is swallowed" (line 52-57 in `auth_provider.dart`)
 
 ## Comments
 
-**When to Comment:**
-- Document public API behavior with doc comments (triple slash)
-- Explain "why" rather than "what" in complex logic
-- Mark edge cases and platform-specific behaviors
-- Document deprecated patterns
+**Doc Comments (///):**
+- Used for public API behavior (classes, methods, notable properties)
+- Explain "why" rather than "what" when behavior is non-obvious
+- Mark edge cases: "Reentrancy guard for [signOut]..." (line 36 in `auth_provider.dart`)
+- Document deprecated patterns or migration paths
+- Include examples for complex behavior
+- Parameter descriptions when defaults are non-obvious
 
-**JSDoc/TSDoc (Dart Doc):**
-- Use `///` for public API documentation on classes, functions
-- Include examples and parameter descriptions when behavior is non-obvious
-- Document factory constructors and notable parameters
-
-**Example from `lib/api/api_client.dart`:**
+Examples:
 ```dart
-/// Thin HTTP wrapper around `lib/api/publicapi.yml`.
-///
-/// Attaches the session cookie the API expects (`cadencesession`, see
-/// `components.securitySchemes.cookieAuth` in the spec) to authenticated
-/// requests, and signs the user out whenever a request comes back with a
-/// 403, since that means the session is no longer valid.
+/// Thrown by an online-first provider's `build()` when the device is
+/// offline and there is no cached data for the requested resource (D-06).
+class OfflineNoCacheException implements Exception { ... }
+
+/// Encapsulates token persistence using flutter_secure_storage.
+/// [read] and [write] handle platform-level errors internally.
+class TokenStorage { ... }
 ```
 
-**Example from `lib/api/public_api.dart`:**
+**Inline Comments (//):**
+- Explain "why" rather than "what": "D-03: online but the fetch itself failed — fall back to cache silently" (line 47 in `bands_provider.dart`)
+- Mark behavioral contracts: "WR-02: capture this before network await" (line 35)
+- Reference design docs: "(D-01/D-03/D-06)" for offline-first patterns
+- Document platform differences or workarounds
+- Explain reentrancy guards and deduplication logic
+
+Example from `bands_provider.dart` lines 35-36:
 ```dart
-/// Returns the new user's id. Note the API doesn't log the user in on
-/// register, so callers should follow up with [login].
+/// Monotonic counter bumped by every local-mutation method ([setBands],
+/// [renameBand]). [refresh]/[_doRefresh] capture this before their
+/// network await and discard a fetched result if it changed while the
+/// fetch was in flight — otherwise a slower background refresh could
+/// silently revert a local edit that landed first (WR-02).
+int _version = 0;
 ```
 
 ## Function Design
 
-**Size:** Functions generally kept under 30-40 lines for readability
-
 **Parameters:**
-- Use named parameters for multi-parameter functions
+- Type annotations always explicit: `Future<void> signOut()`, `String? Function() getToken`
+- Named parameters used for multi-parameter functions
 - Required parameters marked with `required` keyword
-- Constructor parameters follow: `{super.key, required this.field}`
-- Type annotations always explicit
+- Constructor parameters follow pattern: `{super.key, required this.field}`
 
 **Return Values:**
 - Functions return typed values (not `dynamic`)
-- Futures used for async operations: `Future<String?>`, `Future<void>`
+- Futures used for async operations: `Future<String?>`, `Future<void>`, `Future<List<Map<String, dynamic>>>`
 - Nullable returns marked with `?`: `String?`, `Future<Map<String, dynamic>?>`
 
-**Example from `lib/api/api_client.dart`:**
-```dart
-Future<Map<String, dynamic>?> send(
-  String method,
-  String path, {
-  Map<String, dynamic>? body,
-  bool requireAuth = true,
-}) async { ... }
-```
+**Size Guidelines:**
+- Methods tend to be 20-50 lines for state management
+- Complex logic (like `_doRefresh()` in providers) documented with inline comments explaining each phase
+- Extracted helper methods for common patterns: `_fetchAndCache()`, `_deepConvert()`, `_toggleMode()`
+
+**Patterns:**
+- Constructor injection for dependencies: `ApiClient({required this.baseUrl, required this.getToken, ...})`
+- Callback injection for decoupling: `getToken`, `onUnauthorized` passed to `ApiClient`
+- Deduplication via closure variables: `_inFlightRefresh ??= _doRefresh().whenComplete(...)`
+- Version counters for stale-response detection: `_version++` after mutations, checked in `_doRefresh()`
 
 ## Module Design
 
-**Exports:**
-- No barrel files (`index.dart` re-exports) used in current codebase
+**File Organization:**
+- Single responsibility: each file contains one main class (exception: test doubles and helpers)
+- Related functionality grouped in directories: `lib/api/`, `lib/features/auth/`, `lib/theme/`
+- No barrel files (`index.dart` re-exports) used
 - Each file imports directly what it needs from other modules
 
-**File Organization:**
-- Single responsibility: each file contains one main class or tightly related set of classes
-- Related functionality grouped in directories: `lib/api/`, `lib/features/auth/`, `lib/theme/`
+**Directory Structure:**
+- `lib/api/`: HTTP client, API methods, authentication, token storage, exceptions
+- `lib/features/`: Feature screens and feature-specific UI logic (one subdirectory per feature: `auth/`, `bands/`, `setlists/`, etc.)
+- `lib/config/`: Application-wide configuration (AppConfig with build-time env var injection)
+- `lib/theme/`: Theming and appearance logic (AppTheme, ThemeController)
+- `lib/navigation/`: Navigation structure and root layout (RootScaffold, routing)
+- `lib/providers/`: Riverpod state management (auth, connectivity, data providers)
+- `lib/cache/`: Local caching via Hive (CacheService)
+- `lib/widgets/`: Reusable UI components (OfflineBanner, OfflineNoCacheView)
 
-**Layer Pattern:**
-- **API Layer** (`lib/api/`): HTTP client, authentication, token storage, exceptions
-- **Features** (`lib/features/`): Screen components and feature-specific UI logic
-- **Config** (`lib/config/`): Application-wide configuration (e.g., API base URL)
-- **Theme** (`lib/theme/`): Theming and appearance logic
-- **Navigation** (`lib/navigation/`): Navigation structure and root layout
+**Provider Naming:**
+- Class-based providers end with descriptor: `AuthSession`, `BandsListData`, `BandDetailData`, `ThemeController`
+- Function-based providers end with descriptor: `publicApiProvider`, `apiClientProvider`, `tokenStorageProvider`
+- Generated code placed in `.g.dart` files via riverpod_generator
 
-**Example from `lib/api/public_api.dart`:**
-```dart
-class PublicApi {
-  PublicApi(this._client);
-  final ApiClient _client;
-  
-  Future<String> register({required String username, required String password}) async { ... }
-  Future<void> login({required String username, required String password}) async { ... }
-}
+**Exports and Visibility:**
+- No re-exports; each file stands alone
+- Private classes/enums/methods prefixed with underscore
+- Public API (classes, methods, exceptions) left unprefixed
+- Test doubles placed in test files, not in lib/
+
+## Patterns and Principles
+
+**Reactive State (Riverpod):**
+- State managed via @riverpod class notifiers (e.g., `AuthSession extends _$AuthSession`)
+- UI watches via `ref.watch(provider)` for reactive updates
+- Mutators invoked via `ref.read(provider.notifier).method()`
+- AsyncData/AsyncError/AsyncLoading for async data providers
+
+**Offline-First:**
+- Online-first fetch pattern: attempt network first, fall back to cache on error, throw `OfflineNoCacheException` if offline and no cache
+- Comments reference design document: "(D-01/D-03/D-06)" for offline requirements
+- Version counters prevent stale responses from reverting local mutations (WR-02 gap closure)
+
+**Deduplication:**
+- Refresh deduplication: `_inFlightRefresh ??= _doRefresh().whenComplete(() => _inFlightRefresh = null)`
+- Reentrancy guard: `_loggingOut` flag prevents recursive logout on 403 during logout call
+
+**Decoupling:**
+- Callback injection: `getToken` and `onUnauthorized` passed to ApiClient, decoupling from AuthSession
+- ProviderContainer overrides in tests allow full control of dependencies without service locators
+
+## Static Analysis
+
+**Running Checks:**
+```bash
+flutter analyze              # Run all lints and analyzer checks
+flutter format lib/          # Auto-format all Dart files
+flutter test                 # Run all tests
 ```
+
+**Fixes Applied Automatically:**
+- `flutter format` enforces indentation (2 spaces), line breaks, const usage
+- `flutter analyze` catches unused imports, type mismatches, lint violations
 
 ---
 
-*Convention analysis: 2026-08-13*
+*Convention analysis: 2026-08-25*
