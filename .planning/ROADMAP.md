@@ -159,7 +159,23 @@ Plans:
   3. The existing automated test suite passes by asserting against a centralized test-strings utility rather than hardcoded English literals in `find.text(...)` calls.
   4. An `IndexedStack` tab that wasn't visible at the moment of a language switch still renders fully localized text once the user navigates to it.
 
-**Plans**: Not yet planned
+**Plans**: 13 plans
+
+Plans:
+
+- [ ] 13-01-PLAN.md — ARB pipeline tracer (Bands tab + Band Detail) + complete phase-wide ARB key batch
+- [ ] 13-02-PLAN.md — Band simple confirm dialogs (delete/leave/remove member)
+- [ ] 13-03-PLAN.md — Band privileged confirm dialogs (rotate invite code, transfer ownership)
+- [ ] 13-04-PLAN.md — Band CRUD + join dialog (create/edit band, join with code)
+- [ ] 13-05-PLAN.md — Home tab + band picker sheet + locale_live_switch_test strengthening
+- [ ] 13-06-PLAN.md — Profile tab + change password screen
+- [ ] 13-07-PLAN.md — Bottom nav labels + offline banner + offline_cross_tab_test
+- [ ] 13-08-PLAN.md — Offline empty-state widget + login screen
+- [ ] 13-09-PLAN.md — Setlist track-cap consolidation + detail screen + global Setlists tab + create-setlist + add-tracks dialog
+- [ ] 13-10-PLAN.md — Edit setlist + delete-setlist dialog + per-band setlist list
+- [ ] 13-11-PLAN.md — Per-band track list, detail screen, delete-track dialog
+- [ ] 13-12-PLAN.md — Create/edit track forms + global Tracks tab
+- [ ] 13-13-PLAN.md — Cross-cutting smoke test (widget_test.dart) migration
 
 ### Phase 14: API Error Localization
 
@@ -194,5 +210,5 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete | 2026-08-22 |
 | 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete    | 2026-08-25 |
-| 13. String Extraction & Screen Localization | v1.2 | 0/? | Not started | — |
+| 13. String Extraction & Screen Localization | v1.2 | 0/13 | Not started | — |
 | 14. API Error Localization | v1.2 | 0/? | Not started | — |
