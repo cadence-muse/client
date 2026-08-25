@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cadence/features/tracks/track_formatting.dart';
+
 import '../../providers/connectivity_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/setlists_provider.dart';
@@ -135,7 +137,7 @@ class SetlistListScreen extends ConsumerWidget {
                 Icon(Icons.timer, size: 18, color: colorScheme.primary),
                 const SizedBox(width: 4),
                 Text(
-                  durationSeconds.asMinutesAndSeconds,
+                  durationSeconds.asMinutesSeconds,
                   style: const TextStyle(fontSize: 12),
                 ),
               ],

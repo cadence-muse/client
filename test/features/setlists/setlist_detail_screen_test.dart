@@ -136,7 +136,7 @@ void main() {
       expect(find.text('Full Setlist'), findsNWidgets(2));
       expect(find.text('The Venue'), findsOneWidget);
       expect(find.text('Sep 1, 2026'), findsOneWidget);
-      expect(find.text('42m 35s'), findsOneWidget);
+      expect(find.text('42:35'), findsOneWidget);
       expect(find.byIcon(Icons.location_on), findsOneWidget);
       expect(find.byIcon(Icons.timer), findsOneWidget);
       expect(find.text('Tracks (2)'), findsOneWidget);
@@ -144,8 +144,8 @@ void main() {
       expect(find.text('Song Two'), findsOneWidget);
       // Artist + duration are combined into one subtitle (trailing slot is
       // reserved for the edit-mode remove icon).
-      expect(find.text('Artist One • 3m 45s'), findsOneWidget);
-      expect(find.text('Artist Two • 3m 20s'), findsOneWidget);
+      expect(find.text('Artist One • 3:45'), findsOneWidget);
+      expect(find.text('Artist Two • 3:20'), findsOneWidget);
     },
   );
 
@@ -194,7 +194,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No tracks in this setlist'), findsOneWidget);
-      expect(find.text('0m 0s'), findsOneWidget);
+      expect(find.text('0:00'), findsOneWidget);
     },
   );
 
