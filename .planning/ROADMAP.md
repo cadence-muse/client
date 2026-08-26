@@ -42,7 +42,7 @@ Full detail: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 11: Duration mm:ss Input + Display** - Track duration entered and shown as mm:ss everywhere, with typing auto-format and invalid-input rejection (completed 2026-08-25)
 - [x] **Phase 12: Locale + i18n Infrastructure** - LocaleController, ARB/gen-l10n pipeline, and a live no-restart Profile-screen language switch persisted on-device (completed 2026-08-25)
 - [x] **Phase 13: String Extraction & Screen Localization** - Every UI string localized EN/RU across all screens, with grammatically correct Russian pluralization for counts (completed 2026-08-26)
-- [ ] **Phase 14: API Error Localization** - Known API error codes map to localized messages; unmapped codes fall back to raw server text
+- [x] **Phase 14: API Error Localization** - Known API error codes map to localized messages; unmapped codes fall back to raw server text (completed 2026-08-26)
 
 ## Phase Details
 
@@ -229,4 +229,4 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete    | 2026-08-25 |
 | 13. String Extraction & Screen Localization | v1.2 | 13/13 | Complete    | 2026-08-26 |
-| 14. API Error Localization | v1.2 | 4/4 | In Progress|  |
+| 14. API Error Localization | v1.2 | 4/4 | Complete    | 2026-08-26 |
