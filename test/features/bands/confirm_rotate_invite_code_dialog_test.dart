@@ -191,6 +191,35 @@ void main() {
   );
 
   testWidgets(
+    'a known-error-code rotate failure renders the localized message, not '
+    'the raw server text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'code': 'operation_rejected',
+            'message': 'raw server text',
+          }),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openDialog(tester);
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonRotate),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.commonErrorOperationRejected),
+        findsOneWidget,
+      );
+      expect(find.text('raw server text'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'the dialog\'s fixed two-sentence body renders without an overflow '
     'exception at max OS text-scale (backstop)',
     (tester) async {

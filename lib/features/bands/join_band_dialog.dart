@@ -115,7 +115,7 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
         Navigator.of(context).pop(const _JoinOutcome.ambiguous());
       }
     } on ApiException catch (e) {
-      setState(() => _errorMessage = e.message);
+      setState(() => _errorMessage = e.localizedMessage(l10n));
     } catch (_) {
       setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {

@@ -61,7 +61,7 @@ class _ConfirmRotateInviteCodeDialogState
         );
       }
     } on ApiException catch (e) {
-      setState(() => _errorMessage = e.message);
+      setState(() => _errorMessage = e.localizedMessage(l10n));
     } catch (_) {
       setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
