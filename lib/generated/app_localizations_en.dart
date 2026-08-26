@@ -169,6 +169,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Something went wrong. Please try again.';
 
   @override
+  String get commonErrorInvalidInput => 'Invalid input.';
+
+  @override
+  String get commonErrorNotFound => 'Not found.';
+
+  @override
+  String get commonErrorPermissionDenied => 'Permission denied.';
+
+  @override
+  String get commonErrorOperationRejected =>
+      'This action isn\'t allowed right now.';
+
+  @override
+  String get commonErrorAlreadyExists => 'This already exists.';
+
+  @override
   String get commonCouldntLoadTracks => 'Couldn\'t load tracks';
 
   @override

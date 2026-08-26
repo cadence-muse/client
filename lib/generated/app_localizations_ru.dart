@@ -176,6 +176,21 @@ class AppLocalizationsRu extends AppLocalizations {
       'Что-то пошло не так. Попробуйте ещё раз.';
 
   @override
+  String get commonErrorInvalidInput => 'Некорректные данные.';
+
+  @override
+  String get commonErrorNotFound => 'Не найдено.';
+
+  @override
+  String get commonErrorPermissionDenied => 'Доступ запрещён.';
+
+  @override
+  String get commonErrorOperationRejected => 'Это действие сейчас недоступно.';
+
+  @override
+  String get commonErrorAlreadyExists => 'Уже существует.';
+
+  @override
   String get commonCouldntLoadTracks => 'Не удалось загрузить треки';
 
   @override

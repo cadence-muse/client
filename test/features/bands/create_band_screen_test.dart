@@ -183,6 +183,31 @@ void main() {
   );
 
   testWidgets(
+    'a createBand() failure with a known error code renders the localized '
+    'generic message instead of the raw server text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'not_found', 'message': 'raw server text'}),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), 'The Testers');
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonCreate),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(tester.strings.commonErrorNotFound), findsOneWidget);
+      expect(find.text('raw server text'), findsNothing);
+      final button = tester.widget<FilledButton>(find.byType(FilledButton));
+      expect(button.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
     'a non-ApiException failure (e.g. offline) shows the generic fallback '
     'message and re-enables the Create button',
     (tester) async {

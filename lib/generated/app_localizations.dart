@@ -362,6 +362,36 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Please try again.'**
   String get commonSomethingWentWrong;
 
+  /// No description provided for @commonErrorInvalidInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid input.'**
+  String get commonErrorInvalidInput;
+
+  /// No description provided for @commonErrorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found.'**
+  String get commonErrorNotFound;
+
+  /// No description provided for @commonErrorPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission denied.'**
+  String get commonErrorPermissionDenied;
+
+  /// No description provided for @commonErrorOperationRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'This action isn\'t allowed right now.'**
+  String get commonErrorOperationRejected;
+
+  /// No description provided for @commonErrorAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'This already exists.'**
+  String get commonErrorAlreadyExists;
+
   /// No description provided for @commonCouldntLoadTracks.
   ///
   /// In en, this message translates to:
