@@ -15,6 +15,8 @@ import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'test_strings.dart';
+
 class _FakeSecureStorage extends FlutterSecureStoragePlatform
     with MockPlatformInterfaceMixin {
   final Map<String, String> _values = {};
@@ -122,9 +124,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Home'), findsWidgets);
+    expect(find.text(tester.strings.navHome), findsWidgets);
 
-    await tester.tap(find.text('Bands'));
+    await tester.tap(find.text(tester.strings.navBands));
     await tester.pumpAndSettle();
 
     expect(find.text('B.A.T.H.'), findsOneWidget);
@@ -176,10 +178,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Tracks'));
+      await tester.tap(find.text(tester.strings.navTracks));
       await tester.pumpAndSettle();
 
-      expect(find.text('No tracks'), findsOneWidget);
+      expect(find.text(tester.strings.tracksTabEmptyTitle), findsOneWidget);
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'View bands'));
       await tester.pumpAndSettle();
