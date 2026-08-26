@@ -130,3 +130,7 @@ None - no external service configuration required.
 ---
 *Phase: 13-string-extraction-screen-localization*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+All 6 modified source/test files and the SUMMARY.md itself confirmed present on disk; all 3 task commits (6bd5a16, 1fee3c6, bef0538) confirmed present in git log.
