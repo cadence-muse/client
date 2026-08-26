@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/tracks_provider.dart';
@@ -18,9 +19,10 @@ class TrackListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tracksAsync = ref.watch(trackListDataProvider(bandId));
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tracks')),
+      appBar: AppBar(title: Text(l10n.navTracks)),
       body: tracksAsync.when(
         data: (tracks) => _buildContent(context, tracks),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -42,7 +44,9 @@ class TrackListScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        tooltip: isOnline ? 'Add track' : 'Requires connection',
+        tooltip: isOnline
+            ? l10n.trackListAddButton
+            : l10n.commonRequiresConnection,
         child: const Icon(Icons.add),
       ),
     );
@@ -52,6 +56,7 @@ class TrackListScreen extends ConsumerWidget {
     BuildContext context,
     List<Map<String, dynamic>> tracks,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     if (tracks.isEmpty) {
       return Center(
         child: Padding(
@@ -60,15 +65,12 @@ class TrackListScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'No tracks yet',
+                l10n.trackListEmptyTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Create a track or ask a bandmate to add one.',
-                textAlign: TextAlign.center,
-              ),
+              Text(l10n.trackListEmptyDescription, textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
@@ -76,7 +78,7 @@ class TrackListScreen extends ConsumerWidget {
                     builder: (_) => CreateTrackScreen(bandId: bandId),
                   ),
                 ),
-                child: const Text('Add track'),
+                child: Text(l10n.trackListAddButton),
               ),
             ],
           ),
@@ -137,6 +139,7 @@ class TrackListScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -144,17 +147,14 @@ class TrackListScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Couldn't load tracks",
+              l10n.commonCouldntLoadTracks,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Please check your connection and try again.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonConnectionError, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),

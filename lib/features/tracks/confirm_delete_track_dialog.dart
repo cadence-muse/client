@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/tracks_provider.dart';
@@ -33,6 +34,7 @@ class _ConfirmDeleteTrackDialogState
   String? _errorMessage;
 
   Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -66,7 +68,7 @@ class _ConfirmDeleteTrackDialogState
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -75,10 +77,11 @@ class _ConfirmDeleteTrackDialogState
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
       title: Text(
-        'Delete ${widget.trackTitle}?',
+        l10n.confirmDeleteTrackTitle(widget.trackTitle),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -86,7 +89,7 @@ class _ConfirmDeleteTrackDialogState
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('This action cannot be undone.'),
+          Text(l10n.commonActionCannotBeUndone),
           if (_errorMessage != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -99,10 +102,10 @@ class _ConfirmDeleteTrackDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         Tooltip(
-          message: isOnline ? '' : 'Requires connection',
+          message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -114,7 +117,11 @@ class _ConfirmDeleteTrackDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? 'Delete' : 'Requires connection'),
+                : Text(
+                    isOnline
+                        ? l10n.commonDelete
+                        : l10n.commonRequiresConnection,
+                  ),
           ),
         ),
       ],

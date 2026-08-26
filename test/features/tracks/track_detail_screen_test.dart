@@ -4,14 +4,18 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/edit_track_screen.dart';
 import 'package:cadence/features/tracks/track_detail_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -36,8 +40,15 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: const MaterialApp(
-        home: TrackDetailScreen(bandId: 'b1', trackId: 't1'),
+      child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
+        home: const TrackDetailScreen(bandId: 'b1', trackId: 't1'),
       ),
     );
   }
@@ -77,12 +88,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load tracks"), findsOneWidget);
+      expect(find.text(tester.strings.commonCouldntLoadTracks), findsOneWidget);
+      expect(find.text(tester.strings.commonConnectionError), findsOneWidget);
       expect(
-        find.text('Please check your connection and try again.'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
     },
   );
 
@@ -134,7 +145,10 @@ void main() {
       expect(find.text('Full Track'), findsNWidgets(2));
       expect(find.text('Full Artist'), findsOneWidget);
       expect(find.text('3:45'), findsOneWidget);
-      expect(find.text('Tempo: 120 BPM'), findsOneWidget);
+      expect(
+        find.text(tester.strings.trackDetailTempoLine(120)),
+        findsOneWidget,
+      );
       expect(find.text('C'), findsOneWidget);
       expect(find.text('Some notes'), findsOneWidget);
       expect(find.byIcon(Icons.timer), findsOneWidget);
@@ -273,10 +287,10 @@ void main() {
         ),
       );
       expect(editButton.onPressed, isNull);
-      expect(editButton.tooltip, 'Requires connection');
+      expect(editButton.tooltip, tester.strings.commonRequiresConnection);
 
       final deleteTile = tester.widget<ListTile>(
-        find.widgetWithText(ListTile, 'Delete'),
+        find.widgetWithText(ListTile, tester.strings.commonDelete),
       );
       expect(deleteTile.enabled, isFalse);
       expect(deleteTile.onTap, isNull);
@@ -304,10 +318,10 @@ void main() {
         ),
       );
       expect(editButton.onPressed, isNotNull);
-      expect(editButton.tooltip, 'Edit track');
+      expect(editButton.tooltip, tester.strings.trackDetailEditTooltip);
 
       final deleteTile = tester.widget<ListTile>(
-        find.widgetWithText(ListTile, 'Delete'),
+        find.widgetWithText(ListTile, tester.strings.commonDelete),
       );
       expect(deleteTile.enabled, isTrue);
       expect(deleteTile.onTap, isNotNull);

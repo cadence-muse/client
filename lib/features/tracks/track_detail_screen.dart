@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/tracks_provider.dart';
@@ -25,15 +26,18 @@ class TrackDetailScreen extends ConsumerWidget {
     final isOnline = ref.watch(isOnlineProvider);
     final title = trackAsync.valueOrNull?['title'] as String?;
     final currentTrack = trackAsync.valueOrNull;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title ?? 'Track'),
+        title: Text(title ?? l10n.trackDetailFallbackTitle),
         actions: [
           if (currentTrack != null)
             IconButton(
               icon: const Icon(Icons.edit),
-              tooltip: isOnline ? 'Edit track' : 'Requires connection',
+              tooltip: isOnline
+                  ? l10n.trackDetailEditTooltip
+                  : l10n.commonRequiresConnection,
               onPressed: isOnline
                   ? () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -76,6 +80,7 @@ class TrackDetailScreen extends ConsumerWidget {
     final key = track['key'] as String?;
     final notes = track['notes'] as String?;
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return ListView(
       padding: const EdgeInsets.all(24),
@@ -98,7 +103,7 @@ class TrackDetailScreen extends ConsumerWidget {
         ),
         if (tempo != null) ...[
           const SizedBox(height: 16),
-          Text('Tempo: $tempo BPM'),
+          Text(l10n.trackDetailTempoLine(tempo)),
         ],
         if (key != null) ...[
           const SizedBox(height: 16),
@@ -136,7 +141,10 @@ class TrackDetailScreen extends ConsumerWidget {
         const Divider(height: 1),
         ListTile(
           leading: Icon(Icons.delete, color: colorScheme.error),
-          title: Text('Delete', style: TextStyle(color: colorScheme.error)),
+          title: Text(
+            l10n.commonDelete,
+            style: TextStyle(color: colorScheme.error),
+          ),
           enabled: isOnline,
           onTap: isOnline
               ? () => showDialog<void>(
@@ -154,6 +162,7 @@ class TrackDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -161,17 +170,14 @@ class TrackDetailScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Couldn't load tracks",
+              l10n.commonCouldntLoadTracks,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Please check your connection and try again.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonConnectionError, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),
