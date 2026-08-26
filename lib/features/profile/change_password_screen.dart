@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
@@ -43,6 +44,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
     final currentPassword = _currentPasswordController.text;
     final newPassword = _newPasswordController.text;
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       await ref
@@ -53,14 +55,14 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password changed successfully')),
+          SnackBar(content: Text(l10n.changePasswordSuccessSnackbar)),
         );
         Navigator.of(context).pop();
       }
     } on ApiException catch (e) {
       setState(() {
         _errorMessage = (e.statusCode == 400 && e.code == 'invalid_input')
-            ? 'Current password is incorrect'
+            ? l10n.changePasswordIncorrectCurrentError
             : e.message;
       });
     } finally {
@@ -70,8 +72,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Change password')),
+      appBar: AppBar(title: Text(l10n.changePasswordAppBarTitle)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Form(
@@ -84,12 +87,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 obscureText: true,
                 textInputAction: TextInputAction.next,
                 onChanged: (_) => _clearError(),
-                decoration: const InputDecoration(
-                  labelText: 'Current password',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.changePasswordCurrentLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) => (value == null || value.isEmpty)
-                    ? 'This field is required'
+                    ? l10n.commonFieldRequired
                     : null,
               ),
               const SizedBox(height: 16),
@@ -98,15 +101,15 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 obscureText: true,
                 textInputAction: TextInputAction.next,
                 onChanged: (_) => _clearError(),
-                decoration: const InputDecoration(
-                  labelText: 'New password',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.changePasswordNewLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'This field is required';
+                    return l10n.commonFieldRequired;
                   }
-                  if (value.length < 8) return 'At least 8 characters';
+                  if (value.length < 8) return l10n.commonAtLeast8Chars;
                   return null;
                 },
               ),
@@ -117,16 +120,16 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                 textInputAction: TextInputAction.done,
                 onChanged: (_) => _clearError(),
                 onFieldSubmitted: (_) => _submit(),
-                decoration: const InputDecoration(
-                  labelText: 'Confirm new password',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.changePasswordConfirmLabel,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'This field is required';
+                    return l10n.commonFieldRequired;
                   }
                   if (value != _newPasswordController.text) {
-                    return "Passwords don't match";
+                    return l10n.changePasswordMismatchError;
                   }
                   return null;
                 },
@@ -147,7 +150,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Change password'),
+                    : Text(l10n.changePasswordSubmitButton),
               ),
             ],
           ),
