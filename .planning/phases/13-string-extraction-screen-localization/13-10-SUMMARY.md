@@ -141,3 +141,7 @@ None beyond the deviation documented above.
 ---
 *Phase: 13-string-extraction-screen-localization*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+All files listed in Files Created/Modified confirmed present on disk; all commit hashes (f2e56a1, 989f716, 818a8c1) confirmed present in git log.
