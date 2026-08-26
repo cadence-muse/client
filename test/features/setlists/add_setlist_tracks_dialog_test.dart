@@ -222,6 +222,49 @@ void main() {
     },
   );
 
+  testWidgets(
+    'an addSetlistTracks() ApiException with a known error code renders the '
+    'localized generic message, not the raw server text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/setlist/s1/tracks') {
+          return http.Response(
+            jsonEncode({
+              'code': 'operation_rejected',
+              'message': 'raw server text',
+            }),
+            400,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, currentTrackIds: {}));
+      await openDialog(tester);
+      await tester.tap(find.text('Track One'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.addSetlistTracksSubmitButton));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.commonErrorOperationRejected),
+        findsOneWidget,
+      );
+      expect(find.text('raw server text'), findsNothing);
+    },
+  );
+
   testWidgets('a non-ApiException failure shows the generic fallback message', (
     tester,
   ) async {
