@@ -3,13 +3,17 @@ import 'dart:convert';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/confirm_delete_setlist_dialog.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -41,6 +45,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -90,7 +101,9 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await openDialog(tester);
-    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.tap(
+      find.widgetWithText(TextButton, tester.strings.commonCancel),
+    );
     await tester.pumpAndSettle();
 
     expect(callCount, 0);
@@ -112,7 +125,9 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openDialog(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
+      );
       await tester.pumpAndSettle();
 
       expect(requestMethod, 'DELETE');
@@ -125,9 +140,7 @@ void main() {
     },
   );
 
-  testWidgets('the Delete button is disabled while submitting', (
-    tester,
-  ) async {
+  testWidgets('the Delete button is disabled while submitting', (tester) async {
     final apiClient = buildApiClient((request) async {
       await Future<void>.delayed(const Duration(milliseconds: 50));
       return http.Response('', 204);
@@ -135,7 +148,9 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await openDialog(tester);
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonDelete),
+    );
     await tester.pump();
 
     final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -160,7 +175,9 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openDialog(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Cannot delete setlist'), findsOneWidget);
@@ -180,10 +197,15 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openDialog(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text('Delete failed. Try again.'), findsOneWidget);
+      expect(
+        find.text(tester.strings.confirmDeleteSetlistFailedError),
+        findsOneWidget,
+      );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
     },
@@ -204,24 +226,24 @@ void main() {
         find.byType(FilledButton),
       );
       expect(offlineButton.onPressed, isNull);
-      expect(find.text('Requires connection'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'with isOnlineProvider true, the Delete button is enabled',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        return http.Response('', 204);
-      });
-
-      await tester.pumpWidget(wrap(apiClient, isOnline: true));
-      await openDialog(tester);
-
-      final onlineButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
+      expect(
+        find.text(tester.strings.commonRequiresConnection),
+        findsOneWidget,
       );
-      expect(onlineButton.onPressed, isNotNull);
     },
   );
+
+  testWidgets('with isOnlineProvider true, the Delete button is enabled', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 204);
+    });
+
+    await tester.pumpWidget(wrap(apiClient, isOnline: true));
+    await openDialog(tester);
+
+    final onlineButton = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(onlineButton.onPressed, isNotNull);
+  });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
@@ -33,6 +34,8 @@ class _ConfirmDeleteSetlistDialogState
   String? _errorMessage;
 
   Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context)!;
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -60,7 +63,7 @@ class _ConfirmDeleteSetlistDialogState
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Delete failed. Try again.');
+      setState(() => _errorMessage = l10n.confirmDeleteSetlistFailedError);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -69,14 +72,15 @@ class _ConfirmDeleteSetlistDialogState
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: const Text('Delete setlist?'),
+      title: Text(l10n.confirmDeleteSetlistTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('This action cannot be undone.'),
+          Text(l10n.commonActionCannotBeUndone),
           if (_errorMessage != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -89,10 +93,10 @@ class _ConfirmDeleteSetlistDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         Tooltip(
-          message: isOnline ? '' : 'Requires connection',
+          message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -104,7 +108,11 @@ class _ConfirmDeleteSetlistDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? 'Delete' : 'Requires connection'),
+                : Text(
+                    isOnline
+                        ? l10n.commonDelete
+                        : l10n.commonRequiresConnection,
+                  ),
           ),
         ),
       ],
