@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -37,6 +38,7 @@ class _ConfirmTransferOwnershipDialogState
   String? _errorMessage;
 
   Future<void> _transfer() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -66,13 +68,13 @@ class _ConfirmTransferOwnershipDialogState
       Navigator.of(context).pop();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ownership transferred')),
+          SnackBar(content: Text(l10n.confirmTransferOwnershipSnackbar)),
         );
       }
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -81,9 +83,10 @@ class _ConfirmTransferOwnershipDialogState
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: Text('Transfer ownership to ${widget.memberUsername}?'),
+      title: Text(l10n.confirmTransferOwnershipTitle(widget.memberUsername)),
       content: SingleChildScrollView(
         // Wrapped in a scroll view so the interpolated body text (which can
         // grow arbitrarily with a long member/band name) doesn't overflow
@@ -94,9 +97,10 @@ class _ConfirmTransferOwnershipDialogState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.memberUsername} will become the owner of this '
-              'band.\n\nYou will no longer be the owner of '
-              '${widget.bandName}.',
+              l10n.confirmTransferOwnershipBody(
+                widget.memberUsername,
+                widget.bandName,
+              ),
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
@@ -111,10 +115,10 @@ class _ConfirmTransferOwnershipDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         Tooltip(
-          message: isOnline ? '' : 'Requires connection',
+          message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
             onPressed: (!isOnline || _isSubmitting) ? null : _transfer,
             child: _isSubmitting
@@ -123,7 +127,11 @@ class _ConfirmTransferOwnershipDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? 'Transfer' : 'Requires connection'),
+                : Text(
+                    isOnline
+                        ? l10n.confirmTransferOwnershipButton
+                        : l10n.commonRequiresConnection,
+                  ),
           ),
         ),
       ],
