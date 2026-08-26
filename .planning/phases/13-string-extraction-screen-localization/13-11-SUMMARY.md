@@ -137,3 +137,7 @@ All three per-band Tracks screens and their tests are fully localized and passin
 ---
 *Phase: 13-string-extraction-screen-localization*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+All 6 modified source/test files and the SUMMARY.md confirmed present on disk. All 4 commits (`8889a0f`, `8f09d91`, `9ce8e01`, `908e022`) confirmed present in `git log`.
