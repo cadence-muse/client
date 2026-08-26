@@ -24,7 +24,7 @@ current_phase: 14
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 14 — API Error Localization
+**Current focus:** Planning next milestone
 
 ## Current Position
 
@@ -143,9 +143,9 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-26T17:42:43.404Z
-Stopped at: Phase 14 complete — all phases complete
-Resume file: .planning/phases/14-api-error-localization/14-CONTEXT.md
+Last session: 2026-08-26T18:41:22.576Z
+Stopped at: Milestone v1.2 completed and archived
+Resume file: .planning/milestones/v1.2-phases/14-api-error-localization/14-CONTEXT.md
 
 ## Operator Next Steps
 
