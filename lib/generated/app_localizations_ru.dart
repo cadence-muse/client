@@ -31,4 +31,55 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get languageRussian => 'Русский';
+
+  @override
+  String get appBarBandsTitle => 'Группы';
+
+  @override
+  String get bandsCreateMenuItem => 'Создать группу';
+
+  @override
+  String get bandsJoinMenuItem => 'Присоединиться по коду';
+
+  @override
+  String get bandsEmptyTitle => 'Пока нет групп';
+
+  @override
+  String get bandsEmptyDescription =>
+      'Создайте группу или попросите код приглашения у участника, чтобы присоединиться.';
+
+  @override
+  String get bandsCreateBandButton => 'Создать группу';
+
+  @override
+  String get bandsErrorTitle => 'Не удалось загрузить группы';
+
+  @override
+  String get commonRetry => 'Повторить';
+
+  @override
+  String get commonConnectionError =>
+      'Проверьте подключение к интернету и попробуйте снова.';
+
+  @override
+  String get commonRequiresConnection => 'Требуется подключение';
+
+  @override
+  String get bandRoleOwner => 'Владелец';
+
+  @override
+  String get bandRoleMember => 'Участник';
+
+  @override
+  String memberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count участников',
+      many: '$count участников',
+      few: '$count участника',
+      one: '$count участник',
+    );
+    return '$_temp0';
+  }
 }

@@ -7,5 +7,25 @@
   "themeDark": "Dark",
   "sectionLanguageTitle": "Language",
   "languageEnglish": "English",
-  "languageRussian": "Русский"
+  "languageRussian": "Русский",
+
+  "appBarBandsTitle": "Bands",
+  "bandsCreateMenuItem": "Create band",
+  "bandsJoinMenuItem": "Join with code",
+  "bandsEmptyTitle": "No bands yet",
+  "bandsEmptyDescription": "Create a band or ask a bandmate for an invite code to join one.",
+  "bandsCreateBandButton": "Create Band",
+  "bandsErrorTitle": "Couldn't load bands",
+  "commonRetry": "Retry",
+  "commonConnectionError": "Please check your connection and try again.",
+  "commonRequiresConnection": "Requires connection",
+  "bandRoleOwner": "Owner",
+  "bandRoleMember": "Member",
+  "memberCount": "{count, plural, one{{count} member} other{{count} members}}",
+  "@memberCount": {
+    "description": "Pluralized band member count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
 }

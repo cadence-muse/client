@@ -145,6 +145,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Русский'**
   String get languageRussian;
+
+  /// No description provided for @appBarBandsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bands'**
+  String get appBarBandsTitle;
+
+  /// No description provided for @bandsCreateMenuItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Create band'**
+  String get bandsCreateMenuItem;
+
+  /// No description provided for @bandsJoinMenuItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Join with code'**
+  String get bandsJoinMenuItem;
+
+  /// No description provided for @bandsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No bands yet'**
+  String get bandsEmptyTitle;
+
+  /// No description provided for @bandsEmptyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a band or ask a bandmate for an invite code to join one.'**
+  String get bandsEmptyDescription;
+
+  /// No description provided for @bandsCreateBandButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Band'**
+  String get bandsCreateBandButton;
+
+  /// No description provided for @bandsErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load bands'**
+  String get bandsErrorTitle;
+
+  /// No description provided for @commonRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get commonRetry;
+
+  /// No description provided for @commonConnectionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your connection and try again.'**
+  String get commonConnectionError;
+
+  /// No description provided for @commonRequiresConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires connection'**
+  String get commonRequiresConnection;
+
+  /// No description provided for @bandRoleOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get bandRoleOwner;
+
+  /// No description provided for @bandRoleMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get bandRoleMember;
+
+  /// Pluralized band member count
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} member} other{{count} members}}'**
+  String memberCount(int count);
 }
 
 class _AppLocalizationsDelegate

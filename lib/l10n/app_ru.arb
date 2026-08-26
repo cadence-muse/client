@@ -7,5 +7,25 @@
   "themeDark": "Тёмная",
   "sectionLanguageTitle": "Язык",
   "languageEnglish": "English",
-  "languageRussian": "Русский"
+  "languageRussian": "Русский",
+
+  "appBarBandsTitle": "Группы",
+  "bandsCreateMenuItem": "Создать группу",
+  "bandsJoinMenuItem": "Присоединиться по коду",
+  "bandsEmptyTitle": "Пока нет групп",
+  "bandsEmptyDescription": "Создайте группу или попросите код приглашения у участника, чтобы присоединиться.",
+  "bandsCreateBandButton": "Создать группу",
+  "bandsErrorTitle": "Не удалось загрузить группы",
+  "commonRetry": "Повторить",
+  "commonConnectionError": "Проверьте подключение к интернету и попробуйте снова.",
+  "commonRequiresConnection": "Требуется подключение",
+  "bandRoleOwner": "Владелец",
+  "bandRoleMember": "Участник",
+  "memberCount": "{count, plural, one{{count} участник} few{{count} участника} many{{count} участников} other{{count} участников}}",
+  "@memberCount": {
+    "description": "Pluralized band member count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
 }
