@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/bands_provider.dart';
 import '../setlists/create_setlist_screen.dart';
 import '../tracks/create_track_screen.dart';
@@ -30,6 +31,7 @@ Future<void> showBandPickerSheet(
       child: Consumer(
         builder: (context, ref, _) {
           final bandsAsync = ref.watch(bandsListDataProvider);
+          final l10n = AppLocalizations.of(context)!;
           return bandsAsync.when(
             data: (bands) => ListView(
               shrinkWrap: true,
@@ -53,9 +55,9 @@ Future<void> showBandPickerSheet(
             ),
             // V7: a short, generic message only — never interpolate the raw
             // exception/stack trace into the displayed text.
-            error: (error, stackTrace) => const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Could not load bands. Please try again.'),
+            error: (error, stackTrace) => Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(l10n.bandPickerErrorMessage),
             ),
           );
         },

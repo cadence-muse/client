@@ -115,21 +115,23 @@ void main() {
   }
 
   Future<void> goToSettings(WidgetTester tester) async {
-    // Read the nav label off the current locale each call -- this helper
-    // runs both before and after the Russian language switch (I18N-03),
-    // and root_scaffold.dart's labels are localized (13-07), so a
-    // hardcoded English literal would stop matching once the locale
-    // changes.
-    final profileLabel = tester.strings.navProfile;
+    // The nav-bar's Profile label is now localized (13-07); evaluate
+    // tester.strings fresh at call time so this helper works whether the
+    // app's active locale is English (first call) or a persisted Russian
+    // (post-restart calls in I18N-03), rather than a hardcoded literal.
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text(profileLabel),
+        matching: find.text(tester.strings.navProfile),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    // profile_screen.dart's "Settings" menu item is localized (13-06), so
+    // this must also read off the live locale rather than a hardcoded
+    // English literal -- otherwise post-restart calls in I18N-03 (locale
+    // persisted as Russian) fail to find the tile.
+    await tester.tap(find.text(tester.strings.profileSettingsLabel));
     await tester.pumpAndSettle();
   }
 
@@ -170,7 +172,19 @@ void main() {
       await tester.pumpAndSettle();
 
       // Home (index 0) is the tab visible from app start, so it is already
-      // mounted-but-inactive once we navigate away below.
+      // mounted-but-inactive once we navigate away below. Assert its
+      // AppBar renders the real English title (13-05 localized
+      // home_screen.dart) before the switch, not just the ambient locale.
+      // Scoped to AppBar since the nav-bar's Home label (13-07) renders the
+      // identical English text "Home", which would otherwise be ambiguous.
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text(tester.strings.homeAppBarTitle),
+        ),
+        findsOneWidget,
+      );
+
       await goToSettings(tester);
 
       await tester.tap(find.text('Русский'));
@@ -181,9 +195,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate back to the Home tab, which was kept alive (but inactive)
-      // in the background while the language switch happened. The locale
-      // is already Russian here, so the nav label must be read off the
-      // current AppLocalizations instance rather than the English literal.
+      // in the background while the language switch happened. The nav-bar
+      // label itself is now localized (13-07), so this must be evaluated
+      // fresh right before the tap -- tester.strings reads off whichever
+      // locale is CURRENTLY active (Russian, at this point in the test),
+      // not a value captured earlier.
       await tester.tap(
         find.descendant(
           of: find.byType(NavigationBar),
@@ -192,11 +208,22 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // Cheap sanity check: the ambient locale value changed.
       expect(
         Localizations.localeOf(
           tester.element(find.byType(HomeScreen)),
         ).languageCode,
         'ru',
+      );
+      // The real proof: the previously-inactive Home tab actually
+      // re-rendered its text content in Russian, not just the ambient
+      // Localizations value. Scoped to AppBar for the same reason as above.
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text(tester.strings.homeAppBarTitle),
+        ),
+        findsOneWidget,
       );
     },
   );
