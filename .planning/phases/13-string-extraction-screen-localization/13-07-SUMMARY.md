@@ -168,3 +168,11 @@ None - no external service configuration required.
 ---
 *Phase: 13-string-extraction-screen-localization*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+- All 5 modified files confirmed present on disk.
+- All 5 commits (05812d5, 7f0a267, 8c487e8, 877bc61, b752d08) confirmed in `git log`.
+- All task-level `<acceptance_criteria>` re-verified passing.
+- Plan-level `<verification>` commands re-run: `flutter test test/widgets/offline_banner_test.dart test/offline_cross_tab_test.dart` and `flutter analyze lib/navigation/root_scaffold.dart lib/widgets/offline_banner.dart` — both pass/clean.
+- Full-suite regression check: `flutter test` (442/442 passing) and `flutter analyze` (whole project, clean).
