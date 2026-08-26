@@ -15,6 +15,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../../test_strings.dart';
+
 void main() {
   ApiClient buildApiClient(
     Future<http.Response> Function(http.Request) handler,
@@ -89,7 +91,9 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await tester.enterText(find.byType(TextFormField), 'The Testers');
-    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonCreate),
+    );
     await tester.pump();
 
     final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -120,12 +124,17 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await tester.enterText(find.byType(TextFormField), 'The Testers');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonCreate),
+      );
       await tester.pumpAndSettle();
 
       expect(requestBody, jsonEncode({'name': 'The Testers'}));
       expect(find.byType(BandDetailScreen), findsOneWidget);
-      expect(find.text('The Testers created!'), findsOneWidget);
+      expect(
+        find.text(tester.strings.createBandSuccessSnackbar('The Testers')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -140,11 +149,13 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await tester.enterText(find.byType(TextFormField), '   ');
-    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonCreate),
+    );
     await tester.pump();
 
     expect(callCount, 0);
-    expect(find.text('Enter a band name'), findsOneWidget);
+    expect(find.text(tester.strings.commonEnterBandName), findsOneWidget);
   });
 
   testWidgets(
@@ -160,7 +171,9 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await tester.enterText(find.byType(TextFormField), 'The Testers');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonCreate),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Name is taken'), findsOneWidget);
@@ -179,11 +192,13 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await tester.enterText(find.byType(TextFormField), 'The Testers');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonCreate),
+      );
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Something went wrong. Please try again.'),
+        find.text(tester.strings.commonSomethingWentWrong),
         findsOneWidget,
       );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -191,52 +206,44 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Create button is disabled and reads "Requires connection" while '
-    'offline; enabled with a valid form while online',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        return http.Response(jsonEncode({'id': 'b1'}), 201);
-      });
+  testWidgets('Create button is disabled and reads "Requires connection" while '
+      'offline; enabled with a valid form while online', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode({'id': 'b1'}), 201);
+    });
 
-      await tester.pumpWidget(wrap(apiClient, isOnline: false));
-      await tester.enterText(find.byType(TextFormField), 'The Testers');
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient, isOnline: false));
+    await tester.enterText(find.byType(TextFormField), 'The Testers');
+    await tester.pump();
 
-      final offlineButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(offlineButton.onPressed, isNull);
-      expect(find.text('Requires connection'), findsOneWidget);
+    final offlineButton = tester.widget<FilledButton>(
+      find.byType(FilledButton),
+    );
+    expect(offlineButton.onPressed, isNull);
+    expect(find.text(tester.strings.commonRequiresConnection), findsOneWidget);
 
-      await tester.pumpWidget(wrap(apiClient));
-      await tester.enterText(find.byType(TextFormField), 'The Testers');
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient));
+    await tester.enterText(find.byType(TextFormField), 'The Testers');
+    await tester.pump();
 
-      final onlineButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(onlineButton.onPressed, isNotNull);
-      expect(find.text('Create'), findsOneWidget);
-    },
-  );
+    final onlineButton = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(onlineButton.onPressed, isNotNull);
+    expect(find.text(tester.strings.commonCreate), findsOneWidget);
+  });
 
-  testWidgets(
-    'a band name longer than 30 characters does not break the '
-    "TextFormField's layout",
-    (tester) async {
-      const longName =
-          'A Band Name That Is Definitely Over Thirty Characters Long';
-      final apiClient = buildApiClient((request) async {
-        return http.Response(jsonEncode({'id': 'b1'}), 201);
-      });
+  testWidgets('a band name longer than 30 characters does not break the '
+      "TextFormField's layout", (tester) async {
+    const longName =
+        'A Band Name That Is Definitely Over Thirty Characters Long';
+    final apiClient = buildApiClient((request) async {
+      return http.Response(jsonEncode({'id': 'b1'}), 201);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await tester.enterText(find.byType(TextFormField), longName);
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient));
+    await tester.enterText(find.byType(TextFormField), longName);
+    await tester.pump();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text(longName), findsOneWidget);
-    },
-  );
+    expect(tester.takeException(), isNull);
+    expect(find.text(longName), findsOneWidget);
+  });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -45,6 +46,7 @@ class _EditBandScreenState extends ConsumerState<EditBandScreen> {
     });
 
     final name = _nameController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       await ref
@@ -64,14 +66,16 @@ class _EditBandScreenState extends ConsumerState<EditBandScreen> {
       // already alive (BandsScreen stays mounted in RootScaffold's
       // IndexedStack in real usage, so this is normally a no-op guard).
       if (ref.exists(bandsListDataProvider)) {
-        ref.read(bandsListDataProvider.notifier).renameBand(widget.bandId, name);
+        ref
+            .read(bandsListDataProvider.notifier)
+            .renameBand(widget.bandId, name);
       }
       if (!mounted) return;
       Navigator.of(context).pop();
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -80,9 +84,10 @@ class _EditBandScreenState extends ConsumerState<EditBandScreen> {
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit band')),
+      appBar: AppBar(title: Text(l10n.editBandAppBarTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -95,13 +100,12 @@ class _EditBandScreenState extends ConsumerState<EditBandScreen> {
                   controller: _nameController,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Band name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonBandNameLabel,
+                    border: const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
-                      ? 'Enter a band name'
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? l10n.commonEnterBandName
                       : null,
                 ),
                 if (_errorMessage != null) ...[
@@ -115,7 +119,7 @@ class _EditBandScreenState extends ConsumerState<EditBandScreen> {
                 ],
                 const SizedBox(height: 24),
                 Tooltip(
-                  message: isOnline ? '' : 'Requires connection',
+                  message: isOnline ? '' : l10n.commonRequiresConnection,
                   child: FilledButton(
                     onPressed: (!isOnline || _isSubmitting) ? null : _submit,
                     child: _isSubmitting
@@ -124,7 +128,11 @@ class _EditBandScreenState extends ConsumerState<EditBandScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(isOnline ? 'Save' : 'Requires connection'),
+                        : Text(
+                            isOnline
+                                ? l10n.commonSave
+                                : l10n.commonRequiresConnection,
+                          ),
                   ),
                 ),
               ],

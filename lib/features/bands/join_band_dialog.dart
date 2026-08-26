@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
 import '../../cache/cache_service.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -15,11 +16,7 @@ class _JoinOutcome {
   const _JoinOutcome.navigated(String bandId, String bandName)
     : this._(bandId: bandId, bandName: bandName, ambiguous: false);
   const _JoinOutcome.ambiguous() : this._(ambiguous: true);
-  const _JoinOutcome._({
-    this.bandId,
-    this.bandName,
-    required this.ambiguous,
-  });
+  const _JoinOutcome._({this.bandId, this.bandName, required this.ambiguous});
 
   final String? bandId;
   final String? bandName;
@@ -33,6 +30,7 @@ class _JoinOutcome {
 /// band's detail screen (D-12); otherwise falls back to the (refreshed)
 /// Bands list.
 Future<void> showJoinBandDialog(BuildContext context, WidgetRef ref) async {
+  final l10n = AppLocalizations.of(context)!;
   final outcome = await showDialog<_JoinOutcome>(
     context: context,
     builder: (_) => const _JoinBandDialog(),
@@ -42,12 +40,12 @@ Future<void> showJoinBandDialog(BuildContext context, WidgetRef ref) async {
   if (outcome.ambiguous) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Joined band!')));
+    ).showSnackBar(SnackBar(content: Text(l10n.joinBandAmbiguousSnackbar)));
     return;
   }
 
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text("You've joined ${outcome.bandName}!")),
+    SnackBar(content: Text(l10n.joinBandSuccessSnackbar(outcome.bandName!))),
   );
   Navigator.of(context).push(
     MaterialPageRoute(
@@ -86,6 +84,7 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
 
     final inviteCode = _codeController.text.trim();
     final publicApi = ref.read(publicApiProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       final cachedBands = ref.read(bandsListDataProvider).value;
@@ -118,7 +117,7 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -127,9 +126,10 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: const Text('Join a band'),
+      title: Text(l10n.joinBandTitle),
       content: Form(
         key: _formKey,
         child: Column(
@@ -141,12 +141,12 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
               autofocus: true,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
-              decoration: const InputDecoration(
-                labelText: 'Invite code',
-                hintText: 'Paste the code here',
+              decoration: InputDecoration(
+                labelText: l10n.joinBandCodeLabel,
+                hintText: l10n.joinBandCodeHint,
               ),
               validator: (value) => (value == null || value.trim().isEmpty)
-                  ? 'Enter an invite code'
+                  ? l10n.joinBandCodeValidator
                   : null,
             ),
             if (_errorMessage != null) ...[
@@ -162,10 +162,10 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
       actions: [
         TextButton(
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         Tooltip(
-          message: isOnline ? '' : 'Requires connection',
+          message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
             onPressed: (!isOnline || _isSubmitting) ? null : _submit,
             child: _isSubmitting
@@ -174,7 +174,11 @@ class _JoinBandDialogState extends ConsumerState<_JoinBandDialog> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? 'Join' : 'Requires connection'),
+                : Text(
+                    isOnline
+                        ? l10n.joinBandButton
+                        : l10n.commonRequiresConnection,
+                  ),
           ),
         ),
       ],
