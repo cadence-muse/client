@@ -15,6 +15,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../../test_strings.dart';
+
 void main() {
   ApiClient buildApiClient(
     Future<http.Response> Function(http.Request) handler,
@@ -105,8 +107,7 @@ void main() {
     ]);
 
     final apiClient = buildApiClient((request) async {
-      if (request.method == 'POST' &&
-          request.url.path == '/api/band/join') {
+      if (request.method == 'POST' && request.url.path == '/api/band/join') {
         joinRequestBody = request.body;
         return http.Response('', 200);
       }
@@ -123,7 +124,9 @@ void main() {
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await openDialog(tester);
     await tester.enterText(find.byType(TextFormField), '  ABC123  ');
-    await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.joinBandButton),
+    );
     await tester.pumpAndSettle();
 
     expect(joinRequestBody, jsonEncode({'inviteCode': 'ABC123'}));
@@ -140,8 +143,7 @@ void main() {
       var joined = false;
 
       final apiClient = buildApiClient((request) async {
-        if (request.method == 'POST' &&
-            request.url.path == '/api/band/join') {
+        if (request.method == 'POST' && request.url.path == '/api/band/join') {
           joined = true;
           return http.Response('', 200);
         }
@@ -170,11 +172,16 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await openDialog(tester);
       await tester.enterText(find.byType(TextFormField), 'ABC123');
-      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.joinBandButton),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(BandDetailScreen), findsOneWidget);
-      expect(find.text("You've joined New Band!"), findsOneWidget);
+      expect(
+        find.text(tester.strings.joinBandSuccessSnackbar('New Band')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -187,8 +194,7 @@ void main() {
       ]);
 
       final apiClient = buildApiClient((request) async {
-        if (request.method == 'POST' &&
-            request.url.path == '/api/band/join') {
+        if (request.method == 'POST' && request.url.path == '/api/band/join') {
           return http.Response('', 200);
         }
         return http.Response(
@@ -204,12 +210,17 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await openDialog(tester);
       await tester.enterText(find.byType(TextFormField), 'ABC123');
-      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.joinBandButton),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(BandDetailScreen), findsNothing);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text('Joined band!'), findsOneWidget);
+      expect(
+        find.text(tester.strings.joinBandAmbiguousSnackbar),
+        findsOneWidget,
+      );
     },
   );
 
@@ -222,8 +233,7 @@ void main() {
       ]);
 
       final apiClient = buildApiClient((request) async {
-        if (request.method == 'POST' &&
-            request.url.path == '/api/band/join') {
+        if (request.method == 'POST' && request.url.path == '/api/band/join') {
           return http.Response('', 200);
         }
         return http.Response(
@@ -241,12 +251,17 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await openDialog(tester);
       await tester.enterText(find.byType(TextFormField), 'ABC123');
-      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.joinBandButton),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(BandDetailScreen), findsNothing);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text('Joined band!'), findsOneWidget);
+      expect(
+        find.text(tester.strings.joinBandAmbiguousSnackbar),
+        findsOneWidget,
+      );
     },
   );
 
@@ -257,13 +272,9 @@ void main() {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([]);
       final apiClient = buildApiClient((request) async {
-        if (request.method == 'POST' &&
-            request.url.path == '/api/band/join') {
+        if (request.method == 'POST' && request.url.path == '/api/band/join') {
           return http.Response(
-            jsonEncode({
-              'code': 'not_found',
-              'message': 'Invalid invite code',
-            }),
+            jsonEncode({'code': 'not_found', 'message': 'Invalid invite code'}),
             400,
           );
         }
@@ -273,7 +284,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await openDialog(tester);
       await tester.enterText(find.byType(TextFormField), 'BADCODE');
-      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.joinBandButton),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Invalid invite code'), findsOneWidget);
@@ -290,8 +303,7 @@ void main() {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([]);
       final apiClient = buildApiClient((request) async {
-        if (request.method == 'POST' &&
-            request.url.path == '/api/band/join') {
+        if (request.method == 'POST' && request.url.path == '/api/band/join') {
           throw const SocketException('Network is unreachable');
         }
         return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
@@ -300,11 +312,13 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await openDialog(tester);
       await tester.enterText(find.byType(TextFormField), 'ABC123');
-      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.joinBandButton),
+      );
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Something went wrong. Please try again.'),
+        find.text(tester.strings.commonSomethingWentWrong),
         findsOneWidget,
       );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -321,9 +335,7 @@ void main() {
         return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
       });
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: false),
-      );
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
       await openDialog(tester);
       await tester.enterText(find.byType(TextFormField), 'ABC123');
       await tester.pump();
@@ -332,7 +344,10 @@ void main() {
         find.byType(FilledButton),
       );
       expect(offlineButton.onPressed, isNull);
-      expect(find.text('Requires connection'), findsOneWidget);
+      expect(
+        find.text(tester.strings.commonRequiresConnection),
+        findsOneWidget,
+      );
     },
   );
 
@@ -348,11 +363,9 @@ void main() {
     await tester.enterText(find.byType(TextFormField), 'ABC123');
     await tester.pump();
 
-    final onlineButton = tester.widget<FilledButton>(
-      find.byType(FilledButton),
-    );
+    final onlineButton = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(onlineButton.onPressed, isNotNull);
-    expect(find.text('Join'), findsOneWidget);
+    expect(find.text(tester.strings.joinBandButton), findsOneWidget);
   });
 
   testWidgets(
@@ -363,8 +376,7 @@ void main() {
       final apiClient = buildApiClient((request) async {
         return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
       });
-      const longCode =
-          'AAAAAAAAAA-BBBBBBBBBB-CCCCCCCCCC-DDDDDDDDDD-EEEEEEEEEE';
+      const longCode = 'AAAAAAAAAA-BBBBBBBBBB-CCCCCCCCCC-DDDDDDDDDD-EEEEEEEEEE';
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await openDialog(tester);
