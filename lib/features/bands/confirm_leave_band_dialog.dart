@@ -56,7 +56,7 @@ class _ConfirmLeaveBandDialogState
       Navigator.of(context).pop();
       Navigator.of(context).pop();
     } on ApiException catch (e) {
-      setState(() => _errorMessage = e.message);
+      setState(() => _errorMessage = e.localizedMessage(l10n));
     } catch (_) {
       setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {

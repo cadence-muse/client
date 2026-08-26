@@ -197,6 +197,35 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a known-error-code updateBand() failure renders the localized message, '
+    'not the raw server text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'code': 'permission_denied',
+            'message': 'raw server text',
+          }),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.enterText(find.byType(TextFormField), 'New Name');
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.commonErrorPermissionDenied),
+        findsOneWidget,
+      );
+      expect(find.text('raw server text'), findsNothing);
+    },
+  );
+
   testWidgets('Save button is disabled and reads "Requires connection" while '
       'offline; enabled with a valid form while online', (tester) async {
     final apiClient = buildApiClient((request) async {
