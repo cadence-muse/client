@@ -4,13 +4,17 @@ import 'dart:io';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/add_setlist_tracks_dialog.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -43,6 +47,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -118,7 +129,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, currentTrackIds: {'t1'}));
       await openDialog(tester);
 
-      expect(find.text('No more tracks available'), findsOneWidget);
+      expect(find.text(tester.strings.addSetlistTracksNoneAvailable), findsOneWidget);
       expect(find.byType(CheckboxListTile), findsNothing);
     },
   );
@@ -165,7 +176,7 @@ void main() {
       await tester.tap(find.text('Track One'));
       await tester.tap(find.text('Track Two'));
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.addSetlistTracksSubmitButton));
       await tester.pumpAndSettle();
 
       expect(addCallCount, 1);
@@ -203,7 +214,7 @@ void main() {
       await openDialog(tester);
       await tester.tap(find.text('Track One'));
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.addSetlistTracksSubmitButton));
       await tester.pumpAndSettle();
 
       expect(find.text('Too many tracks'), findsOneWidget);
@@ -236,10 +247,13 @@ void main() {
     await openDialog(tester);
     await tester.tap(find.text('Track One'));
     await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.tap(find.widgetWithText(FilledButton, tester.strings.addSetlistTracksSubmitButton));
     await tester.pumpAndSettle();
 
-    expect(find.text('Failed to add tracks. Try again.'), findsOneWidget);
+    expect(
+      find.text(tester.strings.addSetlistTracksFailedError),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -277,7 +291,7 @@ void main() {
       await openDialog(tester);
       await tester.tap(find.text('Track One'));
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.addSetlistTracksSubmitButton));
       await tester.pump();
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -328,7 +342,10 @@ void main() {
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNull);
-      expect(find.text('Requires connection'), findsOneWidget);
+      expect(
+        find.text(tester.strings.commonRequiresConnection),
+        findsOneWidget,
+      );
     },
   );
 
@@ -412,7 +429,10 @@ void main() {
       await openDialog(tester);
 
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Search by title or artist'), findsOneWidget);
+      expect(
+        find.text(tester.strings.addSetlistTracksSearchHint),
+        findsOneWidget,
+      );
     },
   );
 
@@ -516,8 +536,8 @@ void main() {
       await tester.enterText(find.byType(TextField), 'nothing matches this');
       await tester.pump();
 
-      expect(find.text('No tracks match your search'), findsOneWidget);
-      expect(find.text('No more tracks available'), findsNothing);
+      expect(find.text(tester.strings.addSetlistTracksNoMatch), findsOneWidget);
+      expect(find.text(tester.strings.addSetlistTracksNoneAvailable), findsNothing);
     },
   );
 
@@ -600,7 +620,7 @@ void main() {
       await tester.tap(find.text('Track One'));
       await tester.tap(find.text('Track Two'));
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.addSetlistTracksSubmitButton));
       await tester.pumpAndSettle();
 
       expect(addCallCount, 1);
