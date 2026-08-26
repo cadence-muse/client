@@ -102,7 +102,11 @@ class _ConfirmRemoveMemberDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? l10n.commonRemove : l10n.commonRequiresConnection),
+                : Text(
+                    isOnline
+                        ? l10n.commonRemove
+                        : l10n.commonRequiresConnection,
+                  ),
           ),
         ),
       ],

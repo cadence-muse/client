@@ -191,9 +191,7 @@ class _AddSetlistTracksDialogState
                     availableTracks.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Center(
-                      child: Text(l10n.addSetlistTracksNoMatch),
-                    ),
+                    child: Center(child: Text(l10n.addSetlistTracksNoMatch)),
                   )
                 else if (availableTracks.isEmpty)
                   Padding(
@@ -208,9 +206,7 @@ class _AddSetlistTracksDialogState
                       itemBuilder: (context, index) {
                         final track = availableTracks[index];
                         final trackId = track['id'] as String;
-                        final isSelected = _selectedTrackIds.contains(
-                          trackId,
-                        );
+                        final isSelected = _selectedTrackIds.contains(trackId);
                         final atCap =
                             _selectedTrackIds.length >= remainingSlots;
                         return CheckboxListTile(
@@ -288,8 +284,7 @@ class _AddSetlistTracksDialogState
         Tooltip(
           message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
-            onPressed:
-                (_isSubmitting || _selectedTrackIds.isEmpty || !isOnline)
+            onPressed: (_isSubmitting || _selectedTrackIds.isEmpty || !isOnline)
                 ? null
                 : _submit,
             child: _isSubmitting

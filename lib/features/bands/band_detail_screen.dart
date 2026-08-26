@@ -60,7 +60,9 @@ class BandDetailScreen extends ConsumerWidget {
         actions: [
           if (bandName != null)
             Tooltip(
-              message: isOnline ? l10n.commonEdit : l10n.commonRequiresConnection,
+              message: isOnline
+                  ? l10n.commonEdit
+                  : l10n.commonRequiresConnection,
               child: IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: isOnline
@@ -288,9 +290,7 @@ class BandDetailScreen extends ConsumerWidget {
           title: Text(l10n.navTracks),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => TrackListScreen(bandId: bandId),
-            ),
+            MaterialPageRoute(builder: (_) => TrackListScreen(bandId: bandId)),
           ),
         ),
         const Divider(height: 1),

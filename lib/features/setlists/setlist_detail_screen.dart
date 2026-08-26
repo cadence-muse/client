@@ -59,10 +59,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       // the server.
       await ref
           .read(
-            setlistDetailDataProvider(
-              widget.bandId,
-              widget.setlistId,
-            ).notifier,
+            setlistDetailDataProvider(widget.bandId, widget.setlistId).notifier,
           )
           .refresh(force: true);
       if (ref.exists(setlistListDataProvider(widget.bandId))) {
@@ -159,10 +156,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
           );
       await ref
           .read(
-            setlistDetailDataProvider(
-              widget.bandId,
-              widget.setlistId,
-            ).notifier,
+            setlistDetailDataProvider(widget.bandId, widget.setlistId).notifier,
           )
           .reorderTracks(trackIds);
       if (ref.exists(userSetlistsListDataProvider)) {
@@ -176,10 +170,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       );
       await ref
           .read(
-            setlistDetailDataProvider(
-              widget.bandId,
-              widget.setlistId,
-            ).notifier,
+            setlistDetailDataProvider(widget.bandId, widget.setlistId).notifier,
           )
           .refresh();
     }
@@ -308,7 +299,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                               ? () => setState(() => _editMode = false)
                               : null),
                     child: Text(
-                      _editMode ? l10n.setlistDetailDoneButton : l10n.commonEdit,
+                      _editMode
+                          ? l10n.setlistDetailDoneButton
+                          : l10n.commonEdit,
                     ),
                   ),
                 ),
@@ -453,10 +446,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              l10n.commonFailedToLoadSetlists,
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonFailedToLoadSetlists, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],

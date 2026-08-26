@@ -112,8 +112,7 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                     labelText: l10n.commonNameLabel,
                     border: const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
+                  validator: (value) => (value == null || value.trim().isEmpty)
                       ? l10n.commonNameRequired
                       : null,
                 ),
@@ -154,8 +153,7 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                     // CreateBandSetlistsRequestBody caps `trackIds` at 100
                     // (publicapi.yml) — guard selection client-side against
                     // that flat cap (WR-03).
-                    final atCap =
-                        _selectedTrackIds.length >= maxSetlistTracks;
+                    final atCap = _selectedTrackIds.length >= maxSetlistTracks;
                     return Column(
                       children: [
                         for (final track in tracks)

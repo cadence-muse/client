@@ -72,9 +72,7 @@ class TracksScreen extends ConsumerWidget {
     // persisted filter no longer matches an available band, so
     // `DropdownButton`'s "exactly one item with this value" assertion
     // never fires.
-    final availableBandIds = {
-      for (final band in bands) band['id'] as String,
-    };
+    final availableBandIds = {for (final band in bands) band['id'] as String};
     final effectiveBandId = availableBandIds.contains(selectedBandId)
         ? selectedBandId
         : null;
@@ -177,10 +175,7 @@ class TracksScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            Text(
-              l10n.tracksTabEmptyDescription,
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.tracksTabEmptyDescription, textAlign: TextAlign.center),
             if (showViewBandsButton) ...[
               const SizedBox(height: 16),
               ElevatedButton(
@@ -213,10 +208,7 @@ class TracksScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            Text(
-              l10n.commonConnectionError,
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonConnectionError, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],

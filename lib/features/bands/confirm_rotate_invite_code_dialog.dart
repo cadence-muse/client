@@ -111,7 +111,9 @@ class _ConfirmRotateInviteCodeDialogState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
-                    isOnline ? l10n.commonRotate : l10n.commonRequiresConnection,
+                    isOnline
+                        ? l10n.commonRotate
+                        : l10n.commonRequiresConnection,
                   ),
           ),
         ),

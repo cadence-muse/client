@@ -116,7 +116,11 @@ class _ConfirmDeleteBandDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? l10n.commonDelete : l10n.commonRequiresConnection),
+                : Text(
+                    isOnline
+                        ? l10n.commonDelete
+                        : l10n.commonRequiresConnection,
+                  ),
           ),
         ),
       ],

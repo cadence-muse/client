@@ -202,8 +202,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                     labelText: l10n.commonTitleLabel,
                     border: const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
+                  validator: (value) => (value == null || value.trim().isEmpty)
                       ? l10n.commonEnterTrackTitle
                       : null,
                 ),
@@ -214,8 +213,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                     labelText: l10n.commonArtistLabel,
                     border: const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
+                  validator: (value) => (value == null || value.trim().isEmpty)
                       ? l10n.commonEnterArtistName
                       : null,
                 ),
@@ -250,7 +248,9 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                     border: const OutlineInputBorder(),
                   ),
                   items: musicalKeys
-                      .map((key) => DropdownMenuItem(value: key, child: Text(key)))
+                      .map(
+                        (key) => DropdownMenuItem(value: key, child: Text(key)),
+                      )
                       .toList(),
                   onChanged: (value) => setState(() => _selectedKey = value),
                 ),

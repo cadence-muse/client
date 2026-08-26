@@ -74,9 +74,7 @@ class SetlistsScreen extends ConsumerWidget {
     // persisted filter no longer matches an available band, so
     // `DropdownButton`'s "exactly one item with this value" assertion
     // never fires.
-    final availableBandIds = {
-      for (final band in bands) band['id'] as String,
-    };
+    final availableBandIds = {for (final band in bands) band['id'] as String};
     final effectiveBandId = availableBandIds.contains(selectedBandId)
         ? selectedBandId
         : null;
@@ -180,10 +178,7 @@ class SetlistsScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            Text(
-              l10n.setlistsTabEmptyDescription,
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.setlistsTabEmptyDescription, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -198,10 +193,7 @@ class SetlistsScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              l10n.commonFailedToLoadSetlists,
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonFailedToLoadSetlists, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
