@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cadence/features/tracks/track_formatting.dart';
+
+import '../../generated/app_localizations.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/setlists_provider.dart';
 import '../../widgets/offline_no_cache_view.dart';
 import 'setlist_detail_screen.dart';
-import 'setlist_formatting.dart';
 
 /// The global, cross-band Setlists tab (SETL-10): a flat list of every
 /// setlist across every band the user belongs to, with a band-name badge per
@@ -29,10 +31,11 @@ class SetlistsScreen extends ConsumerWidget {
 
     final bands = ref.watch(bandsListDataProvider).valueOrNull ?? const [];
     final setlistsAsync = ref.watch(userSetlistsListDataProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Setlists'),
+        title: Text(l10n.navSetlists),
         // D-08: a subtle in-flight indicator while a refetch is running
         // with data already present, instead of blanking the screen; D-09's
         // cold-start spinner is the `loading:` branch below, unaffected.
@@ -77,15 +80,16 @@ class SetlistsScreen extends ConsumerWidget {
     final effectiveBandId = availableBandIds.contains(selectedBandId)
         ? selectedBandId
         : null;
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: DropdownButton<String?>(
         isExpanded: true,
         value: effectiveBandId,
         items: [
-          const DropdownMenuItem<String?>(
+          DropdownMenuItem<String?>(
             value: null,
-            child: Text('All bands'),
+            child: Text(l10n.commonAllBandsFilter),
           ),
           for (final band in bands)
             DropdownMenuItem<String?>(
@@ -128,6 +132,7 @@ class SetlistsScreen extends ConsumerWidget {
       return _buildEmptyState(context);
     }
 
+    final l10n = AppLocalizations.of(context)!;
     return ListView.separated(
       itemCount: setlists.length,
       separatorBuilder: (context, index) => const Divider(height: 1),
@@ -144,7 +149,10 @@ class SetlistsScreen extends ConsumerWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: Text(tracksAndDuration(tracksCount, durationSeconds)),
+          trailing: Text(
+            '${l10n.trackCount(tracksCount)}, '
+            '${durationSeconds.asMinutesSeconds}',
+          ),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => SetlistDetailScreen(
@@ -159,6 +167,7 @@ class SetlistsScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -166,13 +175,13 @@ class SetlistsScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'No setlists',
+              l10n.setlistsTabEmptyTitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Create setlists in a band to see them here.',
+            Text(
+              l10n.setlistsTabEmptyDescription,
               textAlign: TextAlign.center,
             ),
           ],
@@ -182,18 +191,19 @@ class SetlistsScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Failed to load setlists. Tap to try again.',
+            Text(
+              l10n.commonFailedToLoadSetlists,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),

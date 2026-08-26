@@ -5,14 +5,18 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/confirm_delete_setlist_dialog.dart';
 import 'package:cadence/features/setlists/edit_setlist_screen.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -41,8 +45,15 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: const MaterialApp(
-        home: SetlistDetailScreen(bandId: 'b1', setlistId: 's1'),
+      child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
+        home: const SetlistDetailScreen(bandId: 'b1', setlistId: 's1'),
       ),
     );
   }
@@ -89,10 +100,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Failed to load setlists. Tap to try again.'),
+        find.text(tester.strings.commonFailedToLoadSetlists),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsOneWidget,
+      );
     },
   );
 
@@ -139,7 +153,10 @@ void main() {
       expect(find.text('42:35'), findsOneWidget);
       expect(find.byIcon(Icons.location_on), findsOneWidget);
       expect(find.byIcon(Icons.timer), findsOneWidget);
-      expect(find.text('Tracks (2)'), findsOneWidget);
+      expect(
+        find.text(tester.strings.setlistDetailTracksHeader(2)),
+        findsOneWidget,
+      );
       expect(find.text('Song One'), findsOneWidget);
       expect(find.text('Song Two'), findsOneWidget);
       // Artist + duration are combined into one subtitle (trailing slot is
@@ -170,7 +187,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No date set'), findsNothing);
-      expect(find.text('No tracks in this setlist'), findsOneWidget);
+      expect(find.text(tester.strings.setlistDetailNoTracks), findsOneWidget);
     },
   );
 
@@ -193,7 +210,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('No tracks in this setlist'), findsOneWidget);
+      expect(find.text(tester.strings.setlistDetailNoTracks), findsOneWidget);
       expect(find.text('0:00'), findsOneWidget);
     },
   );
@@ -272,7 +289,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ListTile, 'Delete'));
+      await tester.tap(find.widgetWithText(ListTile, tester.strings.commonDelete));
       await tester.pumpAndSettle();
 
       expect(find.byType(ConfirmDeleteSetlistDialog), findsOneWidget);
@@ -315,22 +332,22 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.remove_circle_outline), findsNothing);
-      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks), findsNothing);
 
-      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.commonEdit));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.remove_circle_outline), findsNWidgets(2));
       expect(
-        find.widgetWithText(ElevatedButton, 'Add tracks'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks),
         findsOneWidget,
       );
 
-      await tester.tap(find.widgetWithText(TextButton, 'Done'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.setlistDetailDoneButton));
       await tester.pumpAndSettle();
 
       expect(find.byIcon(Icons.remove_circle_outline), findsNothing);
-      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks), findsNothing);
     },
   );
 
@@ -394,7 +411,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.commonEdit));
       await tester.pumpAndSettle();
 
       expect(getSetlistCallCount, 1);
@@ -429,13 +446,13 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks), findsNothing);
 
-      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.commonEdit));
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(ElevatedButton, 'Add tracks'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks),
         findsOneWidget,
       );
     },
@@ -496,7 +513,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.commonEdit));
       await tester.pumpAndSettle();
 
       final reorderableList = tester.widget<ReorderableListView>(
@@ -560,7 +577,7 @@ void main() {
 
       expect(getSetlistCallCount, 1);
 
-      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.commonEdit));
       await tester.pumpAndSettle();
 
       final reorderableList = tester.widget<ReorderableListView>(
@@ -570,7 +587,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Failed to reorder tracks. Refreshing...'),
+        find.text(tester.strings.setlistDetailReorderFailedSnackbar),
         findsOneWidget,
       );
       expect(getSetlistCallCount, 2);
@@ -608,7 +625,7 @@ void main() {
         find.widgetWithIcon(IconButton, Icons.edit),
       );
       expect(offlineEditButton.onPressed, isNull);
-      expect(offlineEditButton.tooltip, 'Requires connection');
+      expect(offlineEditButton.tooltip, tester.strings.commonRequiresConnection);
 
       await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: true));
       await tester.pumpAndSettle();
@@ -617,7 +634,7 @@ void main() {
         find.widgetWithIcon(IconButton, Icons.edit),
       );
       expect(onlineEditButton.onPressed, isNotNull);
-      expect(onlineEditButton.tooltip, 'Edit setlist');
+      expect(onlineEditButton.tooltip, tester.strings.setlistDetailEditTooltip);
     },
   );
 
@@ -663,11 +680,11 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.commonEdit));
       await tester.pumpAndSettle();
 
       expect(find.byType(ReorderableListView), findsNothing);
-      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks), findsNothing);
     },
   );
 
@@ -709,19 +726,26 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
-            home: SetlistDetailScreen(bandId: 'b1', setlistId: 's1'),
+          child: MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en'), Locale('ru')],
+            home: const SetlistDetailScreen(bandId: 'b1', setlistId: 's1'),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(TextButton, 'Edit'));
+      await tester.tap(find.widgetWithText(TextButton, tester.strings.commonEdit));
       await tester.pumpAndSettle();
 
       expect(find.byType(ReorderableListView), findsOneWidget);
       expect(
-        find.widgetWithText(ElevatedButton, 'Add tracks'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks),
         findsOneWidget,
       );
 
@@ -734,7 +758,7 @@ void main() {
 
       expect(find.byType(ReorderableListView), findsNothing);
       expect(find.byType(ListView), findsWidgets);
-      expect(find.widgetWithText(ElevatedButton, 'Add tracks'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, tester.strings.commonAddTracks), findsNothing);
     },
   );
 
@@ -764,7 +788,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final deleteTile = tester.widget<ListTile>(
-        find.widgetWithText(ListTile, 'Delete'),
+        find.widgetWithText(ListTile, tester.strings.commonDelete),
       );
       expect(deleteTile.enabled, isFalse);
     },
@@ -791,12 +815,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
-      expect(find.text('No cached data'), findsOneWidget);
+      expect(find.text(tester.strings.offlineNoCacheTitle), findsOneWidget);
       expect(
-        find.text('Connect to the internet to load this'),
+        find.text(tester.strings.offlineNoCacheDescription),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsNothing,
+      );
     },
   );
 }
