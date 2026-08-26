@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -36,24 +37,23 @@ class _CreateBandScreenState extends ConsumerState<CreateBandScreen> {
     });
 
     final name = _nameController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
 
     try {
-      final response = await ref
-          .read(publicApiProvider)
-          .createBand(name: name);
+      final response = await ref.read(publicApiProvider).createBand(name: name);
       ref.invalidate(bandsListDataProvider);
       final bandId = response['id'] as String;
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$name created!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.createBandSuccessSnackbar(name))),
+      );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => BandDetailScreen(bandId: bandId)),
       );
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -62,9 +62,10 @@ class _CreateBandScreenState extends ConsumerState<CreateBandScreen> {
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create a new band')),
+      appBar: AppBar(title: Text(l10n.createBandAppBarTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -77,13 +78,12 @@ class _CreateBandScreenState extends ConsumerState<CreateBandScreen> {
                   controller: _nameController,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Band name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonBandNameLabel,
+                    border: const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
-                      ? 'Enter a band name'
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? l10n.commonEnterBandName
                       : null,
                 ),
                 if (_errorMessage != null) ...[
@@ -97,7 +97,7 @@ class _CreateBandScreenState extends ConsumerState<CreateBandScreen> {
                 ],
                 const SizedBox(height: 24),
                 Tooltip(
-                  message: isOnline ? '' : 'Requires connection',
+                  message: isOnline ? '' : l10n.commonRequiresConnection,
                   child: FilledButton(
                     onPressed: (!isOnline || _isSubmitting) ? null : _submit,
                     child: _isSubmitting
@@ -106,7 +106,11 @@ class _CreateBandScreenState extends ConsumerState<CreateBandScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(isOnline ? 'Create' : 'Requires connection'),
+                        : Text(
+                            isOnline
+                                ? l10n.commonCreate
+                                : l10n.commonRequiresConnection,
+                          ),
                   ),
                 ),
               ],
