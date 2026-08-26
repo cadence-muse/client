@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 
 enum _AuthMode { login, signUp }
@@ -32,6 +33,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -50,7 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             throw ApiException(
               statusCode: e.statusCode,
               code: e.code,
-              message: 'This username is already taken',
+              message: l10n.loginUsernameTakenError,
             );
           }
           rethrow;
@@ -67,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           throw ApiException(
             statusCode: e.statusCode,
             code: e.code,
-            message: 'Invalid credentials',
+            message: l10n.loginInvalidCredentialsError,
           );
         }
         rethrow;
@@ -88,6 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isSignUp = _mode == _AuthMode.signUp;
 
     return Scaffold(
@@ -108,7 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Cadence',
+                    l10n.loginAppTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
@@ -116,13 +120,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextFormField(
                     controller: _usernameController,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.loginUsernameLabel,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
-                        ? 'Enter a username'
+                        ? l10n.loginUsernameValidator
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -131,12 +135,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     obscureText: true,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _submit(),
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.loginPasswordLabel,
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) => (value == null || value.length < 8)
-                        ? 'At least 8 characters'
+                        ? l10n.commonAtLeast8Chars
                         : null,
                   ),
                   if (_errorMessage != null) ...[
@@ -157,15 +161,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(isSignUp ? 'Sign up' : 'Log in'),
+                        : Text(
+                            isSignUp
+                                ? l10n.loginSignUpButton
+                                : l10n.loginLogInButton,
+                          ),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _isSubmitting ? null : _toggleMode,
                     child: Text(
                       isSignUp
-                          ? 'Already have an account? Log in'
-                          : "Don't have an account? Sign up",
+                          ? l10n.loginToggleToLogin
+                          : l10n.loginToggleToSignUp,
                     ),
                   ),
                 ],
