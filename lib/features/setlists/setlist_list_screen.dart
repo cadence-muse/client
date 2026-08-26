@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cadence/features/tracks/track_formatting.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/setlists_provider.dart';
@@ -20,9 +21,10 @@ class SetlistListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final setlistsAsync = ref.watch(setlistListDataProvider(bandId));
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Setlists')),
+      appBar: AppBar(title: Text(l10n.navSetlists)),
       body: setlistsAsync.when(
         data: (setlists) => _buildContent(context, setlists),
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -44,7 +46,9 @@ class SetlistListScreen extends ConsumerWidget {
                 ),
               )
             : null,
-        tooltip: isOnline ? 'Add setlist' : 'Requires connection',
+        tooltip: isOnline
+            ? l10n.setlistListAddButton
+            : l10n.commonRequiresConnection,
         child: const Icon(Icons.add),
       ),
     );
@@ -54,6 +58,8 @@ class SetlistListScreen extends ConsumerWidget {
     BuildContext context,
     List<Map<String, dynamic>> setlists,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+
     if (setlists.isEmpty) {
       return Center(
         child: Padding(
@@ -62,13 +68,13 @@ class SetlistListScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'No setlists yet',
+                l10n.setlistListEmptyTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Create a setlist or ask a bandmate to add one.',
+              Text(
+                l10n.setlistListEmptyDescription,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -78,7 +84,7 @@ class SetlistListScreen extends ConsumerWidget {
                     builder: (_) => CreateSetlistScreen(bandId: bandId),
                   ),
                 ),
-                child: const Text('Add setlist'),
+                child: Text(l10n.setlistListAddButton),
               ),
             ],
           ),
@@ -108,9 +114,9 @@ class SetlistListScreen extends ConsumerWidget {
                 if (eventLocation != null) ...[
                   Flexible(
                     child: GestureDetector(
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(eventLocation)),
-                      ),
+                      onTap: () => ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(eventLocation))),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -157,18 +163,17 @@ class SetlistListScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Failed to load setlists. Tap to try again.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonFailedToLoadSetlists, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),
