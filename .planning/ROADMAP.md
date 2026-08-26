@@ -195,18 +195,18 @@ Plans:
   2. An API error code absent from the client's mapping falls back to the server's raw error text rather than a blank state or generic failure message.
   3. Switching the app's language changes the language of error messages shown afterward, with no restart required.
 
-**Plans**: 0/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 14-01-PLAN.md — ApiException localization extension + ARB keys + CreateBandScreen wiring (tracer)
+- [x] 14-01-PLAN.md — ApiException localization extension + ARB keys + CreateBandScreen wiring (tracer)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 14-02-PLAN.md — Bands: remaining 7 catch sites
-- [ ] 14-03-PLAN.md — Tracks: remaining 3 catch sites + login/change-password override refactor (D-04)
-- [ ] 14-04-PLAN.md — Setlists: remaining 5 catch sites
+- [x] 14-02-PLAN.md — Bands: remaining 7 catch sites
+- [x] 14-03-PLAN.md — Tracks: remaining 3 catch sites + login/change-password override refactor (D-04)
+- [x] 14-04-PLAN.md — Setlists: remaining 5 catch sites
 
 ## Progress
 
@@ -229,4 +229,4 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete    | 2026-08-25 |
 | 13. String Extraction & Screen Localization | v1.2 | 13/13 | Complete    | 2026-08-26 |
-| 14. API Error Localization | v1.2 | 0/? | Not started | — |
+| 14. API Error Localization | v1.2 | 4/4 | In Progress|  |
