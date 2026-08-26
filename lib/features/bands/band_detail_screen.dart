@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
@@ -47,6 +48,7 @@ class BandDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final bandAsync = ref.watch(bandDetailDataProvider(bandId));
     final profileAsync = ref.watch(profileDataProvider);
     final isOnline = ref.watch(isOnlineProvider);
@@ -54,11 +56,11 @@ class BandDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(bandName ?? 'Band'),
+        title: Text(bandName ?? l10n.bandDetailFallbackTitle),
         actions: [
           if (bandName != null)
             Tooltip(
-              message: isOnline ? 'Edit' : 'Requires connection',
+              message: isOnline ? l10n.commonEdit : l10n.commonRequiresConnection,
               child: IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: isOnline
@@ -97,6 +99,7 @@ class BandDetailScreen extends ConsumerWidget {
     AsyncValue<Map<String, dynamic>> profileAsync,
     bool isOnline,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final name = band['name'] as String;
     final ownerId = band['ownerId'] as String?;
     final members = (band['members'] as List).cast<Map<String, dynamic>>();
@@ -124,8 +127,8 @@ class BandDetailScreen extends ConsumerWidget {
         if (isOwner != null) ...[
           Center(
             child: Text(
-              '${isOwner ? 'Owner' : 'Member'} • ${members.length} '
-              'member${members.length == 1 ? '' : 's'}',
+              '${isOwner ? l10n.bandRoleOwner : l10n.bandRoleMember} • '
+              '${l10n.memberCount(members.length)}',
             ),
           ),
           const SizedBox(height: 24),
@@ -134,14 +137,14 @@ class BandDetailScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
-            'Members',
+            l10n.bandDetailMembersHeader,
             style: Theme.of(context).textTheme.labelLarge,
           ),
         ),
         if (members.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('No members'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(l10n.bandDetailNoMembers),
           )
         else
           ...members.map((member) {
@@ -158,7 +161,7 @@ class BandDetailScreen extends ConsumerWidget {
               title: Text(memberUsername),
               trailing: showMenu
                   ? Tooltip(
-                      message: isOnline ? '' : 'Requires connection',
+                      message: isOnline ? '' : l10n.commonRequiresConnection,
                       child: PopupMenuButton<void>(
                         enabled: isOnline,
                         itemBuilder: (context) => [
@@ -181,10 +184,12 @@ class BandDetailScreen extends ConsumerWidget {
                             // overflowing horizontally (UI-SPEC E1 backstop
                             // truths).
                             child: Row(
-                              children: const [
-                                Icon(Icons.workspace_premium),
-                                SizedBox(width: 8),
-                                Expanded(child: Text('Make owner')),
+                              children: [
+                                const Icon(Icons.workspace_premium),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(l10n.bandDetailMakeOwnerAction),
+                                ),
                               ],
                             ),
                           ),
@@ -210,7 +215,7 @@ class BandDetailScreen extends ConsumerWidget {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Remove',
+                                    l10n.commonRemove,
                                     style: TextStyle(
                                       color: Theme.of(
                                         context,
@@ -231,7 +236,7 @@ class BandDetailScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
-            'Invite code',
+            l10n.bandDetailInviteCodeHeader,
             style: Theme.of(context).textTheme.labelLarge,
           ),
         ),
@@ -246,7 +251,9 @@ class BandDetailScreen extends ConsumerWidget {
                 ),
               ),
               Tooltip(
-                message: isOnline ? 'Copy' : 'Requires connection',
+                message: isOnline
+                    ? l10n.bandDetailCopyTooltip
+                    : l10n.commonRequiresConnection,
                 child: IconButton(
                   icon: const Icon(Icons.content_copy),
                   onPressed: isOnline
@@ -256,7 +263,9 @@ class BandDetailScreen extends ConsumerWidget {
               ),
               if (isOwner == true)
                 Tooltip(
-                  message: isOnline ? 'Rotate' : 'Requires connection',
+                  message: isOnline
+                      ? l10n.commonRotate
+                      : l10n.commonRequiresConnection,
                   child: IconButton(
                     icon: const Icon(Icons.refresh),
                     onPressed: isOnline
@@ -276,7 +285,7 @@ class BandDetailScreen extends ConsumerWidget {
         const Divider(height: 1),
         ListTile(
           leading: const Icon(Icons.music_note),
-          title: const Text('Tracks'),
+          title: Text(l10n.navTracks),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -287,7 +296,7 @@ class BandDetailScreen extends ConsumerWidget {
         const Divider(height: 1),
         ListTile(
           leading: const Icon(Icons.playlist_play),
-          title: const Text('Setlists'),
+          title: Text(l10n.navSetlists),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
@@ -298,7 +307,7 @@ class BandDetailScreen extends ConsumerWidget {
         if (isOwner == true) ...[
           const Divider(height: 1),
           Tooltip(
-            message: isOnline ? '' : 'Requires connection',
+            message: isOnline ? '' : l10n.commonRequiresConnection,
             child: ListTile(
               enabled: isOnline,
               leading: Icon(
@@ -306,7 +315,7 @@ class BandDetailScreen extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.error,
               ),
               title: Text(
-                'Delete',
+                l10n.commonDelete,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               onTap: isOnline
@@ -324,7 +333,7 @@ class BandDetailScreen extends ConsumerWidget {
         if (isOwner == false) ...[
           const Divider(height: 1),
           Tooltip(
-            message: isOnline ? '' : 'Requires connection',
+            message: isOnline ? '' : l10n.commonRequiresConnection,
             child: ListTile(
               enabled: isOnline,
               leading: Icon(
@@ -332,7 +341,7 @@ class BandDetailScreen extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.error,
               ),
               title: Text(
-                'Leave',
+                l10n.commonLeave,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               onTap: isOnline
@@ -353,14 +362,16 @@ class BandDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _copyInviteCode(BuildContext context, String inviteCode) async {
+    final l10n = AppLocalizations.of(context)!;
     await Clipboard.setData(ClipboardData(text: inviteCode));
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Copied!')));
+    ).showSnackBar(SnackBar(content: Text(l10n.bandDetailCopiedSnackbar)));
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -368,17 +379,14 @@ class BandDetailScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Couldn't load band details",
+              l10n.bandDetailErrorTitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Please check your connection and try again.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonConnectionError, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),

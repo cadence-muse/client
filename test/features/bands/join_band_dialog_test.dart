@@ -5,9 +5,11 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/band_detail_screen.dart';
 import 'package:cadence/features/bands/join_band_dialog.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -43,6 +45,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Consumer(
           builder: (context, ref, _) => Scaffold(
             body: Builder(

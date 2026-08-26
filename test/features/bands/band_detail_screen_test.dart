@@ -7,15 +7,19 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/band_avatar.dart';
 import 'package:cadence/features/bands/band_detail_screen.dart';
 import 'package:cadence/features/bands/edit_band_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -47,7 +51,16 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: MaterialApp(home: BandDetailScreen(bandId: bandId)),
+      child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
+        home: BandDetailScreen(bandId: bandId),
+      ),
     );
   }
 
@@ -69,6 +82,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -184,7 +204,7 @@ void main() {
       await tester.pump();
 
       expect(copiedTexts, ['abc-123-def']);
-      expect(find.text('Copied!'), findsOneWidget);
+      expect(find.text(tester.strings.bandDetailCopiedSnackbar), findsOneWidget);
 
       await tester.pumpAndSettle();
     },
@@ -224,7 +244,7 @@ void main() {
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await tester.pumpAndSettle();
 
-    expect(find.text('No members'), findsOneWidget);
+    expect(find.text(tester.strings.bandDetailNoMembers), findsOneWidget);
   });
 
   testWidgets(
@@ -241,12 +261,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load band details"), findsOneWidget);
+      expect(find.text(tester.strings.bandDetailErrorTitle), findsOneWidget);
+      expect(find.text(tester.strings.commonConnectionError), findsOneWidget);
       expect(
-        find.text('Please check your connection and try again.'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
     },
   );
 
@@ -301,7 +321,9 @@ void main() {
       expect(field.controller!.text, 'Old Name');
 
       await tester.enterText(find.byType(TextFormField), 'New Name');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(EditBandScreen), findsNothing);
@@ -326,12 +348,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
-      expect(find.text('No cached data'), findsOneWidget);
+      expect(find.text(tester.strings.offlineNoCacheTitle), findsOneWidget);
       expect(
-        find.text('Connect to the internet to load this'),
+        find.text(tester.strings.offlineNoCacheDescription),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsNothing,
+      );
     },
   );
 
@@ -400,7 +425,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final deleteTile = tester.widget<ListTile>(
-        find.widgetWithText(ListTile, 'Delete'),
+        find.widgetWithText(ListTile, tester.strings.commonDelete),
       );
       expect(deleteTile.enabled, isTrue);
       expect(deleteTile.onTap, isNotNull);
@@ -412,7 +437,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Delete'), findsNothing);
+      expect(
+        find.widgetWithText(ListTile, tester.strings.commonDelete),
+        findsNothing,
+      );
 
       final memberCacheService = CacheService.inMemory();
       await memberCacheService.writeBandDetail('b1', band());
@@ -425,7 +453,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final leaveTile = tester.widget<ListTile>(
-        find.widgetWithText(ListTile, 'Leave'),
+        find.widgetWithText(ListTile, tester.strings.commonLeave),
       );
       expect(leaveTile.enabled, isTrue);
       expect(leaveTile.onTap, isNotNull);
@@ -437,7 +465,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Leave'), findsNothing);
+      expect(
+        find.widgetWithText(ListTile, tester.strings.commonLeave),
+        findsNothing,
+      );
     },
   );
 
@@ -490,7 +521,7 @@ void main() {
     await tester.pumpWidget(wrap(ownerApiClient, cacheService));
     await tester.pumpAndSettle();
 
-    expect(find.text('Delete'), findsOneWidget);
+    expect(find.text(tester.strings.commonDelete), findsOneWidget);
 
     // Non-owner: profile id doesn't match ownerId.
     final memberCacheService = CacheService.inMemory();
@@ -503,7 +534,7 @@ void main() {
     await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
     await tester.pumpAndSettle();
 
-    expect(find.text('Delete'), findsNothing);
+    expect(find.text(tester.strings.commonDelete), findsNothing);
   });
 
   testWidgets(
@@ -520,11 +551,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text(tester.strings.commonDelete));
       await tester.pumpAndSettle();
 
-      FilledButton deleteButton() =>
-          tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Delete'));
+      FilledButton deleteButton() => tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
+      );
 
       expect(deleteButton().onPressed, isNull);
 
@@ -567,20 +599,29 @@ void main() {
               (ref) => connectivityController.stream,
             ),
           ],
-          child: const MaterialApp(home: BandDetailScreen(bandId: 'b1')),
+          child: MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en'), Locale('ru')],
+            home: const BandDetailScreen(bandId: 'b1'),
+          ),
         ),
       );
       connectivityController.add(ConnectivityStatus.online);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text(tester.strings.commonDelete));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'The Band');
       await tester.pump();
 
       FilledButton deleteButton() => tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Delete'),
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
       );
       expect(deleteButton().onPressed, isNotNull);
 
@@ -592,7 +633,10 @@ void main() {
       expect(
         tester
             .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Requires connection'),
+              find.widgetWithText(
+                FilledButton,
+                tester.strings.commonRequiresConnection,
+              ),
             )
             .onPressed,
         isNull,
@@ -623,12 +667,14 @@ void main() {
       await tester.tap(find.text('Bands list root'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text(tester.strings.commonDelete));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'The Band');
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
+      );
       await tester.pumpAndSettle();
 
       expect(deleteRequests, hasLength(1));
@@ -654,7 +700,7 @@ void main() {
       await tester.pumpWidget(wrap(memberApiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('Leave'), findsOneWidget);
+      expect(find.text(tester.strings.commonLeave), findsOneWidget);
 
       // Owner: profile id matches ownerId.
       final ownerCacheService = CacheService.inMemory();
@@ -667,7 +713,7 @@ void main() {
       await tester.pumpWidget(wrap(ownerApiClient, ownerCacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('Leave'), findsNothing);
+      expect(find.text(tester.strings.commonLeave), findsNothing);
     },
   );
 
@@ -694,10 +740,12 @@ void main() {
       await tester.tap(find.text('Bands list root'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Leave'));
+      await tester.tap(find.text(tester.strings.commonLeave));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonLeave),
+      );
       await tester.pumpAndSettle();
 
       expect(removeRequests, hasLength(1));
@@ -735,8 +783,11 @@ void main() {
       await tester.tap(find.byType(PopupMenuButton<void>));
       await tester.pumpAndSettle();
 
-      expect(find.text('Make owner'), findsOneWidget);
-      expect(find.text('Remove'), findsOneWidget);
+      expect(
+        find.text(tester.strings.bandDetailMakeOwnerAction),
+        findsOneWidget,
+      );
+      expect(find.text(tester.strings.commonRemove), findsOneWidget);
 
       await tester.tapAt(const Offset(0, 0));
       await tester.pumpAndSettle();
@@ -785,10 +836,12 @@ void main() {
 
       await tester.tap(find.byType(PopupMenuButton<void>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Remove'));
+      await tester.tap(find.text(tester.strings.commonRemove));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonRemove),
+      );
       await tester.pumpAndSettle();
 
       expect(removeRequests, hasLength(1));
@@ -820,17 +873,19 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text(tester.strings.commonDelete));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'The Band');
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Delete failed'), findsOneWidget);
       final deleteButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Delete'),
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
       );
       expect(deleteButton.onPressed, isNotNull);
     },
@@ -854,15 +909,17 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Leave'));
+      await tester.tap(find.text(tester.strings.commonLeave));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonLeave),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Leave failed'), findsOneWidget);
       final leaveButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Leave'),
+        find.widgetWithText(FilledButton, tester.strings.commonLeave),
       );
       expect(leaveButton.onPressed, isNotNull);
     },
@@ -892,15 +949,17 @@ void main() {
 
       await tester.tap(find.byType(PopupMenuButton<void>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Remove'));
+      await tester.tap(find.text(tester.strings.commonRemove));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonRemove),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Remove failed'), findsOneWidget);
       final removeButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Remove'),
+        find.widgetWithText(FilledButton, tester.strings.commonRemove),
       );
       expect(removeButton.onPressed, isNotNull);
     },
@@ -923,20 +982,19 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Delete'));
+      await tester.tap(find.text(tester.strings.commonDelete));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'The Band');
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
+      );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Something went wrong. Please try again.'),
-        findsOneWidget,
-      );
+      expect(find.text(tester.strings.commonSomethingWentWrong), findsOneWidget);
       final deleteButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Delete'),
+        find.widgetWithText(FilledButton, tester.strings.commonDelete),
       );
       expect(deleteButton.onPressed, isNotNull);
     },
@@ -959,18 +1017,17 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Leave'));
+      await tester.tap(find.text(tester.strings.commonLeave));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('Something went wrong. Please try again.'),
-        findsOneWidget,
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonLeave),
       );
+      await tester.pumpAndSettle();
+
+      expect(find.text(tester.strings.commonSomethingWentWrong), findsOneWidget);
       final leaveButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Leave'),
+        find.widgetWithText(FilledButton, tester.strings.commonLeave),
       );
       expect(leaveButton.onPressed, isNotNull);
     },
@@ -993,7 +1050,12 @@ void main() {
       // The default `band()` fixture has exactly one member, so the
       // singular "1 member" (no trailing "s") is correct per BAND-10's
       // pluralization truth.
-      expect(find.text('Owner • 1 member'), findsOneWidget);
+      expect(
+        find.text(
+          '${tester.strings.bandRoleOwner} • ${tester.strings.memberCount(1)}',
+        ),
+        findsOneWidget,
+      );
 
       final memberCacheService = CacheService.inMemory();
       await memberCacheService.writeBandDetail('b1', band());
@@ -1005,7 +1067,12 @@ void main() {
       await tester.pumpWidget(wrap(memberApiClient, memberCacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('Member • 1 member'), findsOneWidget);
+      expect(
+        find.text(
+          '${tester.strings.bandRoleMember} • ${tester.strings.memberCount(1)}',
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -1032,18 +1099,17 @@ void main() {
 
       await tester.tap(find.byType(PopupMenuButton<void>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Remove'));
+      await tester.tap(find.text(tester.strings.commonRemove));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('Something went wrong. Please try again.'),
-        findsOneWidget,
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonRemove),
       );
+      await tester.pumpAndSettle();
+
+      expect(find.text(tester.strings.commonSomethingWentWrong), findsOneWidget);
       final removeButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Remove'),
+        find.widgetWithText(FilledButton, tester.strings.commonRemove),
       );
       expect(removeButton.onPressed, isNotNull);
     },
@@ -1151,8 +1217,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Make owner'), findsOneWidget);
-      expect(find.text('Remove'), findsOneWidget);
+      expect(
+        find.text(tester.strings.bandDetailMakeOwnerAction),
+        findsOneWidget,
+      );
+      expect(find.text(tester.strings.commonRemove), findsOneWidget);
     },
   );
 
@@ -1200,10 +1269,15 @@ void main() {
 
       await tester.tap(find.byType(PopupMenuButton<void>));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Make owner'));
+      await tester.tap(find.text(tester.strings.bandDetailMakeOwnerAction));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.confirmTransferOwnershipButton,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Post-transfer: both members still present. The client never
