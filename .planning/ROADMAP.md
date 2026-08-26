@@ -159,12 +159,12 @@ Plans:
   3. The existing automated test suite passes by asserting against a centralized test-strings utility rather than hardcoded English literals in `find.text(...)` calls.
   4. An `IndexedStack` tab that wasn't visible at the moment of a language switch still renders fully localized text once the user navigates to it.
 
-**Plans**: 13 plans
+**Plans**: 1/13 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 13-01-PLAN.md — ARB pipeline tracer (Bands tab + Band Detail) + complete phase-wide ARB key batch
+- [x] 13-01-PLAN.md — ARB pipeline tracer (Bands tab + Band Detail) + complete phase-wide ARB key batch
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -217,5 +217,5 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete | 2026-08-22 |
 | 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete    | 2026-08-25 |
-| 13. String Extraction & Screen Localization | v1.2 | 0/13 | Not started | — |
+| 13. String Extraction & Screen Localization | v1.2 | 1/13 | In Progress|  |
 | 14. API Error Localization | v1.2 | 0/? | Not started | — |
