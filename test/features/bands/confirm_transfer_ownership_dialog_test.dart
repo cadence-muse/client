@@ -3,13 +3,17 @@ import 'dart:convert';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/confirm_transfer_ownership_dialog.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -39,6 +43,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -91,7 +102,9 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await openDialog(tester);
-    await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+    await tester.tap(
+      find.widgetWithText(TextButton, tester.strings.commonCancel),
+    );
     await tester.pumpAndSettle();
 
     expect(callCount, 0);
@@ -110,12 +123,11 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openDialog(tester);
 
-      expect(
-        find.textContaining(
-          'You will no longer be the owner of The Testers.',
-        ),
-        findsOneWidget,
-      );
+      final selfEffect = tester.strings
+          .confirmTransferOwnershipBody('bob', 'The Testers')
+          .split('\n\n')
+          .last;
+      expect(find.textContaining(selfEffect), findsOneWidget);
     },
   );
 
@@ -136,7 +148,12 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openDialog(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.confirmTransferOwnershipButton,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(requestMethod, 'POST');
@@ -171,7 +188,12 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openDialog(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.confirmTransferOwnershipButton,
+        ),
+      );
       await tester.pump();
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -195,7 +217,12 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openDialog(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Transfer'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.confirmTransferOwnershipButton,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Transfer failed'), findsOneWidget);
@@ -255,10 +282,15 @@ void main() {
       await openDialog(tester);
 
       expect(tester.takeException(), isNull);
-      expect(
-        find.textContaining('You will no longer be the owner of'),
-        findsOneWidget,
+      final selfEffectSuffix = tester.strings
+          .confirmTransferOwnershipBody(longUsername, longBandName)
+          .split('\n\n')
+          .last;
+      final selfEffectPrefix = selfEffectSuffix.substring(
+        0,
+        selfEffectSuffix.indexOf(longBandName),
       );
+      expect(find.textContaining(selfEffectPrefix), findsOneWidget);
       expect(find.byType(ConfirmTransferOwnershipDialog), findsOneWidget);
     },
   );
