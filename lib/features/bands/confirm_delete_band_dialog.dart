@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -41,6 +42,7 @@ class _ConfirmDeleteBandDialogState
   }
 
   Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -59,7 +61,7 @@ class _ConfirmDeleteBandDialogState
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -67,24 +69,22 @@ class _ConfirmDeleteBandDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Exact match only — no .trim()/.toLowerCase() — per D-13's intent.
     final matches = _controller.text == widget.bandName;
     final isOnline = ref.watch(isOnlineProvider);
 
     return AlertDialog(
-      title: Text('Delete ${widget.bandName}?'),
+      title: Text(l10n.confirmDeleteBandTitle(widget.bandName)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Type the band name to confirm. This action cannot be undone '
-            'and will remove the band for all members.',
-          ),
+          Text(l10n.confirmDeleteBandBody),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
-            decoration: const InputDecoration(labelText: 'Band name'),
+            decoration: InputDecoration(labelText: l10n.commonBandNameLabel),
             onChanged: (_) => setState(() {}),
           ),
           if (_errorMessage != null) ...[
@@ -99,10 +99,10 @@ class _ConfirmDeleteBandDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         Tooltip(
-          message: isOnline ? '' : 'Requires connection',
+          message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -116,7 +116,7 @@ class _ConfirmDeleteBandDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? 'Delete' : 'Requires connection'),
+                : Text(isOnline ? l10n.commonDelete : l10n.commonRequiresConnection),
           ),
         ),
       ],
