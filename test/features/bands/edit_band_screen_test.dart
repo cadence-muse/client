@@ -4,14 +4,18 @@ import 'dart:io';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/edit_band_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -47,6 +51,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: EditBandScreen(bandId: bandId, currentName: currentName),
       ),
     );
@@ -69,6 +80,13 @@ void main() {
         isOnlineProvider.overrideWithValue(true),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -114,11 +132,13 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await tester.enterText(find.byType(TextFormField), '   ');
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonSave),
+    );
     await tester.pump();
 
     expect(callCount, 0);
-    expect(find.text('Enter a band name'), findsOneWidget);
+    expect(find.text(tester.strings.commonEnterBandName), findsOneWidget);
   });
 
   testWidgets('submitting a valid new name calls updateBand and pops back', (
@@ -141,7 +161,9 @@ void main() {
     expect(find.byType(EditBandScreen), findsOneWidget);
 
     await tester.enterText(find.byType(TextFormField), 'New Name');
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonSave),
+    );
     await tester.pumpAndSettle();
 
     expect(requestMethod, 'PUT');
@@ -164,7 +186,9 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await tester.enterText(find.byType(TextFormField), 'New Name');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Name is taken'), findsOneWidget);
@@ -173,35 +197,30 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Save button is disabled and reads "Requires connection" while '
-    'offline; enabled with a valid form while online',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        return http.Response('', 200);
-      });
+  testWidgets('Save button is disabled and reads "Requires connection" while '
+      'offline; enabled with a valid form while online', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient, isOnline: false));
-      await tester.enterText(find.byType(TextFormField), 'New Name');
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient, isOnline: false));
+    await tester.enterText(find.byType(TextFormField), 'New Name');
+    await tester.pump();
 
-      final offlineButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(offlineButton.onPressed, isNull);
-      expect(find.text('Requires connection'), findsOneWidget);
+    final offlineButton = tester.widget<FilledButton>(
+      find.byType(FilledButton),
+    );
+    expect(offlineButton.onPressed, isNull);
+    expect(find.text(tester.strings.commonRequiresConnection), findsOneWidget);
 
-      await tester.pumpWidget(wrap(apiClient));
-      await tester.enterText(find.byType(TextFormField), 'New Name');
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient));
+    await tester.enterText(find.byType(TextFormField), 'New Name');
+    await tester.pump();
 
-      final onlineButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(onlineButton.onPressed, isNotNull);
-      expect(find.text('Save'), findsOneWidget);
-    },
-  );
+    final onlineButton = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(onlineButton.onPressed, isNotNull);
+    expect(find.text(tester.strings.commonSave), findsOneWidget);
+  });
 
   testWidgets(
     'a long/multi-byte-script band name is accepted by the field without a '
@@ -238,7 +257,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // No change to the pre-filled text — submit as-is.
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       expect(callCount, 1);
@@ -256,11 +277,13 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await tester.enterText(find.byType(TextFormField), 'New Name');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Something went wrong. Please try again.'),
+        find.text(tester.strings.commonSomethingWentWrong),
         findsOneWidget,
       );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -301,13 +324,22 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: const MaterialApp(
+            localizationsDelegates: [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: [Locale('en'), Locale('ru')],
             home: EditBandScreen(bandId: 'b1', currentName: 'The Testers'),
           ),
         ),
       );
 
       await tester.enterText(find.byType(TextFormField), 'New Name');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       final bands = container.read(bandsListDataProvider).valueOrNull;
