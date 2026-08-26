@@ -4,14 +4,18 @@ import 'dart:io';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/edit_track_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/tracks_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   const currentTrack = {
@@ -50,6 +54,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -137,7 +148,7 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await openEditTrackScreen(tester);
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
     await tester.pump();
 
     final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -163,7 +174,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openEditTrackScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), 'New Title');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pumpAndSettle();
 
       expect(requestMethod, 'PUT');
@@ -200,7 +211,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(2), '');
       await tester.enterText(find.byType(TextFormField).at(3), '');
       await tester.enterText(find.byType(TextFormField).at(4), '');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pumpAndSettle();
 
       expect(
@@ -236,7 +247,7 @@ void main() {
 
       expect(find.text('4:20'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pumpAndSettle();
 
       expect(
@@ -266,12 +277,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openEditTrackScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(2), '560');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pump();
 
       expect(callCount, 0);
       expect(
-        find.text('Seconds must be 0–59 (e.g. 2:30, not 2:75)'),
+        find.text(tester.strings.commonDurationSecondsRange),
         findsOneWidget,
       );
     },
@@ -302,6 +313,13 @@ void main() {
             isOnlineProvider.overrideWithValue(true),
           ],
           child: MaterialApp(
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en'), Locale('ru')],
             home: Consumer(
               builder: (context, ref, _) {
                 // Watching userTracksListDataProvider here (as the real
@@ -335,7 +353,7 @@ void main() {
 
       await openEditTrackScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), 'New Title');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pumpAndSettle();
 
       expect(trackListCallCount, greaterThan(callCountBeforeMutation));
@@ -355,12 +373,12 @@ void main() {
       await openEditTrackScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), '');
       await tester.enterText(find.byType(TextFormField).at(1), '');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pump();
 
       expect(callCount, 0);
-      expect(find.text('Enter a track title'), findsOneWidget);
-      expect(find.text('Enter an artist name'), findsOneWidget);
+      expect(find.text(tester.strings.commonEnterTrackTitle), findsOneWidget);
+      expect(find.text(tester.strings.commonEnterArtistName), findsOneWidget);
     },
   );
 
@@ -378,11 +396,11 @@ void main() {
       // TextFormFields in order: Title(0), Artist(1), Duration(2),
       // Tempo(3), Notes(4).
       await tester.enterText(find.byType(TextFormField).at(3), 'abc');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pump();
 
       expect(callCount, 0);
-      expect(find.text('Enter a whole number'), findsOneWidget);
+      expect(find.text(tester.strings.commonEnterWholeNumber), findsOneWidget);
     },
   );
 
@@ -399,7 +417,7 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openEditTrackScreen(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pumpAndSettle();
 
       expect(find.text('Title is required'), findsOneWidget);
@@ -418,11 +436,11 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openEditTrackScreen(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonSave));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Something went wrong. Please try again.'),
+        find.text(tester.strings.commonSomethingWentWrong),
         findsOneWidget,
       );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));

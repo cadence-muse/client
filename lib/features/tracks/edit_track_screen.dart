@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/tracks_provider.dart';
@@ -72,9 +73,10 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
   /// was previously treated the same as a genuinely blank field). An empty
   /// field remains valid — Duration/Tempo stay optional.
   String? _wholeNumberValidator(String? value) {
+    final l10n = AppLocalizations.of(context)!;
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
-    return int.tryParse(text) == null ? 'Enter a whole number' : null;
+    return int.tryParse(text) == null ? l10n.commonEnterWholeNumber : null;
   }
 
   /// DUR-02: independently re-validates the mm:ss Duration field at submit
@@ -84,27 +86,29 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
   /// (not extracted to a shared helper), matching the existing
   /// _wholeNumberValidator per-file convention.
   String? _durationValidator(String? value) {
+    final l10n = AppLocalizations.of(context)!;
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
     final parts = text.split(':');
     if (parts.length != 2) {
-      return 'Enter duration in mm:ss format (e.g. 0:30)';
+      return l10n.commonDurationFormatHint;
     }
     final minutes = int.tryParse(parts[0]);
     final seconds = int.tryParse(parts[1]);
     if (minutes == null || seconds == null) {
-      return 'Enter duration in mm:ss format (e.g. 0:30)';
+      return l10n.commonDurationFormatHint;
     }
     if (minutes < 0 || seconds < 0) {
-      return 'Duration cannot be negative';
+      return l10n.commonDurationNegative;
     }
     if (seconds > 59) {
-      return 'Seconds must be 0–59 (e.g. 2:30, not 2:75)';
+      return l10n.commonDurationSecondsRange;
     }
     return null;
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -171,7 +175,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -179,10 +183,11 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isOnline = ref.watch(isOnlineProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit track')),
+      appBar: AppBar(title: Text(l10n.editTrackAppBarTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -193,25 +198,25 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
               children: [
                 TextFormField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Title',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonTitleLabel,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) =>
                       (value == null || value.trim().isEmpty)
-                      ? 'Enter a track title'
+                      ? l10n.commonEnterTrackTitle
                       : null,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _artistController,
-                  decoration: const InputDecoration(
-                    labelText: 'Artist',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonArtistLabel,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) =>
                       (value == null || value.trim().isEmpty)
-                      ? 'Enter an artist name'
+                      ? l10n.commonEnterArtistName
                       : null,
                 ),
                 const SizedBox(height: 24),
@@ -219,11 +224,11 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                   controller: _durationController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [DurationTextInputFormatter()],
-                  decoration: const InputDecoration(
-                    labelText: 'Duration',
+                  decoration: InputDecoration(
+                    labelText: l10n.commonDurationLabel,
                     hintText: '0:00',
-                    helperText: 'e.g. 2:30 for 2 minutes 30 seconds',
-                    border: OutlineInputBorder(),
+                    helperText: l10n.commonDurationHelperText,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: _durationValidator,
                 ),
@@ -231,18 +236,18 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                 TextFormField(
                   controller: _tempoController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Tempo (BPM)',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonTempoLabel,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: _wholeNumberValidator,
                 ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
                   initialValue: _selectedKey,
-                  decoration: const InputDecoration(
-                    labelText: 'Key',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonKeyLabel,
+                    border: const OutlineInputBorder(),
                   ),
                   items: musicalKeys
                       .map((key) => DropdownMenuItem(value: key, child: Text(key)))
@@ -255,9 +260,9 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                   maxLines: null,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Notes',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonNotesLabel,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 if (_errorMessage != null) ...[
@@ -271,7 +276,7 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                 ],
                 const SizedBox(height: 24),
                 Tooltip(
-                  message: isOnline ? '' : 'Requires connection',
+                  message: isOnline ? '' : l10n.commonRequiresConnection,
                   child: FilledButton(
                     onPressed: (!isOnline || _isSubmitting) ? null : _submit,
                     child: _isSubmitting
@@ -280,7 +285,11 @@ class _EditTrackScreenState extends ConsumerState<EditTrackScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(isOnline ? 'Save' : 'Requires connection'),
+                        : Text(
+                            isOnline
+                                ? l10n.commonSave
+                                : l10n.commonRequiresConnection,
+                          ),
                   ),
                 ),
               ],

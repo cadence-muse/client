@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
@@ -18,6 +19,7 @@ class TracksScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     // D-01: this tab screen is kept alive by RootScaffold's IndexedStack, so
     // build() only runs once per app session by default — re-selecting the
     // Tracks tab (index 2) must explicitly invalidate the provider to fetch
@@ -33,7 +35,7 @@ class TracksScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tracks'),
+        title: Text(l10n.navTracks),
         // D-08: a subtle in-flight indicator while a refetch is running
         // with data already present, instead of blanking the screen; D-09's
         // cold-start spinner is the `loading:` branch below, unaffected.
@@ -62,6 +64,7 @@ class TracksScreen extends ConsumerWidget {
     WidgetRef ref,
     List<Map<String, dynamic>> bands,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final selectedBandId = ref.watch(selectedBandIdFilterProvider);
     // CR-02: `selectedBandIdFilterProvider` is never cleared when the
     // filtered band disappears from `bands` (left/deleted/ownership
@@ -81,9 +84,9 @@ class TracksScreen extends ConsumerWidget {
         isExpanded: true,
         value: effectiveBandId,
         items: [
-          const DropdownMenuItem<String?>(
+          DropdownMenuItem<String?>(
             value: null,
-            child: Text('All bands'),
+            child: Text(l10n.commonAllBandsFilter),
           ),
           for (final band in bands)
             DropdownMenuItem<String?>(
@@ -161,6 +164,7 @@ class TracksScreen extends ConsumerWidget {
     WidgetRef ref, {
     required bool showViewBandsButton,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -168,13 +172,13 @@ class TracksScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'No tracks',
+              l10n.tracksTabEmptyTitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Create tracks in a band to see them here.',
+            Text(
+              l10n.tracksTabEmptyDescription,
               textAlign: TextAlign.center,
             ),
             if (showViewBandsButton) ...[
@@ -186,7 +190,7 @@ class TracksScreen extends ConsumerWidget {
                 // being a no-op.
                 onPressed: () =>
                     ref.read(selectedTabIndexProvider.notifier).setIndex(1),
-                child: const Text('View bands'),
+                child: Text(l10n.tracksTabViewBandsButton),
               ),
             ],
           ],
@@ -196,6 +200,7 @@ class TracksScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -203,17 +208,17 @@ class TracksScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Couldn't load tracks",
+              l10n.commonCouldntLoadTracks,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Please check your connection and try again.',
+            Text(
+              l10n.commonConnectionError,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),
