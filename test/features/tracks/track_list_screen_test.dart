@@ -3,14 +3,18 @@ import 'dart:convert';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/tracks/track_list_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -35,7 +39,16 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: const MaterialApp(home: TrackListScreen(bandId: 'b1')),
+      child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
+        home: const TrackListScreen(bandId: 'b1'),
+      ),
     );
   }
 
@@ -88,12 +101,12 @@ void main() {
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await tester.pump();
 
-    expect(find.text('No tracks yet'), findsOneWidget);
+    expect(find.text(tester.strings.trackListEmptyTitle), findsOneWidget);
+    expect(find.text(tester.strings.trackListEmptyDescription), findsOneWidget);
     expect(
-      find.text('Create a track or ask a bandmate to add one.'),
+      find.widgetWithText(ElevatedButton, tester.strings.trackListAddButton),
       findsOneWidget,
     );
-    expect(find.widgetWithText(ElevatedButton, 'Add track'), findsOneWidget);
 
     await tester.pumpAndSettle();
   });
@@ -112,12 +125,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load tracks"), findsOneWidget);
+      expect(find.text(tester.strings.commonCouldntLoadTracks), findsOneWidget);
+      expect(find.text(tester.strings.commonConnectionError), findsOneWidget);
       expect(
-        find.text('Please check your connection and try again.'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
     },
   );
 
@@ -173,7 +186,7 @@ void main() {
         find.byType(FloatingActionButton),
       );
       expect(fab.onPressed, isNull);
-      expect(fab.tooltip, 'Requires connection');
+      expect(fab.tooltip, tester.strings.commonRequiresConnection);
     },
   );
 
@@ -289,7 +302,7 @@ void main() {
         find.byType(FloatingActionButton),
       );
       expect(fab.onPressed, isNotNull);
-      expect(fab.tooltip, 'Add track');
+      expect(fab.tooltip, tester.strings.trackListAddButton);
     },
   );
 }
