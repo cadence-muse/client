@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
 import '../../providers/tracks_provider.dart';
 import 'setlist_detail_screen.dart';
+import 'setlist_formatting.dart' show maxSetlistTracks;
 
 class CreateSetlistScreen extends ConsumerStatefulWidget {
   const CreateSetlistScreen({super.key, required this.bandId});
@@ -23,10 +25,6 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
   final _dateController = TextEditingController();
-
-  // CreateBandSetlistsRequestBody caps `trackIds` at 100 (publicapi.yml) —
-  // guard selection client-side against that flat cap (WR-03).
-  static const int _maxSetlistTracks = 100;
 
   final Set<String> _selectedTrackIds = {};
   bool _isSubmitting = false;
@@ -69,9 +67,10 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
         ref.invalidate(userSetlistsListDataProvider);
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$name created!')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.createSetlistSuccessSnackbar(name))),
+      );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => SetlistDetailScreen(
@@ -83,9 +82,9 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(
-        () => _errorMessage = 'Failed to create setlist. Try again.',
-      );
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _errorMessage = l10n.createSetlistFailedError);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -95,9 +94,10 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
   Widget build(BuildContext context) {
     final tracksAsync = ref.watch(trackListDataProvider(widget.bandId));
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Create setlist')),
+      appBar: AppBar(title: Text(l10n.createSetlistAppBarTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -108,37 +108,37 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonNameLabel,
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) =>
                       (value == null || value.trim().isEmpty)
-                      ? 'Name is required'
+                      ? l10n.commonNameRequired
                       : null,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Location',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonLocationLabel,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _dateController,
-                  decoration: const InputDecoration(
-                    labelText: 'Date',
-                    hintText: 'YYYY-MM-DD',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonDateLabel,
+                    hintText: l10n.createSetlistDateHint,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 24),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Add tracks (optional)',
+                    l10n.createSetlistAddTracksOptionalHeader,
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
@@ -146,13 +146,16 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                 tracksAsync.when(
                   data: (tracks) {
                     if (tracks.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text('No tracks in this band yet'),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(l10n.createSetlistNoTracksInBand),
                       );
                     }
+                    // CreateBandSetlistsRequestBody caps `trackIds` at 100
+                    // (publicapi.yml) — guard selection client-side against
+                    // that flat cap (WR-03).
                     final atCap =
-                        _selectedTrackIds.length >= _maxSetlistTracks;
+                        _selectedTrackIds.length >= maxSetlistTracks;
                     return Column(
                       children: [
                         for (final track in tracks)
@@ -189,8 +192,9 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Text(
-                              'Setlists can have at most $_maxSetlistTracks '
-                              'tracks.',
+                              l10n.setlistTracksLimit(
+                                l10n.trackCount(maxSetlistTracks),
+                              ),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ),
@@ -205,12 +209,12 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
-                        const Expanded(child: Text("Couldn't load tracks")),
+                        Expanded(child: Text(l10n.commonCouldntLoadTracks)),
                         TextButton(
                           onPressed: () => ref.invalidate(
                             trackListDataProvider(widget.bandId),
                           ),
-                          child: const Text('Retry'),
+                          child: Text(l10n.commonRetry),
                         ),
                       ],
                     ),
@@ -227,7 +231,7 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                 ],
                 const SizedBox(height: 24),
                 Tooltip(
-                  message: isOnline ? '' : 'Requires connection',
+                  message: isOnline ? '' : l10n.commonRequiresConnection,
                   child: FilledButton(
                     onPressed: (_isSubmitting || !isOnline) ? null : _submit,
                     child: _isSubmitting
@@ -236,7 +240,11 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(isOnline ? 'Create' : 'Requires connection'),
+                        : Text(
+                            isOnline
+                                ? l10n.commonCreate
+                                : l10n.commonRequiresConnection,
+                          ),
                   ),
                 ),
               ],
