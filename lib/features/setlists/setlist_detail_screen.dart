@@ -72,9 +72,10 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       }
     } on ApiException catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+      ).showSnackBar(SnackBar(content: Text(e.localizedMessage(l10n))));
     } catch (_) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;

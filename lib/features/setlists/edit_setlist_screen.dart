@@ -106,7 +106,7 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
       if (!mounted) return;
       Navigator.of(context).pop();
     } on ApiException catch (e) {
-      setState(() => _errorMessage = e.message);
+      setState(() => _errorMessage = e.localizedMessage(l10n));
     } catch (_) {
       setState(() => _errorMessage = l10n.editSetlistFailedError);
     } finally {

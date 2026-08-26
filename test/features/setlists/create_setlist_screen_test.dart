@@ -129,6 +129,37 @@ void main() {
   );
 
   testWidgets(
+    'a createSetlist() ApiException with a known error code renders the '
+    'localized generic message, not the raw server text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+        }
+        return http.Response(
+          jsonEncode({
+            'code': 'permission_denied',
+            'message': 'raw server text',
+          }),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openCreateSetlistScreen(tester);
+      await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonCreate));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.commonErrorPermissionDenied),
+        findsOneWidget,
+      );
+      expect(find.text('raw server text'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'a non-ApiException failure shows the Setlist-specific fallback message',
     (tester) async {
       final apiClient = buildApiClient((request) async {
