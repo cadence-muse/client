@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -35,6 +36,7 @@ class _ConfirmRemoveMemberDialogState
   String? _errorMessage;
 
   Future<void> _remove() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -53,7 +55,7 @@ class _ConfirmRemoveMemberDialogState
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = l10n.commonSomethingWentWrong);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -61,18 +63,18 @@ class _ConfirmRemoveMemberDialogState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isOnline = ref.watch(isOnlineProvider);
 
     return AlertDialog(
-      title: Text('Remove ${widget.memberUsername} from ${widget.bandName}?'),
+      title: Text(
+        l10n.confirmRemoveMemberTitle(widget.memberUsername, widget.bandName),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${widget.memberUsername} will no longer be a member of this '
-            'band.',
-          ),
+          Text(l10n.confirmRemoveMemberBody(widget.memberUsername)),
           if (_errorMessage != null) ...[
             const SizedBox(height: 16),
             Text(
@@ -85,10 +87,10 @@ class _ConfirmRemoveMemberDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         Tooltip(
-          message: isOnline ? '' : 'Requires connection',
+          message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -100,7 +102,7 @@ class _ConfirmRemoveMemberDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? 'Remove' : 'Requires connection'),
+                : Text(isOnline ? l10n.commonRemove : l10n.commonRequiresConnection),
           ),
         ),
       ],
