@@ -6,6 +6,7 @@ import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/setlists/setlists_screen.dart';
 import '../features/songs/tracks_screen.dart';
+import '../generated/app_localizations.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/offline_banner.dart';
 
@@ -15,6 +16,7 @@ class RootScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(selectedTabIndexProvider);
+    final l10n = AppLocalizations.of(context)!;
     // D-21: Home / Bands / Tracks / Setlists / Profile — a deliberate
     // reordering (Bands and Tracks swap positions, Setlists is inserted
     // after Tracks), not just an append-at-end of the new tab.
@@ -39,31 +41,31 @@ class RootScaffold extends ConsumerWidget {
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) =>
             ref.read(selectedTabIndexProvider.notifier).setIndex(index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: l10n.navHome,
           ),
           NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Bands',
+            icon: const Icon(Icons.groups_outlined),
+            selectedIcon: const Icon(Icons.groups),
+            label: l10n.navBands,
           ),
           NavigationDestination(
-            icon: Icon(Icons.music_note_outlined),
-            selectedIcon: Icon(Icons.music_note),
-            label: 'Tracks',
+            icon: const Icon(Icons.music_note_outlined),
+            selectedIcon: const Icon(Icons.music_note),
+            label: l10n.navTracks,
           ),
           NavigationDestination(
-            icon: Icon(Icons.playlist_play_outlined),
-            selectedIcon: Icon(Icons.playlist_play),
-            label: 'Setlists',
+            icon: const Icon(Icons.playlist_play_outlined),
+            selectedIcon: const Icon(Icons.playlist_play),
+            label: l10n.navSetlists,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: l10n.navProfile,
           ),
         ],
       ),
