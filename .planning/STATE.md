@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-25)
+See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 13 — String Extraction & Screen Localization
+**Current focus:** Phase 14 — API Error Localization
 
 ## Current Position
 
@@ -104,6 +104,9 @@ Recent decisions affecting current work:
 - Roadmap: Bands → Tracks → Setlists ordering in v1.0 followed the API's own resource nesting (bandId scopes tracks and setlists).
 - [Phase 3]: `updateBandTrack` always sends all 6 editable fields instead of omitting nulls — server treats an omitted field as "keep" and an explicit `null` as "clear"; applies to any future PUT/PATCH with optional clearable fields (relevant to Phase 8's owner-mutation endpoints).
 - [Phase 5]: Quick 260819-v0u: AuthSession.signOut() calls PublicApi.logout() best-effort with a `_loggingOut` reentrancy guard to prevent unbounded recursion on a 403 from the logout call itself.
+- [Phase 13]: All 19 screens/9+ dialogs migrated to `AppLocalizations`; `test/test_strings.dart` centralizes test-string assertions (`tester.strings.keyName`) across 24 test files, replacing hardcoded English literals in `find.text(...)`.
+- [Phase 13]: `memberCount`/`trackCount`/`slotCount` use full ICU plural forms (one/few/many/other) for correct Russian 1/2–4/5+ pluralization.
+- [Phase 13 code review]: `DurationTextInputFormatter`'s in-phase algorithmic rewrite broke backspace-to-empty clearing (stuck at "0:00") — caught and fixed same-session (CR-01, commit 10a9544); flagged as scope creep bundled into a string-extraction phase (WR-02) — keep behavioral changes in their own reviewed diff going forward.
 
 ### Pending Todos
 
@@ -140,10 +143,10 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-25T18:53:33.825Z
+Last session: 2026-08-26T17:35:08.238Z
 Stopped at: Phase 13 complete, ready to plan Phase 14
-Resume file: .planning/phases/13-string-extraction-screen-localization/13-CONTEXT.md
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 12 (Locale + i18n Infrastructure) with /gsd-plan-phase
+- Plan Phase 14 (API Error Localization) with /gsd-plan-phase
