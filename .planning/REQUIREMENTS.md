@@ -13,7 +13,7 @@ Requirements for the v1.2 milestone (i18n and duration input). Each maps to road
 - [ ] **I18N-02**: Language switch applies live across the whole app with no restart required
 - [ ] **I18N-03**: Selected language persists locally on-device across app restarts (no API/account sync)
 - [x] **I18N-04**: All UI strings — labels, buttons, dialogs, validation messages — are localized in English and Russian
-- [ ] **I18N-05**: Known API error codes are mapped to localized messages in the user's selected language; unmapped codes fall back to the raw server text
+- [x] **I18N-05**: Known API error codes are mapped to localized messages in the user's selected language; unmapped codes fall back to the raw server text
 - [x] **I18N-06**: Count-bearing localized strings (e.g. band member count, track count) use grammatically correct Russian plural forms (1 / 2–4 / 5+), not English-style pluralization
 
 ### Duration Input
@@ -46,7 +46,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | I18N-02 | Phase 12: Locale + i18n Infrastructure | Mapped |
 | I18N-03 | Phase 12: Locale + i18n Infrastructure | Mapped |
 | I18N-04 | Phase 13: String Extraction & Screen Localization | Complete |
-| I18N-05 | Phase 14: API Error Localization | Mapped |
+| I18N-05 | Phase 14: API Error Localization | Complete |
 | I18N-06 | Phase 13: String Extraction & Screen Localization | Complete |
 | DUR-01 | Phase 11: Duration mm:ss Input + Display | Complete |
 | DUR-02 | Phase 11: Duration mm:ss Input + Display | Complete |
