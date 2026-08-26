@@ -7,16 +7,20 @@ import 'package:cadence/features/bands/create_band_screen.dart';
 import 'package:cadence/features/home/home_screen.dart';
 import 'package:cadence/features/setlists/create_setlist_screen.dart';
 import 'package:cadence/features/tracks/create_track_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/homepage_provider.dart';
 import 'package:cadence/providers/navigation_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   // Routes `/api/band/list` to [bands] before delegating to [handler] for
@@ -58,7 +62,16 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: const MaterialApp(home: HomeScreen()),
+      child: const MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [Locale('en'), Locale('ru')],
+        home: HomeScreen(),
+      ),
     );
   }
 
@@ -81,21 +94,27 @@ void main() {
       // data, so a single frame no longer guarantees it has landed.
       await tester.pumpAndSettle();
 
-      expect(find.text('Welcome, alice'), findsOneWidget);
-      expect(find.text('Quick Actions'), findsOneWidget);
+      expect(
+        find.text(tester.strings.homeWelcomeMessage('alice')),
+        findsOneWidget,
+      );
+      expect(find.text(tester.strings.homeQuickActionsHeader), findsOneWidget);
 
       final addBand = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, 'Add Band'),
+        find.widgetWithText(ElevatedButton, tester.strings.homeAddBandButton),
       );
       expect(addBand.onPressed, isNotNull);
 
       final addSong = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, 'Add Song'),
+        find.widgetWithText(ElevatedButton, tester.strings.homeAddSongButton),
       );
       expect(addSong.onPressed, isNull);
 
       final addSetlist = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, 'Add Setlist'),
+        find.widgetWithText(
+          ElevatedButton,
+          tester.strings.homeAddSetlistButton,
+        ),
       );
       expect(addSetlist.onPressed, isNull);
     },
@@ -118,10 +137,17 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('Welcome, alice'), findsOneWidget);
-      expect(find.text('Quick Actions'), findsOneWidget);
+      expect(
+        find.text(tester.strings.homeWelcomeMessage('alice')),
+        findsOneWidget,
+      );
+      expect(find.text(tester.strings.homeQuickActionsHeader), findsOneWidget);
 
-      for (final label in ['Add Band', 'Add Song', 'Add Setlist']) {
+      for (final label in [
+        tester.strings.homeAddBandButton,
+        tester.strings.homeAddSongButton,
+        tester.strings.homeAddSetlistButton,
+      ]) {
         final button = tester.widget<ElevatedButton>(
           find.widgetWithText(ElevatedButton, label),
         );
@@ -144,12 +170,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load home"), findsOneWidget);
+      expect(find.text(tester.strings.homeErrorTitle), findsOneWidget);
+      expect(find.text(tester.strings.commonConnectionError), findsOneWidget);
       expect(
-        find.text('Please check your connection and try again.'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
     },
   );
 
@@ -174,7 +200,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final textWidget = tester.widget<Text>(
-        find.text('Welcome, $longUsername'),
+        find.text(tester.strings.homeWelcomeMessage(longUsername)),
       );
       expect(textWidget.maxLines, 1);
       expect(textWidget.overflow, TextOverflow.ellipsis);
@@ -199,7 +225,10 @@ void main() {
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
       expect(find.text('No cached data'), findsOneWidget);
       expect(find.text('Connect to the internet to load this'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsNothing,
+      );
     },
   );
 
@@ -262,7 +291,7 @@ void main() {
 
       firstFetchGate.complete();
       await tester.pumpAndSettle();
-      expect(find.text('Quick Actions'), findsOneWidget);
+      expect(find.text(tester.strings.homeQuickActionsHeader), findsOneWidget);
 
       final container = ProviderScope.containerOf(
         tester.element(find.byType(HomeScreen)),
@@ -276,7 +305,7 @@ void main() {
       // D-08: refreshing with data already present keeps old content
       // visible and shows the subtle indicator instead of the full-screen
       // spinner.
-      expect(find.text('Quick Actions'), findsOneWidget);
+      expect(find.text(tester.strings.homeQuickActionsHeader), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
 
@@ -301,7 +330,9 @@ void main() {
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Add Band'));
+    await tester.tap(
+      find.widgetWithText(ElevatedButton, tester.strings.homeAddBandButton),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(CreateBandScreen), findsOneWidget);
@@ -330,7 +361,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Add Song'));
+      await tester.tap(
+        find.widgetWithText(ElevatedButton, tester.strings.homeAddSongButton),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('The Testers'), findsOneWidget);
@@ -369,7 +402,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Add Setlist'));
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          tester.strings.homeAddSetlistButton,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('The Testers'), findsOneWidget);
@@ -404,7 +442,9 @@ void main() {
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Add Song'));
+    await tester.tap(
+      find.widgetWithText(ElevatedButton, tester.strings.homeAddSongButton),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('The Testers'), findsOneWidget);
@@ -432,7 +472,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Add Setlist'));
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          tester.strings.homeAddSetlistButton,
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.text('The Testers'), findsOneWidget);
 

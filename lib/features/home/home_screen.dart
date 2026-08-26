@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/homepage_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
@@ -22,14 +23,15 @@ class HomeScreen extends ConsumerWidget {
     });
 
     final homeAsync = ref.watch(homepageDataProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: Text(l10n.homeAppBarTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: l10n.commonRefresh,
             onPressed: () => ref.read(homepageDataProvider.notifier).refresh(),
           ),
         ],
@@ -71,6 +73,7 @@ class HomeScreen extends ConsumerWidget {
   ) {
     final username = data['username'] as String;
     final bandsCount = data['bandsCount'] as int;
+    final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       child: Padding(
@@ -103,7 +106,7 @@ class HomeScreen extends ConsumerWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        'Welcome, $username',
+                        l10n.homeWelcomeMessage(username),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
@@ -117,7 +120,7 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             // D-02: "Quick Actions" section header.
             Text(
-              'Quick Actions',
+              l10n.homeQuickActionsHeader,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
@@ -132,21 +135,21 @@ class HomeScreen extends ConsumerWidget {
                     MaterialPageRoute(builder: (_) => const CreateBandScreen()),
                   ),
                   icon: const Icon(Icons.group_add),
-                  label: const Text('Add Band'),
+                  label: Text(l10n.homeAddBandButton),
                 ),
                 ElevatedButton.icon(
                   onPressed: bandsCount > 0
                       ? () => showBandPickerSheet(context, ref, forTrack: true)
                       : null,
                   icon: const Icon(Icons.music_note),
-                  label: const Text('Add Song'),
+                  label: Text(l10n.homeAddSongButton),
                 ),
                 ElevatedButton.icon(
                   onPressed: bandsCount > 0
                       ? () => showBandPickerSheet(context, ref, forTrack: false)
                       : null,
                   icon: const Icon(Icons.playlist_add),
-                  label: const Text('Add Setlist'),
+                  label: Text(l10n.homeAddSetlistButton),
                 ),
               ],
             ),
@@ -157,6 +160,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -164,17 +168,14 @@ class HomeScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Couldn't load home",
+              l10n.homeErrorTitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Please check your connection and try again.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonConnectionError, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),
