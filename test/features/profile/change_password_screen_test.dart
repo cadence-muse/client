@@ -3,12 +3,16 @@ import 'dart:convert';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/profile/change_password_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -28,7 +32,16 @@ void main() {
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(cacheService),
       ],
-      child: const MaterialApp(home: ChangePasswordScreen()),
+      child: const MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [Locale('en'), Locale('ru')],
+        home: ChangePasswordScreen(),
+      ),
     );
   }
 
@@ -43,6 +56,13 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -68,15 +88,21 @@ void main() {
     String confirm = 'newpassword123',
   }) async {
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Current password'),
+      find.widgetWithText(
+        TextFormField,
+        tester.strings.changePasswordCurrentLabel,
+      ),
       current,
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'New password'),
+      find.widgetWithText(TextFormField, tester.strings.changePasswordNewLabel),
       next,
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm new password'),
+      find.widgetWithText(
+        TextFormField,
+        tester.strings.changePasswordConfirmLabel,
+      ),
       confirm,
     );
   }
@@ -92,12 +118,21 @@ void main() {
     await tester.pumpWidget(wrap(apiClient, cacheService));
 
     expect(
-      find.widgetWithText(TextFormField, 'Current password'),
+      find.widgetWithText(
+        TextFormField,
+        tester.strings.changePasswordCurrentLabel,
+      ),
       findsOneWidget,
     );
-    expect(find.widgetWithText(TextFormField, 'New password'), findsOneWidget);
     expect(
-      find.widgetWithText(TextFormField, 'Confirm new password'),
+      find.widgetWithText(TextFormField, tester.strings.changePasswordNewLabel),
+      findsOneWidget,
+    );
+    expect(
+      find.widgetWithText(
+        TextFormField,
+        tester.strings.changePasswordConfirmLabel,
+      ),
       findsOneWidget,
     );
     expect(find.byType(TextFormField), findsNWidgets(3));
@@ -123,10 +158,15 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await fillForm(tester, current: '');
-    await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+    await tester.tap(
+      find.widgetWithText(
+        FilledButton,
+        tester.strings.changePasswordSubmitButton,
+      ),
+    );
     await tester.pump();
 
-    expect(find.text('This field is required'), findsOneWidget);
+    expect(find.text(tester.strings.commonFieldRequired), findsOneWidget);
     expect(calls, 0);
   });
 
@@ -138,10 +178,15 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await fillForm(tester, next: 'short', confirm: 'short');
-    await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+    await tester.tap(
+      find.widgetWithText(
+        FilledButton,
+        tester.strings.changePasswordSubmitButton,
+      ),
+    );
     await tester.pump();
 
-    expect(find.text('At least 8 characters'), findsOneWidget);
+    expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
   });
 
   testWidgets("mismatched confirm shows Passwords don't match error", (
@@ -158,10 +203,18 @@ void main() {
       next: 'newpassword123',
       confirm: 'differentpassword',
     );
-    await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+    await tester.tap(
+      find.widgetWithText(
+        FilledButton,
+        tester.strings.changePasswordSubmitButton,
+      ),
+    );
     await tester.pump();
 
-    expect(find.text("Passwords don't match"), findsOneWidget);
+    expect(
+      find.text(tester.strings.changePasswordMismatchError),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -184,7 +237,12 @@ void main() {
         next: 'newpassword123',
         confirm: 'newpassword123',
       );
-      await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.changePasswordSubmitButton,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(requests, hasLength(1));
@@ -194,7 +252,10 @@ void main() {
       expect(body['currentPassword'], 'oldpassword');
       expect(body['newPassword'], 'newpassword123');
 
-      expect(find.text('Password changed successfully'), findsOneWidget);
+      expect(
+        find.text(tester.strings.changePasswordSuccessSnackbar),
+        findsOneWidget,
+      );
       expect(find.byType(ChangePasswordScreen), findsNothing);
       expect(find.text('Profile root'), findsOneWidget);
     },
@@ -216,10 +277,18 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await fillForm(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.changePasswordSubmitButton,
+        ),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text('Current password is incorrect'), findsOneWidget);
+      expect(
+        find.text(tester.strings.changePasswordIncorrectCurrentError),
+        findsOneWidget,
+      );
       expect(find.text('current password does not match'), findsNothing);
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
@@ -239,7 +308,12 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await fillForm(tester);
-    await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+    await tester.tap(
+      find.widgetWithText(
+        FilledButton,
+        tester.strings.changePasswordSubmitButton,
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Something broke'), findsOneWidget);
@@ -256,7 +330,12 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await fillForm(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.changePasswordSubmitButton,
+        ),
+      );
       await tester.pump();
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -280,17 +359,31 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await fillForm(tester);
-    await tester.tap(find.widgetWithText(FilledButton, 'Change password'));
+    await tester.tap(
+      find.widgetWithText(
+        FilledButton,
+        tester.strings.changePasswordSubmitButton,
+      ),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Current password is incorrect'), findsOneWidget);
+    expect(
+      find.text(tester.strings.changePasswordIncorrectCurrentError),
+      findsOneWidget,
+    );
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Current password'),
+      find.widgetWithText(
+        TextFormField,
+        tester.strings.changePasswordCurrentLabel,
+      ),
       'oldpassword2',
     );
     await tester.pump();
 
-    expect(find.text('Current password is incorrect'), findsNothing);
+    expect(
+      find.text(tester.strings.changePasswordIncorrectCurrentError),
+      findsNothing,
+    );
   });
 }
