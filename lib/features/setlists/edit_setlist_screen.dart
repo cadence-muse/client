@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
@@ -50,6 +51,8 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final l10n = AppLocalizations.of(context)!;
 
     setState(() {
       _isSubmitting = true;
@@ -105,9 +108,7 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(
-        () => _errorMessage = 'Failed to save setlist. Try again.',
-      );
+      setState(() => _errorMessage = l10n.editSetlistFailedError);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -116,9 +117,10 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit setlist')),
+      appBar: AppBar(title: Text(l10n.editSetlistAppBarTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -129,21 +131,20 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonNameLabel,
+                    border: const OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty)
-                      ? 'Name is required'
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? l10n.commonNameRequired
                       : null,
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Location',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonLocationLabel,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -151,9 +152,9 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
                   controller: _dateController,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Date',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: l10n.commonDateLabel,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
                 if (_errorMessage != null) ...[
@@ -167,7 +168,7 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
                 ],
                 const SizedBox(height: 24),
                 Tooltip(
-                  message: isOnline ? '' : 'Requires connection',
+                  message: isOnline ? '' : l10n.commonRequiresConnection,
                   child: FilledButton(
                     onPressed: (_isSubmitting || !isOnline) ? null : _submit,
                     child: _isSubmitting
@@ -176,7 +177,11 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : Text(isOnline ? 'Save' : 'Requires connection'),
+                        : Text(
+                            isOnline
+                                ? l10n.commonSave
+                                : l10n.commonRequiresConnection,
+                          ),
                   ),
                 ),
               ],
