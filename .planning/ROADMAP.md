@@ -159,7 +159,7 @@ Plans:
   3. The existing automated test suite passes by asserting against a centralized test-strings utility rather than hardcoded English literals in `find.text(...)` calls.
   4. An `IndexedStack` tab that wasn't visible at the moment of a language switch still renders fully localized text once the user navigates to it.
 
-**Plans**: 1/13 plans executed
+**Plans**: 12/13 plans executed
 
 Plans:
 **Wave 1**
@@ -168,17 +168,17 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 13-02-PLAN.md — Band simple confirm dialogs (delete/leave/remove member)
-- [ ] 13-03-PLAN.md — Band privileged confirm dialogs (rotate invite code, transfer ownership)
-- [ ] 13-04-PLAN.md — Band CRUD + join dialog (create/edit band, join with code)
-- [ ] 13-05-PLAN.md — Home tab + band picker sheet + locale_live_switch_test strengthening
-- [ ] 13-06-PLAN.md — Profile tab + change password screen
-- [ ] 13-07-PLAN.md — Bottom nav labels + offline banner + offline_cross_tab_test
-- [ ] 13-08-PLAN.md — Offline empty-state widget + login screen
-- [ ] 13-09-PLAN.md — Setlist track-cap consolidation + detail screen + global Setlists tab + create-setlist + add-tracks dialog
-- [ ] 13-10-PLAN.md — Edit setlist + delete-setlist dialog + per-band setlist list
-- [ ] 13-11-PLAN.md — Per-band track list, detail screen, delete-track dialog
-- [ ] 13-12-PLAN.md — Create/edit track forms + global Tracks tab
+- [x] 13-02-PLAN.md — Band simple confirm dialogs (delete/leave/remove member)
+- [x] 13-03-PLAN.md — Band privileged confirm dialogs (rotate invite code, transfer ownership)
+- [x] 13-04-PLAN.md — Band CRUD + join dialog (create/edit band, join with code)
+- [x] 13-05-PLAN.md — Home tab + band picker sheet + locale_live_switch_test strengthening
+- [x] 13-06-PLAN.md — Profile tab + change password screen
+- [x] 13-07-PLAN.md — Bottom nav labels + offline banner + offline_cross_tab_test
+- [x] 13-08-PLAN.md — Offline empty-state widget + login screen
+- [x] 13-09-PLAN.md — Setlist track-cap consolidation + detail screen + global Setlists tab + create-setlist + add-tracks dialog
+- [x] 13-10-PLAN.md — Edit setlist + delete-setlist dialog + per-band setlist list
+- [x] 13-11-PLAN.md — Per-band track list, detail screen, delete-track dialog
+- [x] 13-12-PLAN.md — Create/edit track forms + global Tracks tab
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -217,5 +217,5 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete | 2026-08-22 |
 | 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete    | 2026-08-25 |
-| 13. String Extraction & Screen Localization | v1.2 | 1/13 | In Progress|  |
+| 13. String Extraction & Screen Localization | v1.2 | 12/13 | In Progress|  |
 | 14. API Error Localization | v1.2 | 0/? | Not started | — |
