@@ -7,5 +7,299 @@
   "themeDark": "Dark",
   "sectionLanguageTitle": "Language",
   "languageEnglish": "English",
-  "languageRussian": "Русский"
+  "languageRussian": "Русский",
+
+  "appBarBandsTitle": "Bands",
+  "bandsCreateMenuItem": "Create band",
+  "bandsJoinMenuItem": "Join with code",
+  "bandsEmptyTitle": "No bands yet",
+  "bandsEmptyDescription": "Create a band or ask a bandmate for an invite code to join one.",
+  "bandsCreateBandButton": "Create Band",
+  "bandsErrorTitle": "Couldn't load bands",
+  "commonRetry": "Retry",
+  "commonConnectionError": "Please check your connection and try again.",
+  "commonRequiresConnection": "Requires connection",
+  "bandRoleOwner": "Owner",
+  "bandRoleMember": "Member",
+  "memberCount": "{count, plural, one{{count} member} other{{count} members}}",
+  "@memberCount": {
+    "description": "Pluralized band member count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "trackCount": "{count, plural, one{{count} track} other{{count} tracks}}",
+  "@trackCount": {
+    "description": "Pluralized track count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "slotCount": "{count, plural, one{{count} slot} other{{count} slots}}",
+  "@slotCount": {
+    "description": "Pluralized remaining-slot count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "navHome": "Home",
+  "navBands": "Bands",
+  "navTracks": "Tracks",
+  "navSetlists": "Setlists",
+  "navProfile": "Profile",
+  "offlineNoCacheTitle": "No cached data",
+  "offlineNoCacheDescription": "Connect to the internet to load this",
+  "offlineBannerMessage": "Showing cached data — may be out of date",
+  "loginAppTitle": "Cadence",
+  "loginUsernameLabel": "Username",
+  "loginUsernameValidator": "Enter a username",
+  "loginPasswordLabel": "Password",
+  "loginSignUpButton": "Sign up",
+  "loginLogInButton": "Log in",
+  "loginToggleToLogin": "Already have an account? Log in",
+  "loginToggleToSignUp": "Don't have an account? Sign up",
+  "loginUsernameTakenError": "This username is already taken",
+  "loginInvalidCredentialsError": "Invalid credentials",
+
+  "commonCancel": "Cancel",
+  "commonDelete": "Delete",
+  "commonSomethingWentWrong": "Something went wrong. Please try again.",
+  "commonCouldntLoadTracks": "Couldn't load tracks",
+  "commonFailedToLoadSetlists": "Failed to load setlists. Tap to try again.",
+  "commonActionCannotBeUndone": "This action cannot be undone.",
+  "commonAddTracks": "Add tracks",
+  "commonAtLeast8Chars": "At least 8 characters",
+  "commonFieldRequired": "This field is required",
+  "commonRefresh": "Refresh",
+  "commonEnterBandName": "Enter a band name",
+  "commonNameRequired": "Name is required",
+  "commonEnterTrackTitle": "Enter a track title",
+  "commonEnterArtistName": "Enter an artist name",
+  "commonEnterWholeNumber": "Enter a whole number",
+  "commonDurationFormatHint": "Enter duration in mm:ss format (e.g. 0:30)",
+  "commonDurationNegative": "Duration cannot be negative",
+  "commonDurationSecondsRange": "Seconds must be 0–59 (e.g. 2:30, not 2:75)",
+  "commonDurationHelperText": "e.g. 2:30 for 2 minutes 30 seconds",
+  "commonCreate": "Create",
+  "commonEdit": "Edit",
+  "commonRotate": "Rotate",
+  "commonLeave": "Leave",
+  "commonRemove": "Remove",
+  "commonSave": "Save",
+  "commonBandNameLabel": "Band name",
+  "commonNameLabel": "Name",
+  "commonLocationLabel": "Location",
+  "commonDateLabel": "Date",
+  "commonTitleLabel": "Title",
+  "commonArtistLabel": "Artist",
+  "commonDurationLabel": "Duration",
+  "commonTempoLabel": "Tempo (BPM)",
+  "commonKeyLabel": "Key",
+  "commonNotesLabel": "Notes",
+  "commonAllBandsFilter": "All bands",
+
+  "bandDetailFallbackTitle": "Band",
+  "bandDetailMembersHeader": "Members",
+  "bandDetailNoMembers": "No members",
+  "bandDetailMakeOwnerAction": "Make owner",
+  "bandDetailInviteCodeHeader": "Invite code",
+  "bandDetailErrorTitle": "Couldn't load band details",
+  "bandDetailCopiedSnackbar": "Copied!",
+  "bandDetailCopyTooltip": "Copy",
+
+  "confirmDeleteBandTitle": "Delete {bandName}?",
+  "@confirmDeleteBandTitle": {
+    "placeholders": {
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmDeleteBandBody": "Type the band name to confirm. This action cannot be undone and will remove the band for all members.",
+  "confirmLeaveBandTitle": "Leave {bandName}?",
+  "@confirmLeaveBandTitle": {
+    "placeholders": {
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmLeaveBandBody": "You will no longer be a member of this band.",
+  "confirmRemoveMemberTitle": "Remove {memberUsername} from {bandName}?",
+  "@confirmRemoveMemberTitle": {
+    "placeholders": {
+      "memberUsername": {"type": "String"},
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmRemoveMemberBody": "{memberUsername} will no longer be a member of this band.",
+  "@confirmRemoveMemberBody": {
+    "placeholders": {
+      "memberUsername": {"type": "String"}
+    }
+  },
+
+  "confirmRotateInviteCodeTitle": "Rotate invite code?",
+  "confirmRotateInviteCodeBody": "The current invite code will stop working immediately. Any member who hasn't joined yet will need the new code.",
+  "confirmRotateInviteCodeSnackbar": "Invite code rotated",
+  "confirmTransferOwnershipTitle": "Transfer ownership to {memberUsername}?",
+  "@confirmTransferOwnershipTitle": {
+    "placeholders": {
+      "memberUsername": {"type": "String"}
+    }
+  },
+  "confirmTransferOwnershipBody": "{memberUsername} will become the owner of this band.\n\nYou will no longer be the owner of {bandName}.",
+  "@confirmTransferOwnershipBody": {
+    "placeholders": {
+      "memberUsername": {"type": "String"},
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmTransferOwnershipButton": "Transfer",
+  "confirmTransferOwnershipSnackbar": "Ownership transferred",
+
+  "createBandAppBarTitle": "Create a new band",
+  "createBandSuccessSnackbar": "{name} created!",
+  "@createBandSuccessSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "editBandAppBarTitle": "Edit band",
+  "joinBandTitle": "Join a band",
+  "joinBandCodeLabel": "Invite code",
+  "joinBandCodeHint": "Paste the code here",
+  "joinBandCodeValidator": "Enter an invite code",
+  "joinBandButton": "Join",
+  "joinBandAmbiguousSnackbar": "Joined band!",
+  "joinBandSuccessSnackbar": "You've joined {bandName}!",
+  "@joinBandSuccessSnackbar": {
+    "placeholders": {
+      "bandName": {"type": "String"}
+    }
+  },
+
+  "homeAppBarTitle": "Home",
+  "homeWelcomeMessage": "Welcome, {username}",
+  "@homeWelcomeMessage": {
+    "placeholders": {
+      "username": {"type": "String"}
+    }
+  },
+  "homeQuickActionsHeader": "Quick Actions",
+  "homeAddBandButton": "Add Band",
+  "homeAddSongButton": "Add Song",
+  "homeAddSetlistButton": "Add Setlist",
+  "homeErrorTitle": "Couldn't load home",
+  "bandPickerErrorMessage": "Could not load bands. Please try again.",
+
+  "profileAppBarTitle": "Profile",
+  "profileIdLabel": "ID",
+  "profileSettingsLabel": "Settings",
+  "profileChangePasswordLabel": "Change password",
+  "profileLogOutLabel": "Log out",
+  "profileErrorTitle": "Couldn't load profile",
+  "changePasswordAppBarTitle": "Change password",
+  "changePasswordSuccessSnackbar": "Password changed successfully",
+  "changePasswordIncorrectCurrentError": "Current password is incorrect",
+  "changePasswordCurrentLabel": "Current password",
+  "changePasswordNewLabel": "New password",
+  "changePasswordConfirmLabel": "Confirm new password",
+  "changePasswordMismatchError": "Passwords don't match",
+  "changePasswordSubmitButton": "Change password",
+
+  "setlistDetailFallbackTitle": "Setlist",
+  "setlistDetailEditTooltip": "Edit setlist",
+  "setlistDetailDoneButton": "Done",
+  "setlistDetailTracksHeader": "Tracks ({count})",
+  "@setlistDetailTracksHeader": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "setlistDetailNoTracks": "No tracks in this setlist",
+  "setlistDetailRemoveTrackTooltip": "Remove",
+  "setlistDetailRemoveTrackFailedSnackbar": "Failed to remove track. Try again.",
+  "setlistDetailReorderFailedSnackbar": "Failed to reorder tracks. Refreshing...",
+  "setlistDetailReorderTooManyTracks": "Can't reorder — this setlist has more than {tracksPhrase}.",
+  "@setlistDetailReorderTooManyTracks": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"}
+    }
+  },
+  "setlistTracksLimit": "Setlists can have at most {tracksPhrase}.",
+  "@setlistTracksLimit": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"}
+    }
+  },
+  "setlistsTabEmptyTitle": "No setlists",
+  "setlistsTabEmptyDescription": "Create setlists in a band to see them here.",
+  "createSetlistAppBarTitle": "Create setlist",
+  "createSetlistDateHint": "YYYY-MM-DD",
+  "createSetlistAddTracksOptionalHeader": "Add tracks (optional)",
+  "createSetlistNoTracksInBand": "No tracks in this band yet",
+  "createSetlistFailedError": "Failed to create setlist. Try again.",
+  "createSetlistSuccessSnackbar": "{name} created!",
+  "@createSetlistSuccessSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "addSetlistTracksSearchHint": "Search by title or artist",
+  "addSetlistTracksMaxReached": "This setlist already has the maximum of {tracksPhrase}.",
+  "@addSetlistTracksMaxReached": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"}
+    }
+  },
+  "addSetlistTracksNoMatch": "No tracks match your search",
+  "addSetlistTracksNoneAvailable": "No more tracks available",
+  "addSetlistTracksRemainingMessage": "Setlists can have at most {tracksPhrase} — {slotsPhrase} remaining.",
+  "@addSetlistTracksRemainingMessage": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"},
+      "slotsPhrase": {"type": "String"}
+    }
+  },
+  "addSetlistTracksSubmitButton": "Add",
+  "addSetlistTracksSuccessSnackbar": "Tracks added!",
+  "addSetlistTracksFailedError": "Failed to add tracks. Try again.",
+
+  "editSetlistAppBarTitle": "Edit setlist",
+  "editSetlistFailedError": "Failed to save setlist. Try again.",
+  "confirmDeleteSetlistTitle": "Delete setlist?",
+  "confirmDeleteSetlistFailedError": "Delete failed. Try again.",
+  "setlistListAddButton": "Add setlist",
+  "setlistListEmptyTitle": "No setlists yet",
+  "setlistListEmptyDescription": "Create a setlist or ask a bandmate to add one.",
+
+  "trackListAddButton": "Add track",
+  "trackListEmptyTitle": "No tracks yet",
+  "trackListEmptyDescription": "Create a track or ask a bandmate to add one.",
+  "trackDetailFallbackTitle": "Track",
+  "trackDetailEditTooltip": "Edit track",
+  "trackDetailTempoLine": "Tempo: {tempo} BPM",
+  "@trackDetailTempoLine": {
+    "placeholders": {
+      "tempo": {"type": "int"}
+    }
+  },
+  "confirmDeleteTrackTitle": "Delete {trackTitle}?",
+  "@confirmDeleteTrackTitle": {
+    "placeholders": {
+      "trackTitle": {"type": "String"}
+    }
+  },
+
+  "createTrackAppBarTitle": "Add track",
+  "createTrackSaveButton": "Save track",
+  "createTrackAddedSnackbar": "{title} added!",
+  "@createTrackAddedSnackbar": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "editTrackAppBarTitle": "Edit track",
+  "tracksTabEmptyTitle": "No tracks",
+  "tracksTabEmptyDescription": "Create tracks in a band to see them here.",
+  "tracksTabViewBandsButton": "View bands"
 }

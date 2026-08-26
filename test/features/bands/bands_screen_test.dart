@@ -6,16 +6,20 @@ import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/bands/band_avatar.dart';
 import 'package:cadence/features/bands/bands_screen.dart';
 import 'package:cadence/features/bands/create_band_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/navigation_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   // Routes `/api/me` to [profile] before delegating to [handler] for
@@ -56,7 +60,16 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: const MaterialApp(home: BandsScreen()),
+      child: const MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [Locale('en'), Locale('ru')],
+        home: BandsScreen(),
+      ),
     );
   }
 
@@ -99,13 +112,8 @@ void main() {
     await tester.pumpWidget(wrap(apiClient, cacheService));
     await tester.pumpAndSettle();
 
-    expect(find.text('No bands yet'), findsOneWidget);
-    expect(
-      find.text(
-        'Create a band or ask a bandmate for an invite code to join one.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text(tester.strings.bandsEmptyTitle), findsOneWidget);
+    expect(find.text(tester.strings.bandsEmptyDescription), findsOneWidget);
 
     await tester.pumpAndSettle();
   });
@@ -124,12 +132,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load bands"), findsOneWidget);
+      expect(find.text(tester.strings.bandsErrorTitle), findsOneWidget);
+      expect(find.text(tester.strings.commonConnectionError), findsOneWidget);
       expect(
-        find.text('Please check your connection and try again.'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
     },
   );
 
@@ -205,12 +213,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
+      // OfflineNoCacheView itself isn't migrated to AppLocalizations until
+      // 13-08, so it still renders literal English here.
       expect(find.text('No cached data'), findsOneWidget);
       expect(
         find.text('Connect to the internet to load this'),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsNothing,
+      );
     },
   );
 
@@ -329,7 +342,7 @@ void main() {
       find.byType(FloatingActionButton),
     );
     expect(fab.onPressed, isNull);
-    expect(fab.tooltip, 'Requires connection');
+    expect(fab.tooltip, tester.strings.commonRequiresConnection);
 
     await tester.pumpAndSettle();
   });
@@ -368,9 +381,12 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(ListTile, 'Create band'), findsOneWidget);
       expect(
-        find.widgetWithText(ListTile, 'Join with code'),
+        find.widgetWithText(ListTile, tester.strings.bandsCreateMenuItem),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(ListTile, tester.strings.bandsJoinMenuItem),
         findsOneWidget,
       );
       expect(find.byType(ListTile), findsNWidgets(2));
@@ -391,7 +407,9 @@ void main() {
 
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Create band'));
+    await tester.tap(
+      find.widgetWithText(ListTile, tester.strings.bandsCreateMenuItem),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(CreateBandScreen), findsOneWidget);
@@ -411,10 +429,14 @@ void main() {
 
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Join with code'));
+    await tester.tap(
+      find.widgetWithText(ListTile, tester.strings.bandsJoinMenuItem),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsOneWidget);
+    // 'Join a band' is join_band_dialog.dart's own copy -- that file isn't
+    // migrated until 13-04, so it still renders literal English here.
     expect(find.text('Join a band'), findsOneWidget);
   });
 
@@ -430,7 +452,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Create Band'));
+      await tester.tap(
+        find.widgetWithText(ElevatedButton, tester.strings.bandsCreateBandButton),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(CreateBandScreen), findsOneWidget);
@@ -464,7 +488,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('1 member • Owner'), findsOneWidget);
+      expect(
+        find.text(
+          '${tester.strings.memberCount(1)} • ${tester.strings.bandRoleOwner}',
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -495,7 +524,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('1 member • Member'), findsOneWidget);
+      expect(
+        find.text(
+          '${tester.strings.memberCount(1)} • ${tester.strings.bandRoleMember}',
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -521,7 +555,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('1 member'), findsOneWidget);
+      expect(find.text(tester.strings.memberCount(1)), findsOneWidget);
     },
   );
 
@@ -546,7 +580,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('5 members'), findsOneWidget);
+      expect(find.text(tester.strings.memberCount(5)), findsOneWidget);
     },
   );
 
@@ -581,7 +615,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('1 member • Owner'), findsOneWidget);
+      expect(
+        find.text(
+          '${tester.strings.memberCount(1)} • ${tester.strings.bandRoleOwner}',
+        ),
+        findsOneWidget,
+      );
       final callCountBeforePatch = bandListCallCount;
 
       // Simulates the exact patch a real ConfirmTransferOwnershipDialog
@@ -596,8 +635,126 @@ void main() {
           .patchBandOwner('a', 'someOtherUserId');
       await tester.pump();
 
-      expect(find.text('1 member • Member'), findsOneWidget);
+      expect(
+        find.text(
+          '${tester.strings.memberCount(1)} • ${tester.strings.bandRoleMember}',
+        ),
+        findsOneWidget,
+      );
       expect(bandListCallCount, callCountBeforePatch);
+    },
+  );
+
+  testWidgets(
+    'memberCount(2) and memberCount(4) render the Russian "few" plural '
+    'form',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 2},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'The Testers', 'membersCount': 2},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(apiClient),
+            cacheServiceProvider.overrideWithValue(cacheService),
+            isOnlineProvider.overrideWithValue(true),
+          ],
+          child: MaterialApp(
+            locale: const Locale('ru'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const BandsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 участника'), findsOneWidget);
+
+      final cacheService4 = CacheService.inMemory();
+      await cacheService4.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 4},
+      ]);
+      final apiClient4 = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'The Testers', 'membersCount': 4},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(apiClient4),
+            cacheServiceProvider.overrideWithValue(cacheService4),
+            isOnlineProvider.overrideWithValue(true),
+          ],
+          child: MaterialApp(
+            locale: const Locale('ru'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const BandsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('4 участника'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'memberCount(11) renders the Russian "many" plural form (not "few")',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'a', 'name': 'The Testers', 'membersCount': 11},
+      ]);
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'a', 'name': 'The Testers', 'membersCount': 11},
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            apiClientProvider.overrideWithValue(apiClient),
+            cacheServiceProvider.overrideWithValue(cacheService),
+            isOnlineProvider.overrideWithValue(true),
+          ],
+          child: MaterialApp(
+            locale: const Locale('ru'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const BandsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('11 участников'), findsOneWidget);
     },
   );
 }

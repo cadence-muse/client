@@ -7,5 +7,299 @@
   "themeDark": "Тёмная",
   "sectionLanguageTitle": "Язык",
   "languageEnglish": "English",
-  "languageRussian": "Русский"
+  "languageRussian": "Русский",
+
+  "appBarBandsTitle": "Группы",
+  "bandsCreateMenuItem": "Создать группу",
+  "bandsJoinMenuItem": "Присоединиться по коду",
+  "bandsEmptyTitle": "Пока нет групп",
+  "bandsEmptyDescription": "Создайте группу или попросите код приглашения у участника, чтобы присоединиться.",
+  "bandsCreateBandButton": "Создать группу",
+  "bandsErrorTitle": "Не удалось загрузить группы",
+  "commonRetry": "Повторить",
+  "commonConnectionError": "Проверьте подключение к интернету и попробуйте снова.",
+  "commonRequiresConnection": "Требуется подключение",
+  "bandRoleOwner": "Владелец",
+  "bandRoleMember": "Участник",
+  "memberCount": "{count, plural, one{{count} участник} few{{count} участника} many{{count} участников} other{{count} участников}}",
+  "@memberCount": {
+    "description": "Pluralized band member count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "trackCount": "{count, plural, one{{count} трек} few{{count} трека} many{{count} треков} other{{count} треков}}",
+  "@trackCount": {
+    "description": "Pluralized track count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "slotCount": "{count, plural, one{{count} слот} few{{count} слота} many{{count} слотов} other{{count} слотов}}",
+  "@slotCount": {
+    "description": "Pluralized remaining-slot count",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "navHome": "Главная",
+  "navBands": "Группы",
+  "navTracks": "Треки",
+  "navSetlists": "Сетлисты",
+  "navProfile": "Профиль",
+  "offlineNoCacheTitle": "Нет сохранённых данных",
+  "offlineNoCacheDescription": "Подключитесь к интернету, чтобы загрузить данные",
+  "offlineBannerMessage": "Показаны сохранённые данные — они могут быть устаревшими",
+  "loginAppTitle": "Cadence",
+  "loginUsernameLabel": "Имя пользователя",
+  "loginUsernameValidator": "Введите имя пользователя",
+  "loginPasswordLabel": "Пароль",
+  "loginSignUpButton": "Зарегистрироваться",
+  "loginLogInButton": "Войти",
+  "loginToggleToLogin": "Уже есть аккаунт? Войти",
+  "loginToggleToSignUp": "Нет аккаунта? Зарегистрироваться",
+  "loginUsernameTakenError": "Это имя пользователя уже занято",
+  "loginInvalidCredentialsError": "Неверные учётные данные",
+
+  "commonCancel": "Отмена",
+  "commonDelete": "Удалить",
+  "commonSomethingWentWrong": "Что-то пошло не так. Попробуйте ещё раз.",
+  "commonCouldntLoadTracks": "Не удалось загрузить треки",
+  "commonFailedToLoadSetlists": "Не удалось загрузить сетлисты. Нажмите, чтобы повторить.",
+  "commonActionCannotBeUndone": "Это действие нельзя отменить.",
+  "commonAddTracks": "Добавить треки",
+  "commonAtLeast8Chars": "Не менее 8 символов",
+  "commonFieldRequired": "Это поле обязательно",
+  "commonRefresh": "Обновить",
+  "commonEnterBandName": "Введите название группы",
+  "commonNameRequired": "Название обязательно",
+  "commonEnterTrackTitle": "Введите название трека",
+  "commonEnterArtistName": "Введите имя исполнителя",
+  "commonEnterWholeNumber": "Введите целое число",
+  "commonDurationFormatHint": "Введите длительность в формате мм:сс (например, 0:30)",
+  "commonDurationNegative": "Длительность не может быть отрицательной",
+  "commonDurationSecondsRange": "Секунды должны быть от 0 до 59 (например, 2:30, а не 2:75)",
+  "commonDurationHelperText": "например, 2:30 — это 2 минуты 30 секунд",
+  "commonCreate": "Создать",
+  "commonEdit": "Изменить",
+  "commonRotate": "Сменить",
+  "commonLeave": "Покинуть",
+  "commonRemove": "Исключить",
+  "commonSave": "Сохранить",
+  "commonBandNameLabel": "Название группы",
+  "commonNameLabel": "Название",
+  "commonLocationLabel": "Место проведения",
+  "commonDateLabel": "Дата",
+  "commonTitleLabel": "Название",
+  "commonArtistLabel": "Исполнитель",
+  "commonDurationLabel": "Длительность",
+  "commonTempoLabel": "Темп (BPM)",
+  "commonKeyLabel": "Тональность",
+  "commonNotesLabel": "Заметки",
+  "commonAllBandsFilter": "Все группы",
+
+  "bandDetailFallbackTitle": "Группа",
+  "bandDetailMembersHeader": "Участники",
+  "bandDetailNoMembers": "Нет участников",
+  "bandDetailMakeOwnerAction": "Сделать владельцем",
+  "bandDetailInviteCodeHeader": "Код приглашения",
+  "bandDetailErrorTitle": "Не удалось загрузить данные о группе",
+  "bandDetailCopiedSnackbar": "Скопировано!",
+  "bandDetailCopyTooltip": "Копировать",
+
+  "confirmDeleteBandTitle": "Удалить «{bandName}»?",
+  "@confirmDeleteBandTitle": {
+    "placeholders": {
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmDeleteBandBody": "Введите название группы для подтверждения. Это действие нельзя отменить — группа будет удалена для всех участников.",
+  "confirmLeaveBandTitle": "Покинуть «{bandName}»?",
+  "@confirmLeaveBandTitle": {
+    "placeholders": {
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmLeaveBandBody": "Вы больше не будете участником этой группы.",
+  "confirmRemoveMemberTitle": "Исключить {memberUsername} из группы «{bandName}»?",
+  "@confirmRemoveMemberTitle": {
+    "placeholders": {
+      "memberUsername": {"type": "String"},
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmRemoveMemberBody": "{memberUsername} больше не будет участником этой группы.",
+  "@confirmRemoveMemberBody": {
+    "placeholders": {
+      "memberUsername": {"type": "String"}
+    }
+  },
+
+  "confirmRotateInviteCodeTitle": "Сменить код приглашения?",
+  "confirmRotateInviteCodeBody": "Текущий код приглашения перестанет действовать немедленно. Участникам, которые ещё не присоединились, понадобится новый код.",
+  "confirmRotateInviteCodeSnackbar": "Код приглашения изменён",
+  "confirmTransferOwnershipTitle": "Передать права владельца {memberUsername}?",
+  "@confirmTransferOwnershipTitle": {
+    "placeholders": {
+      "memberUsername": {"type": "String"}
+    }
+  },
+  "confirmTransferOwnershipBody": "{memberUsername} станет владельцем этой группы.\n\nВы больше не будете владельцем группы «{bandName}».",
+  "@confirmTransferOwnershipBody": {
+    "placeholders": {
+      "memberUsername": {"type": "String"},
+      "bandName": {"type": "String"}
+    }
+  },
+  "confirmTransferOwnershipButton": "Передать",
+  "confirmTransferOwnershipSnackbar": "Права владельца переданы",
+
+  "createBandAppBarTitle": "Создать новую группу",
+  "createBandSuccessSnackbar": "«{name}» создана!",
+  "@createBandSuccessSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "editBandAppBarTitle": "Изменить группу",
+  "joinBandTitle": "Присоединиться к группе",
+  "joinBandCodeLabel": "Код приглашения",
+  "joinBandCodeHint": "Вставьте код сюда",
+  "joinBandCodeValidator": "Введите код приглашения",
+  "joinBandButton": "Присоединиться",
+  "joinBandAmbiguousSnackbar": "Вы присоединились к группе!",
+  "joinBandSuccessSnackbar": "Вы присоединились к группе «{bandName}»!",
+  "@joinBandSuccessSnackbar": {
+    "placeholders": {
+      "bandName": {"type": "String"}
+    }
+  },
+
+  "homeAppBarTitle": "Главная",
+  "homeWelcomeMessage": "Добро пожаловать, {username}",
+  "@homeWelcomeMessage": {
+    "placeholders": {
+      "username": {"type": "String"}
+    }
+  },
+  "homeQuickActionsHeader": "Быстрые действия",
+  "homeAddBandButton": "Добавить группу",
+  "homeAddSongButton": "Добавить песню",
+  "homeAddSetlistButton": "Добавить сетлист",
+  "homeErrorTitle": "Не удалось загрузить главную страницу",
+  "bandPickerErrorMessage": "Не удалось загрузить группы. Попробуйте ещё раз.",
+
+  "profileAppBarTitle": "Профиль",
+  "profileIdLabel": "ID",
+  "profileSettingsLabel": "Настройки",
+  "profileChangePasswordLabel": "Сменить пароль",
+  "profileLogOutLabel": "Выйти",
+  "profileErrorTitle": "Не удалось загрузить профиль",
+  "changePasswordAppBarTitle": "Смена пароля",
+  "changePasswordSuccessSnackbar": "Пароль успешно изменён",
+  "changePasswordIncorrectCurrentError": "Неверный текущий пароль",
+  "changePasswordCurrentLabel": "Текущий пароль",
+  "changePasswordNewLabel": "Новый пароль",
+  "changePasswordConfirmLabel": "Подтвердите новый пароль",
+  "changePasswordMismatchError": "Пароли не совпадают",
+  "changePasswordSubmitButton": "Сменить пароль",
+
+  "setlistDetailFallbackTitle": "Сетлист",
+  "setlistDetailEditTooltip": "Изменить сетлист",
+  "setlistDetailDoneButton": "Готово",
+  "setlistDetailTracksHeader": "Треки ({count})",
+  "@setlistDetailTracksHeader": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "setlistDetailNoTracks": "В этом сетлисте нет треков",
+  "setlistDetailRemoveTrackTooltip": "Удалить",
+  "setlistDetailRemoveTrackFailedSnackbar": "Не удалось удалить трек. Попробуйте ещё раз.",
+  "setlistDetailReorderFailedSnackbar": "Не удалось изменить порядок треков. Обновление...",
+  "setlistDetailReorderTooManyTracks": "Невозможно изменить порядок — в этом сетлисте больше, чем {tracksPhrase}.",
+  "@setlistDetailReorderTooManyTracks": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"}
+    }
+  },
+  "setlistTracksLimit": "В сетлисте может быть не более {tracksPhrase}.",
+  "@setlistTracksLimit": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"}
+    }
+  },
+  "setlistsTabEmptyTitle": "Сетлистов нет",
+  "setlistsTabEmptyDescription": "Создавайте сетлисты в группе, чтобы они отображались здесь.",
+  "createSetlistAppBarTitle": "Создать сетлист",
+  "createSetlistDateHint": "ГГГГ-ММ-ДД",
+  "createSetlistAddTracksOptionalHeader": "Добавить треки (необязательно)",
+  "createSetlistNoTracksInBand": "В этой группе пока нет треков",
+  "createSetlistFailedError": "Не удалось создать сетлист. Попробуйте ещё раз.",
+  "createSetlistSuccessSnackbar": "«{name}» создан!",
+  "@createSetlistSuccessSnackbar": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "addSetlistTracksSearchHint": "Поиск по названию или исполнителю",
+  "addSetlistTracksMaxReached": "В этом сетлисте уже максимум — {tracksPhrase}.",
+  "@addSetlistTracksMaxReached": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"}
+    }
+  },
+  "addSetlistTracksNoMatch": "Нет треков, соответствующих поиску",
+  "addSetlistTracksNoneAvailable": "Больше нет доступных треков",
+  "addSetlistTracksRemainingMessage": "В сетлисте может быть не более {tracksPhrase} — осталось {slotsPhrase}.",
+  "@addSetlistTracksRemainingMessage": {
+    "placeholders": {
+      "tracksPhrase": {"type": "String"},
+      "slotsPhrase": {"type": "String"}
+    }
+  },
+  "addSetlistTracksSubmitButton": "Добавить",
+  "addSetlistTracksSuccessSnackbar": "Треки добавлены!",
+  "addSetlistTracksFailedError": "Не удалось добавить треки. Попробуйте ещё раз.",
+
+  "editSetlistAppBarTitle": "Изменить сетлист",
+  "editSetlistFailedError": "Не удалось сохранить сетлист. Попробуйте ещё раз.",
+  "confirmDeleteSetlistTitle": "Удалить сетлист?",
+  "confirmDeleteSetlistFailedError": "Не удалось удалить. Попробуйте ещё раз.",
+  "setlistListAddButton": "Добавить сетлист",
+  "setlistListEmptyTitle": "Пока нет сетлистов",
+  "setlistListEmptyDescription": "Создайте сетлист или попросите участника группы добавить его.",
+
+  "trackListAddButton": "Добавить трек",
+  "trackListEmptyTitle": "Пока нет треков",
+  "trackListEmptyDescription": "Создайте трек или попросите участника группы добавить его.",
+  "trackDetailFallbackTitle": "Трек",
+  "trackDetailEditTooltip": "Изменить трек",
+  "trackDetailTempoLine": "Темп: {tempo} BPM",
+  "@trackDetailTempoLine": {
+    "placeholders": {
+      "tempo": {"type": "int"}
+    }
+  },
+  "confirmDeleteTrackTitle": "Удалить «{trackTitle}»?",
+  "@confirmDeleteTrackTitle": {
+    "placeholders": {
+      "trackTitle": {"type": "String"}
+    }
+  },
+
+  "createTrackAppBarTitle": "Добавить трек",
+  "createTrackSaveButton": "Сохранить трек",
+  "createTrackAddedSnackbar": "«{title}» добавлен!",
+  "@createTrackAddedSnackbar": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "editTrackAppBarTitle": "Изменить трек",
+  "tracksTabEmptyTitle": "Треков нет",
+  "tracksTabEmptyDescription": "Создавайте треки в группе, чтобы они отображались здесь.",
+  "tracksTabViewBandsButton": "Перейти к группам"
 }
