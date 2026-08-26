@@ -79,6 +79,43 @@
 
 ---
 
+## Milestone: v1.2 — i18n and Duration Input
+
+**Shipped:** 2026-08-26
+**Phases:** 4 | **Plans:** 20
+
+### What Was Built
+- Track duration entered/displayed as mm:ss everywhere via auto-format `DurationTextInputFormatter` and unified `asMinutesSeconds` display, retiring the old words-based format (Phase 11)
+- ARB/gen-l10n pipeline plus `SharedPreferences`-backed `LocaleController` driving a live, no-restart EN/RU language switch from Profile settings (Phase 12)
+- Full app string localization — ~130 ARB keys across every screen/dialog, with correct Russian ICU plural forms (Phase 13)
+- All 16 `on ApiException catch` sites app-wide routed through a shared `ApiExceptionLocalization.localizedMessage()` extension, retiring the app's last 2 bespoke error-handling implementations (Phase 14)
+
+### What Worked
+- Sequencing Phase 11 (duration, independent) ahead of the i18n phases, per explicit user preference, cost nothing correctness-wise since the two tracks had no dependency — confirmed by the research phase's dependency graph before roadmap creation.
+- A single tracer plan (13-01) landing the complete ~130-key ARB vocabulary and proving the pipeline handles ICU plurals/placeholders end-to-end on one screen, before 11 further plans mirrored the pattern across 20+ screens — same tracer-first approach that worked for v1.1 Phase 7, now proven a second time on a differently-shaped retrofit (string extraction vs. cache behavior).
+- Phase 14's `overrides` parameter mechanism let two pre-existing bespoke error handlers (login's `already_exists`, change-password's `invalid_input`) fold onto the same shared extension instead of staying permanently special-cased — a smaller, cleaner surface than the phase's own stated scope required.
+
+### What Was Inefficient
+- Phase 13's code review (CR-01) caught `DurationTextInputFormatter`'s in-phase algorithmic rewrite silently breaking backspace-to-empty clearing — a behavioral change bundled into what was supposed to be a pure string-extraction phase, untested because the phase's own suite assumed no behavior change. Fixed same-session, but the bundling itself (WR-02) was flagged as scope creep that should have been its own reviewed diff.
+- No `/gsd-audit-milestone` was run before this close — the milestone-close pre-flight caught it and the operator chose to proceed on the strength of REQUIREMENTS.md's 10/10 traceability, but the formal audit step was skipped rather than run and passed.
+- REQUIREMENTS.md's I18N-01/02/03 checkboxes were left unchecked after Phase 12 shipped them (traceability table said "Mapped" instead of "Complete") — same class of doc-drift lesson as v1.0's Phase 2, caught only at this milestone's close rather than at Phase 12's own close-out.
+
+### Patterns Established
+- `LocaleController` as an async `@riverpod` `AsyncNotifier<Locale>` backed by `SharedPreferences`, mirroring `ThemeController`'s shape but adding the async disk round-trip locale needs on both read and write.
+- Shared `ApiExceptionLocalization.localizedMessage()` extension with an `overrides` parameter for screen-specific error-code handling — the standard shape for any future `ApiException` catch site, and the retirement path for one-off bespoke handlers.
+- Centralized `test/test_strings.dart` (`tester.strings.keyName`) replacing hardcoded English literals in `find.text(...)` across 24 test files — the standard assertion pattern once a screen is localized.
+
+### Key Lessons
+1. A same-day gap-closure or bug fix caught inside a code review still needs its source docs (REQUIREMENTS.md checkboxes, traceability status) re-stamped immediately — this is the third milestone in a row (after v1.0 Phase 2, v1.1 Phase 7) this exact class of doc-drift was only caught at milestone close, not at the phase's own close-out. Worth a lightweight per-phase check rather than relying on milestone close to be the backstop every time.
+2. Behavioral changes (even a small formatter fix) must land as their own reviewed diff, never bundled into a phase scoped as pure extraction/refactor — the phase's own test suite is written assuming no behavior change and won't catch a regression the bundling introduces.
+3. The tracer-plan pattern generalizes beyond cross-screen behavioral retrofits (v1.1 Phase 7's cache flip) to cross-screen data/vocabulary retrofits (v1.2 Phase 13's string extraction) — same shape, same payoff: prove the pattern and its edge cases once, mirror it verbatim afterward.
+
+### Cost Observations
+- Sessions: multiple across 2026-08-25 → 2026-08-26 (2-day span)
+- Notable: 159 commits, 160 files changed (+22,989/-1,668), ~29,800 LOC Dart at ship time, 453 tests passing, `dart analyze` clean. Phase 13 was the largest single phase across all three milestones (13 plans, 68 files reviewed).
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -87,6 +124,7 @@
 |-----------|----------|--------|------------|
 | v1.0 | multiple | 5 | First milestone — established Riverpod+Hive cache pattern, gap-closure-plan convention, and the offline-retrofit-as-dedicated-phase approach |
 | v1.1 | multiple | 6 | Tracer-plan pattern for cross-screen retrofits (Phase 7); inserted decimal phase for an urgent mid-milestone API contract drift (06.1); post-execution code review became load-bearing for catching cache-race and UI-crash bugs tests missed |
+| v1.2 | multiple | 4 | Tracer-plan pattern generalized to a cross-screen data/vocabulary retrofit (Phase 13 string extraction, 130 ARB keys/13 plans); shared extension + `overrides` parameter pattern let bespoke error handlers retire onto common infrastructure (Phase 14) |
 
 ### Cumulative Quality
 
@@ -94,9 +132,10 @@
 |-----------|-------|----------|-------------------|
 | v1.0 | 284 | — | `connectivity_plus` (Phase 5); reordering used Flutter SDK's `ReorderableListView`, zero new deps |
 | v1.1 | 401 | — | No new dependencies — cache/online-first flip, owner tools, and search all built on existing Riverpod/Hive/connectivity_plus stack |
+| v1.2 | 453 | — | No new runtime dependencies — `flutter_localizations`/ARB/gen-l10n use Flutter SDK tooling; `LocaleController` reused the existing `SharedPreferences` dependency |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Re-stamp verification/requirements docs immediately when a gap-closure plan lands — don't let a same-day fix look stale for a full milestone.
-2. A phase's code review findings should resolve before the phase is marked complete — an unresolved architectural question deferred to milestone close costs a context-switch that a same-phase resolution would avoid (v1.1).
-3. A tracer plan that proves a cross-screen pattern once, before the remaining plans mirror it, prevents pattern drift on any retrofit phase touching many similar screens (v1.0 Phase 5, v1.1 Phase 7).
+1. Re-stamp verification/requirements docs immediately when a gap-closure plan or code-review fix lands — don't let a same-day fix look stale for a full milestone. Recurred 3 milestones running (v1.0 Phase 2, v1.1 Phase 7, v1.2 Phase 12) — worth a lightweight per-phase consistency check rather than relying on milestone close to keep catching it.
+2. A phase's code review findings should resolve before the phase is marked complete — an unresolved architectural question deferred to milestone close costs a context-switch that a same-phase resolution would avoid (v1.1); a behavioral change smuggled into a scoped-as-extraction-only phase costs the same way (v1.2 Phase 13 CR-01).
+3. A tracer plan that proves a cross-screen pattern once, before the remaining plans mirror it, prevents pattern drift on any retrofit phase touching many similar screens — works for behavioral retrofits (v1.0 Phase 5, v1.1 Phase 7) and data/vocabulary retrofits alike (v1.2 Phase 13).
