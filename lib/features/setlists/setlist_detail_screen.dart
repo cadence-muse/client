@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cadence/features/tracks/track_formatting.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
@@ -30,13 +31,6 @@ class SetlistDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
-  // ReorderSetlistTracksRequestBody caps `trackIds` at 100 (publicapi.yml).
-  // [_handleReorder] always submits the *entire* current track list (see its
-  // doc comment), so a setlist that has grown past this cap would otherwise
-  // have every reorder deterministically fail with a misleading "Refreshing
-  // ..." message (WR-03) — guard client-side before the doomed network call.
-  static const int _maxSetlistTracks = 100;
-
   bool _editMode = false;
 
   // Tracks currently mid-removal — guards the remove IconButton against a
@@ -86,8 +80,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to remove track. Try again.')),
+        SnackBar(content: Text(l10n.setlistDetailRemoveTrackFailedSnackbar)),
       );
     } finally {
       if (mounted) {
@@ -133,13 +128,21 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       for (final track in reordered) track['trackId'] as String,
     ];
 
-    if (trackIds.length > _maxSetlistTracks) {
+    // ReorderSetlistTracksRequestBody caps `trackIds` at 100 (publicapi.yml).
+    // This method always submits the *entire* current track list (see its
+    // doc comment), so a setlist that has grown past this cap would
+    // otherwise have every reorder deterministically fail with a misleading
+    // "Refreshing..." message (WR-03) — guard client-side before the doomed
+    // network call.
+    if (trackIds.length > maxSetlistTracks) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            "Can't reorder — this setlist has more than "
-            '$_maxSetlistTracks tracks.',
+            l10n.setlistDetailReorderTooManyTracks(
+              l10n.trackCount(maxSetlistTracks),
+            ),
           ),
         ),
       );
@@ -167,10 +170,9 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
       }
     } catch (_) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to reorder tracks. Refreshing...'),
-        ),
+        SnackBar(content: Text(l10n.setlistDetailReorderFailedSnackbar)),
       );
       await ref
           .read(
@@ -191,15 +193,18 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     final isOnline = ref.watch(isOnlineProvider);
     final name = setlistAsync.valueOrNull?['name'] as String?;
     final currentSetlist = setlistAsync.valueOrNull;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(name ?? 'Setlist'),
+        title: Text(name ?? l10n.setlistDetailFallbackTitle),
         actions: [
           if (currentSetlist != null)
             IconButton(
               icon: const Icon(Icons.edit),
-              tooltip: isOnline ? 'Edit setlist' : 'Requires connection',
+              tooltip: isOnline
+                  ? l10n.setlistDetailEditTooltip
+                  : l10n.commonRequiresConnection,
               onPressed: isOnline
                   ? () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -243,6 +248,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
     final durationSeconds = setlist['durationSeconds'] as int;
     final tracks = (setlist['tracks'] as List).cast<Map<String, dynamic>>();
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // Header info / Edit-Done toggle / delete tile stay outside the
     // reorderable region as plain Column children — the Expanded child
@@ -292,14 +298,18 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Tooltip(
-                  message: isOnline || _editMode ? '' : 'Requires connection',
+                  message: isOnline || _editMode
+                      ? ''
+                      : l10n.commonRequiresConnection,
                   child: TextButton(
                     onPressed: isOnline
                         ? () => setState(() => _editMode = !_editMode)
                         : (_editMode
                               ? () => setState(() => _editMode = false)
                               : null),
-                    child: Text(_editMode ? 'Done' : 'Edit'),
+                    child: Text(
+                      _editMode ? l10n.setlistDetailDoneButton : l10n.commonEdit,
+                    ),
                   ),
                 ),
               ),
@@ -308,7 +318,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
                 child: Text(
-                  'Tracks (${tracks.length})',
+                  l10n.setlistDetailTracksHeader(tracks.length),
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
               ),
@@ -317,7 +327,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
         ),
         Expanded(
           child: tracks.isEmpty
-              ? const Center(child: Text('No tracks in this setlist'))
+              ? Center(child: Text(l10n.setlistDetailNoTracks))
               : (_editMode && isOnline)
               ? ReorderableListView.builder(
                   buildDefaultDragHandles: false,
@@ -364,7 +374,7 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                                 Icons.remove_circle_outline,
                                 color: colorScheme.error,
                               ),
-                              tooltip: 'Remove',
+                              tooltip: l10n.setlistDetailRemoveTrackTooltip,
                               onPressed: () => _removeTrack(trackId),
                             ),
                     );
@@ -409,14 +419,17 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
                   },
                 ),
               ),
-              child: const Text('Add tracks'),
+              child: Text(l10n.commonAddTracks),
             ),
           ),
         const Divider(height: 1),
         ListTile(
           enabled: isOnline,
           leading: Icon(Icons.delete, color: colorScheme.error),
-          title: Text('Delete', style: TextStyle(color: colorScheme.error)),
+          title: Text(
+            l10n.commonDelete,
+            style: TextStyle(color: colorScheme.error),
+          ),
           onTap: isOnline
               ? () => showDialog<void>(
                   context: context,
@@ -433,18 +446,19 @@ class _SetlistDetailScreenState extends ConsumerState<SetlistDetailScreen> {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Failed to load setlists. Tap to try again.',
+            Text(
+              l10n.commonFailedToLoadSetlists,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),

@@ -1,13 +1,9 @@
-import 'package:cadence/features/tracks/track_formatting.dart';
-
-/// Pluralizes a track count for display, e.g. `1` -> `'1 track'`, `8` ->
-/// `'8 tracks'`.
-String pluralizeTracks(int count) => count == 1 ? '1 track' : '$count tracks';
-
-/// Composes a setlist list row's trailing text, e.g. `'8 tracks, 42:35'`.
-/// Reused unmodified by Plan 05's global cross-band Setlists tab.
-String tracksAndDuration(int tracksCount, int durationSeconds) =>
-    '${pluralizeTracks(tracksCount)}, ${durationSeconds.asMinutesSeconds}';
+// ReorderSetlistTracksRequestBody/AddSetlistTracksRequestBody both cap
+// `trackIds` at 100 (publicapi.yml). Was independently declared as
+// `_maxSetlistTracks` in setlist_detail_screen.dart, create_setlist_screen.dart,
+// and add_setlist_tracks_dialog.dart (D-12) -- now a single shared source of
+// truth so it can't drift across the 3 consumers.
+const int maxSetlistTracks = 100;
 
 const _monthAbbreviations = [
   'Jan',

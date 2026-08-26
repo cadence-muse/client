@@ -5,6 +5,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/setlist_detail_screen.dart';
 import 'package:cadence/features/setlists/setlists_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
@@ -12,10 +13,13 @@ import 'package:cadence/providers/navigation_provider.dart';
 import 'package:cadence/providers/setlists_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -46,7 +50,16 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: const MaterialApp(home: SetlistsScreen()),
+      child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
+        home: const SetlistsScreen(),
+      ),
     );
   }
 
@@ -61,9 +74,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('No setlists'), findsOneWidget);
+      expect(find.text(tester.strings.setlistsTabEmptyTitle), findsOneWidget);
       expect(
-        find.text('Create setlists in a band to see them here.'),
+        find.text(tester.strings.setlistsTabEmptyDescription),
         findsOneWidget,
       );
       expect(find.byType(DropdownButton<String?>), findsNothing);
@@ -120,8 +133,14 @@ void main() {
       expect(find.text('Setlist Two'), findsOneWidget);
       expect(find.text('Band One'), findsWidgets);
       expect(find.text('Band Two'), findsWidgets);
-      expect(find.text('8 tracks, 42:35'), findsOneWidget);
-      expect(find.text('1 track, 3:20'), findsOneWidget);
+      expect(
+        find.text('${tester.strings.trackCount(8)}, 42:35'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('${tester.strings.trackCount(1)}, 3:20'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -206,10 +225,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Failed to load setlists. Tap to try again.'),
+        find.text(tester.strings.commonFailedToLoadSetlists),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsOneWidget,
+      );
     },
   );
 
@@ -332,12 +354,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
-      expect(find.text('No cached data'), findsOneWidget);
+      expect(find.text(tester.strings.offlineNoCacheTitle), findsOneWidget);
       expect(
-        find.text('Connect to the internet to load this'),
+        find.text(tester.strings.offlineNoCacheDescription),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
+      expect(
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsNothing,
+      );
     },
   );
 

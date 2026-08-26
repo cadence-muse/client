@@ -4,13 +4,17 @@ import 'dart:io';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/create_setlist_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -42,6 +46,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -84,11 +95,11 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await openCreateSetlistScreen(tester);
-    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonCreate));
     await tester.pump();
 
     expect(callCount, 0);
-    expect(find.text('Name is required'), findsOneWidget);
+    expect(find.text(tester.strings.commonNameRequired), findsOneWidget);
   });
 
   testWidgets(
@@ -108,7 +119,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openCreateSetlistScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonCreate));
       await tester.pumpAndSettle();
 
       expect(find.text('Name is invalid'), findsOneWidget);
@@ -130,11 +141,11 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openCreateSetlistScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonCreate));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Failed to create setlist. Try again.'),
+        find.text(tester.strings.createSetlistFailedError),
         findsOneWidget,
       );
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -152,8 +163,14 @@ void main() {
       await openCreateSetlistScreen(tester);
       await tester.pump();
 
-      expect(find.text('Add tracks (optional)'), findsOneWidget);
-      expect(find.text('No tracks in this band yet'), findsOneWidget);
+      expect(
+        find.text(tester.strings.createSetlistAddTracksOptionalHeader),
+        findsOneWidget,
+      );
+      expect(
+        find.text(tester.strings.createSetlistNoTracksInBand),
+        findsOneWidget,
+      );
 
       await tester.pumpAndSettle();
     },
@@ -186,7 +203,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openCreateSetlistScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonCreate));
       await tester.pump();
 
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -225,11 +242,14 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openCreateSetlistScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonCreate));
       await tester.pumpAndSettle();
 
       expect(requestBody, jsonEncode({'name': 'My Setlist'}));
-      expect(find.text('My Setlist created!'), findsOneWidget);
+      expect(
+        find.text(tester.strings.createSetlistSuccessSnackbar('My Setlist')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -271,7 +291,7 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
       await tester.tap(find.text('Track One'));
       await tester.pump();
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.tap(find.widgetWithText(FilledButton, tester.strings.commonCreate));
       await tester.pumpAndSettle();
 
       final decoded = jsonDecode(requestBody!) as Map<String, dynamic>;
@@ -295,7 +315,10 @@ void main() {
         find.byType(FilledButton),
       );
       expect(offlineButton.onPressed, isNull);
-      expect(find.text('Requires connection'), findsOneWidget);
+      expect(
+        find.text(tester.strings.commonRequiresConnection),
+        findsOneWidget,
+      );
     },
   );
 

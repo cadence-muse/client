@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../api/api_exception.dart';
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/setlists_provider.dart';
 import '../../providers/tracks_provider.dart';
+import 'setlist_formatting.dart' show maxSetlistTracks;
 
 /// Returns true when [query] is empty, or is a case-insensitive substring
 /// of [track]'s title or artist (D-02). An exact-match query is trivially a
@@ -46,12 +48,6 @@ class AddSetlistTracksDialog extends ConsumerStatefulWidget {
 
 class _AddSetlistTracksDialogState
     extends ConsumerState<AddSetlistTracksDialog> {
-  // AddSetlistTracksRequestBody caps `trackIds` at 100 (publicapi.yml) —
-  // guard selection client-side against the *remaining* slots left in the
-  // setlist rather than a flat 100, since [currentTrackIds] already occupies
-  // some of the cap (WR-03).
-  static const int _maxSetlistTracks = 100;
-
   final Set<String> _selectedTrackIds = {};
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -117,16 +113,17 @@ class _AddSetlistTracksDialogState
         ref.invalidate(userSetlistsListDataProvider);
       }
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Tracks added!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.addSetlistTracksSuccessSnackbar)),
+      );
     } on ApiException catch (e) {
       setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(
-        () => _errorMessage = 'Failed to add tracks. Try again.',
-      );
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _errorMessage = l10n.addSetlistTracksFailedError);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -136,9 +133,10 @@ class _AddSetlistTracksDialogState
   Widget build(BuildContext context) {
     final tracksAsync = ref.watch(trackListDataProvider(widget.bandId));
     final isOnline = ref.watch(isOnlineProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: const Text('Add tracks'),
+      title: Text(l10n.commonAddTracks),
       content: SizedBox(
         width: double.maxFinite,
         child: tracksAsync.when(
@@ -158,8 +156,13 @@ class _AddSetlistTracksDialogState
                   if (trackMatchesSearchQuery(track, _searchQuery)) track,
               ];
             }
+            // AddSetlistTracksRequestBody caps `trackIds` at 100
+            // (publicapi.yml) — guard selection client-side against the
+            // *remaining* slots left in the setlist rather than a flat 100,
+            // since [currentTrackIds] already occupies some of the cap
+            // (WR-03).
             final remainingSlots =
-                _maxSetlistTracks - widget.currentTrackIds.length;
+                maxSetlistTracks - widget.currentTrackIds.length;
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -168,30 +171,34 @@ class _AddSetlistTracksDialogState
                 TextField(
                   controller: _searchController,
                   onChanged: _onSearchChanged,
-                  decoration: const InputDecoration(
-                    hintText: 'Search by title or artist',
-                    prefixIcon: Icon(Icons.search),
+                  decoration: InputDecoration(
+                    hintText: l10n.addSetlistTracksSearchHint,
+                    prefixIcon: const Icon(Icons.search),
                   ),
                 ),
                 const SizedBox(height: 8),
                 if (remainingSlots <= 0)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      'This setlist already has the maximum of 100 tracks.',
+                      l10n.addSetlistTracksMaxReached(
+                        l10n.trackCount(maxSetlistTracks),
+                      ),
                     ),
                   )
                 else if (!isOnline &&
                     _searchQuery.isNotEmpty &&
                     availableTracks.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Center(child: Text('No tracks match your search')),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Text(l10n.addSetlistTracksNoMatch),
+                    ),
                   )
                 else if (availableTracks.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text('No more tracks available'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(l10n.addSetlistTracksNoneAvailable),
                   )
                 else
                   Flexible(
@@ -235,9 +242,10 @@ class _AddSetlistTracksDialogState
                     _selectedTrackIds.length >= remainingSlots) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Setlists can have at most 100 tracks — '
-                    '$remainingSlots slot'
-                    '${remainingSlots == 1 ? '' : 's'} remaining.',
+                    l10n.addSetlistTracksRemainingMessage(
+                      l10n.trackCount(maxSetlistTracks),
+                      l10n.slotCount(remainingSlots),
+                    ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -261,11 +269,11 @@ class _AddSetlistTracksDialogState
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                const Expanded(child: Text("Couldn't load tracks")),
+                Expanded(child: Text(l10n.commonCouldntLoadTracks)),
                 TextButton(
                   onPressed: () =>
                       ref.invalidate(trackListDataProvider(widget.bandId)),
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ],
             ),
@@ -275,10 +283,10 @@ class _AddSetlistTracksDialogState
       actions: [
         TextButton(
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         Tooltip(
-          message: isOnline ? '' : 'Requires connection',
+          message: isOnline ? '' : l10n.commonRequiresConnection,
           child: FilledButton(
             onPressed:
                 (_isSubmitting || _selectedTrackIds.isEmpty || !isOnline)
@@ -290,7 +298,11 @@ class _AddSetlistTracksDialogState
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOnline ? 'Add' : 'Requires connection'),
+                : Text(
+                    isOnline
+                        ? l10n.addSetlistTracksSubmitButton
+                        : l10n.commonRequiresConnection,
+                  ),
           ),
         ),
       ],
