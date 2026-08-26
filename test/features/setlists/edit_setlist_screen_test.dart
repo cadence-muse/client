@@ -4,13 +4,17 @@ import 'dart:io';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/setlists/edit_setlist_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   const currentSetlist = {
@@ -50,6 +54,13 @@ void main() {
         isOnlineProvider.overrideWithValue(isOnline),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('ru')],
         home: Builder(
           builder: (context) => Scaffold(
             body: Center(
@@ -95,25 +106,24 @@ void main() {
     expect(fields, ['Old Name', 'Old Venue', '2026-09-01']);
   });
 
-  testWidgets(
-    'empty name is rejected without an API call',
-    (tester) async {
-      var callCount = 0;
-      final apiClient = buildApiClient((request) async {
-        callCount++;
-        return http.Response('', 200);
-      });
+  testWidgets('empty name is rejected without an API call', (tester) async {
+    var callCount = 0;
+    final apiClient = buildApiClient((request) async {
+      callCount++;
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await openEditSetlistScreen(tester);
-      await tester.enterText(find.byType(TextFormField).at(0), '');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient));
+    await openEditSetlistScreen(tester);
+    await tester.enterText(find.byType(TextFormField).at(0), '');
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonSave),
+    );
+    await tester.pump();
 
-      expect(callCount, 0);
-      expect(find.text('Name is required'), findsOneWidget);
-    },
-  );
+    expect(callCount, 0);
+    expect(find.text(tester.strings.commonNameRequired), findsOneWidget);
+  });
 
   testWidgets(
     'submitting a changed name calls updateSetlist with the exact request '
@@ -132,7 +142,9 @@ void main() {
       await tester.pumpWidget(wrap(apiClient));
       await openEditSetlistScreen(tester);
       await tester.enterText(find.byType(TextFormField).at(0), 'New Name');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       expect(requestMethod, 'PUT');
@@ -163,7 +175,9 @@ void main() {
       await openEditSetlistScreen(tester);
       // TextFormFields in order: Name(0), Location(1), Date(2).
       await tester.enterText(find.byType(TextFormField).at(1), '');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       final decoded = jsonDecode(requestBody!) as Map<String, dynamic>;
@@ -173,27 +187,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    'clearing the date field also sends an explicit null instead of '
-    'omitting the key',
-    (tester) async {
-      String? requestBody;
-      final apiClient = buildApiClient((request) async {
-        requestBody = request.body;
-        return http.Response('', 200);
-      });
+  testWidgets('clearing the date field also sends an explicit null instead of '
+      'omitting the key', (tester) async {
+    String? requestBody;
+    final apiClient = buildApiClient((request) async {
+      requestBody = request.body;
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await openEditSetlistScreen(tester);
-      await tester.enterText(find.byType(TextFormField).at(2), '');
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(wrap(apiClient));
+    await openEditSetlistScreen(tester);
+    await tester.enterText(find.byType(TextFormField).at(2), '');
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonSave),
+    );
+    await tester.pumpAndSettle();
 
-      final decoded = jsonDecode(requestBody!) as Map<String, dynamic>;
-      expect(decoded.containsKey('eventDate'), isTrue);
-      expect(decoded['eventDate'], isNull);
-    },
-  );
+    final decoded = jsonDecode(requestBody!) as Map<String, dynamic>;
+    expect(decoded.containsKey('eventDate'), isTrue);
+    expect(decoded['eventDate'], isNull);
+  });
 
   testWidgets('Save button is disabled while submitting', (tester) async {
     final apiClient = buildApiClient((request) async {
@@ -203,7 +216,9 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await openEditSetlistScreen(tester);
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.commonSave),
+    );
     await tester.pump();
 
     final button = tester.widget<FilledButton>(find.byType(FilledButton));
@@ -225,7 +240,9 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openEditSetlistScreen(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Name is required'), findsOneWidget);
@@ -244,51 +261,44 @@ void main() {
 
       await tester.pumpWidget(wrap(apiClient));
       await openEditSetlistScreen(tester);
-      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Failed to save setlist. Try again.'),
-        findsOneWidget,
-      );
+      expect(find.text(tester.strings.editSetlistFailedError), findsOneWidget);
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
     },
   );
 
-  testWidgets(
-    'with isOnlineProvider false, the Save button is disabled with a '
-    '"Requires connection" label',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        return http.Response('', 200);
-      });
+  testWidgets('with isOnlineProvider false, the Save button is disabled with a '
+      '"Requires connection" label', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient, isOnline: false));
-      await openEditSetlistScreen(tester);
+    await tester.pumpWidget(wrap(apiClient, isOnline: false));
+    await openEditSetlistScreen(tester);
 
-      final offlineButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(offlineButton.onPressed, isNull);
-      expect(find.text('Requires connection'), findsOneWidget);
-    },
-  );
+    final offlineButton = tester.widget<FilledButton>(
+      find.byType(FilledButton),
+    );
+    expect(offlineButton.onPressed, isNull);
+    expect(find.text(tester.strings.commonRequiresConnection), findsOneWidget);
+  });
 
-  testWidgets(
-    'with isOnlineProvider true, the Save button is enabled',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        return http.Response('', 200);
-      });
+  testWidgets('with isOnlineProvider true, the Save button is enabled', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient, isOnline: true));
-      await openEditSetlistScreen(tester);
+    await tester.pumpWidget(wrap(apiClient, isOnline: true));
+    await openEditSetlistScreen(tester);
 
-      final onlineButton = tester.widget<FilledButton>(
-        find.byType(FilledButton),
-      );
-      expect(onlineButton.onPressed, isNotNull);
-    },
-  );
+    final onlineButton = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(onlineButton.onPressed, isNotNull);
+  });
 }
