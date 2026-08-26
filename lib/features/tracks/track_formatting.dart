@@ -69,6 +69,13 @@ class DurationTextInputFormatter extends TextInputFormatter {
       return oldValue;
     }
 
+    if (rawDigits.isEmpty) {
+      return newValue.copyWith(
+        text: '',
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    }
+
     final String formatted;
     if (rawDigits.length <= 2) {
       formatted = '0:${rawDigits.padLeft(2, '0')}';
