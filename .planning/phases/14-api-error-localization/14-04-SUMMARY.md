@@ -146,3 +146,7 @@ Phase 14's full catch-site sweep (14-01 through 14-04) is complete once all wave
 ---
 *Phase: 14-api-error-localization*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+All 7 modified files confirmed present in the working tree and committed (verified via `git show --stat` on commits `c53269c`, `481e821`). Both task commits (`c53269c`, `481e821`) confirmed present in `git log`.
