@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../generated/app_localizations.dart';
 import '../providers/connectivity_provider.dart';
 
 /// D-10: single global widget wrapping `RootScaffold`'s body — reflects the
@@ -16,6 +17,7 @@ class OfflineBanner extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       color: colorScheme.errorContainer,
@@ -26,7 +28,7 @@ class OfflineBanner extends ConsumerWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Showing cached data — may be out of date',
+              l10n.offlineBannerMessage,
               style: TextStyle(color: colorScheme.onErrorContainer),
             ),
           ),

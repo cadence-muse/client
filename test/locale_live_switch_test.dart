@@ -17,6 +17,8 @@ import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'test_strings.dart';
+
 /// Copied from `test/offline_cross_tab_test.dart` — a fake secure-storage
 /// backend so `TokenStorage` never touches the real platform channel in
 /// tests.
@@ -113,10 +115,16 @@ void main() {
   }
 
   Future<void> goToSettings(WidgetTester tester) async {
+    // Read the nav label off the current locale each call -- this helper
+    // runs both before and after the Russian language switch (I18N-03),
+    // and root_scaffold.dart's labels are localized (13-07), so a
+    // hardcoded English literal would stop matching once the locale
+    // changes.
+    final profileLabel = tester.strings.navProfile;
     await tester.tap(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text('Profile'),
+        matching: find.text(profileLabel),
       ),
     );
     await tester.pumpAndSettle();
@@ -173,11 +181,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate back to the Home tab, which was kept alive (but inactive)
-      // in the background while the language switch happened.
+      // in the background while the language switch happened. The locale
+      // is already Russian here, so the nav label must be read off the
+      // current AppLocalizations instance rather than the English literal.
       await tester.tap(
         find.descendant(
           of: find.byType(NavigationBar),
-          matching: find.text('Home'),
+          matching: find.text(tester.strings.navHome),
         ),
       );
       await tester.pumpAndSettle();
