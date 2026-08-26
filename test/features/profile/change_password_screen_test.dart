@@ -295,6 +295,33 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a different known code (not_found) now shows the shared generic '
+    'localized message, not raw server text -- new behavior this phase adds',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'not_found', 'message': 'raw server text'}),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await fillForm(tester);
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          tester.strings.changePasswordSubmitButton,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(tester.strings.commonErrorNotFound), findsOneWidget);
+      expect(find.text('raw server text'), findsNothing);
+    },
+  );
+
   testWidgets('500 server_error shows the raw e.message verbatim', (
     tester,
   ) async {
