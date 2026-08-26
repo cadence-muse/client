@@ -121,3 +121,7 @@ None - no external service configuration required.
 ---
 *Phase: 14-api-error-localization*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+All 9 claimed files found on disk (7 lib files, 2 test files). All 3 commits (`7d064a1`, `622379d`, `40bcf67`) confirmed present in `git log`.
