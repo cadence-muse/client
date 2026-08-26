@@ -304,6 +304,33 @@ void main() {
   );
 
   testWidgets(
+    'a createBandTrack() failure with a known error code shows the '
+    'localized generic message, not raw server text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'code': 'invalid_input', 'message': 'raw server text'}),
+          400,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openCreateTrackScreen(tester);
+      await enterTitleAndArtist(tester);
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.createTrackSaveButton),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.commonErrorInvalidInput),
+        findsOneWidget,
+      );
+      expect(find.text('raw server text'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'a non-ApiException failure (e.g. offline) shows the generic fallback '
     'message and re-enables the Save track button',
     (tester) async {
