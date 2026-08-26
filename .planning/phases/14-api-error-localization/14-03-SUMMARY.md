@@ -145,6 +145,10 @@ None - no external service configuration required.
 - All 3 Tracks catch sites and both Auth/Profile overrides are now on the single consistent `localizedMessage` call shape. Combined with 14-01/14-02, every in-scope catch site in the app (Bands, Tracks, Auth, Profile) uses the shared mechanism except the Setlists feature, which is 14-04's scope.
 - No blockers for 14-04.
 
+## Self-Check: PASSED
+
+All 9 claimed files verified tracked in git (`git ls-files`); all 4 commit hashes (`f83d468`, `681f66b`, `a87a2fb`, `26eaa96`) verified present in `git log`.
+
 ---
 *Phase: 14-api-error-localization*
 *Completed: 2026-08-26*
