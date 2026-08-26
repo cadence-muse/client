@@ -266,8 +266,8 @@ void main() {
   );
 
   testWidgets(
-    'a joinBand() failure renders an inline error and re-enables the Join '
-    'button',
+    'a joinBand() failure with a known error code shows the localized '
+    'generic message, not raw server text',
     (tester) async {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBands([]);
@@ -289,7 +289,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Invalid invite code'), findsOneWidget);
+      expect(find.text(tester.strings.commonErrorNotFound), findsOneWidget);
+      expect(find.text('Invalid invite code'), findsNothing);
       expect(find.byType(AlertDialog), findsOneWidget);
       final button = tester.widget<FilledButton>(find.byType(FilledButton));
       expect(button.onPressed, isNotNull);
