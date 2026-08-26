@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
@@ -23,14 +24,15 @@ class ProfileScreen extends ConsumerWidget {
     });
 
     final profileAsync = ref.watch(profileDataProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.profileAppBarTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
+            tooltip: l10n.commonRefresh,
             onPressed: () => ref.read(profileDataProvider.notifier).refresh(),
           ),
         ],
@@ -67,6 +69,7 @@ class ProfileScreen extends ConsumerWidget {
   ) {
     final username = profile['username'] as String? ?? '';
     final id = profile['id'] as String? ?? '';
+    final l10n = AppLocalizations.of(context)!;
 
     return ListView(
       children: [
@@ -87,10 +90,10 @@ class ProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
         const Divider(height: 1),
-        ListTile(title: const Text('ID'), subtitle: Text(id)),
+        ListTile(title: Text(l10n.profileIdLabel), subtitle: Text(id)),
         ListTile(
           leading: const Icon(Icons.settings),
-          title: const Text('Settings'),
+          title: Text(l10n.profileSettingsLabel),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
             Navigator.of(context).push(
@@ -100,7 +103,7 @@ class ProfileScreen extends ConsumerWidget {
         ),
         ListTile(
           leading: const Icon(Icons.lock_outline),
-          title: const Text('Change password'),
+          title: Text(l10n.profileChangePasswordLabel),
           trailing: const Icon(Icons.chevron_right),
           onTap: () {
             Navigator.of(context).push(
@@ -112,7 +115,7 @@ class ProfileScreen extends ConsumerWidget {
         ),
         ListTile(
           leading: const Icon(Icons.logout),
-          title: const Text('Log out'),
+          title: Text(l10n.profileLogOutLabel),
           onTap: () => ref.read(authSessionProvider.notifier).signOut(),
         ),
       ],
@@ -120,6 +123,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildError(BuildContext context, VoidCallback onRetry) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -127,17 +131,14 @@ class ProfileScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Couldn't load profile",
+              l10n.profileErrorTitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Please check your connection and try again.',
-              textAlign: TextAlign.center,
-            ),
+            Text(l10n.commonConnectionError, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
+            ElevatedButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
           ],
         ),
       ),

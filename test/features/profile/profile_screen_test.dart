@@ -4,16 +4,20 @@ import 'dart:convert';
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/profile/profile_screen.dart';
+import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/connectivity_provider.dart';
 import 'package:cadence/providers/navigation_provider.dart';
 import 'package:cadence/providers/profile_provider.dart';
 import 'package:cadence/widgets/offline_no_cache_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import '../../test_strings.dart';
 
 void main() {
   ApiClient buildApiClient(
@@ -44,7 +48,16 @@ void main() {
         cacheServiceProvider.overrideWithValue(cacheService),
         isOnlineProvider.overrideWithValue(isOnline),
       ],
-      child: const MaterialApp(home: ProfileScreen()),
+      child: const MaterialApp(
+        localizationsDelegates: [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [Locale('en'), Locale('ru')],
+        home: ProfileScreen(),
+      ),
     );
   }
 
@@ -82,12 +95,12 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text("Couldn't load profile"), findsOneWidget);
+      expect(find.text(tester.strings.profileErrorTitle), findsOneWidget);
+      expect(find.text(tester.strings.commonConnectionError), findsOneWidget);
       expect(
-        find.text('Please check your connection and try again.'),
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
         findsOneWidget,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsOneWidget);
     },
   );
 
@@ -131,8 +144,8 @@ void main() {
       await tester.pumpAndSettle();
       callCount = 0;
 
-      await tester.tap(find.byTooltip('Refresh'));
-      await tester.tap(find.byTooltip('Refresh'));
+      await tester.tap(find.byTooltip(tester.strings.commonRefresh));
+      await tester.tap(find.byTooltip(tester.strings.commonRefresh));
       await tester.pumpAndSettle();
 
       expect(callCount, 1);
@@ -173,58 +186,50 @@ void main() {
         );
       });
 
-      await tester.pumpWidget(
-        wrap(apiClient, cacheService, isOnline: false),
-      );
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
       await tester.pumpAndSettle();
 
       expect(find.byType(OfflineNoCacheView), findsOneWidget);
       expect(find.text('No cached data'), findsOneWidget);
+      expect(find.text('Connect to the internet to load this'), findsOneWidget);
       expect(
-        find.text('Connect to the internet to load this'),
-        findsOneWidget,
+        find.widgetWithText(ElevatedButton, tester.strings.commonRetry),
+        findsNothing,
       );
-      expect(find.widgetWithText(ElevatedButton, 'Retry'), findsNothing);
     },
   );
 
-  testWidgets(
-    'switching to the Profile tab a second time triggers a second '
-    'GET /api/me call (D-01 tab-switch refetch)',
-    (tester) async {
-      final cacheService = CacheService.inMemory();
-      var callCount = 0;
-      final apiClient = buildApiClient((request) async {
-        if (request.url.path == '/api/me') {
-          callCount++;
-        }
-        return http.Response(
-          jsonEncode({'id': 'u1', 'username': 'user'}),
-          200,
-        );
-      });
+  testWidgets('switching to the Profile tab a second time triggers a second '
+      'GET /api/me call (D-01 tab-switch refetch)', (tester) async {
+    final cacheService = CacheService.inMemory();
+    var callCount = 0;
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/me') {
+        callCount++;
+      }
+      return http.Response(jsonEncode({'id': 'u1', 'username': 'user'}), 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient, cacheService));
-      await tester.pumpAndSettle();
-      final initialCallCount = callCount;
-      expect(initialCallCount, 1);
+    await tester.pumpWidget(wrap(apiClient, cacheService));
+    await tester.pumpAndSettle();
+    final initialCallCount = callCount;
+    expect(initialCallCount, 1);
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(ProfileScreen)),
-      );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ProfileScreen)),
+    );
 
-      // First selection of the Profile tab (index 4).
-      container.read(selectedTabIndexProvider.notifier).setIndex(4);
-      await tester.pumpAndSettle();
-      expect(callCount, initialCallCount + 1);
+    // First selection of the Profile tab (index 4).
+    container.read(selectedTabIndexProvider.notifier).setIndex(4);
+    await tester.pumpAndSettle();
+    expect(callCount, initialCallCount + 1);
 
-      // Switch away, then re-select the Profile tab a second time.
-      container.read(selectedTabIndexProvider.notifier).setIndex(0);
-      container.read(selectedTabIndexProvider.notifier).setIndex(4);
-      await tester.pumpAndSettle();
-      expect(callCount, initialCallCount + 2);
-    },
-  );
+    // Switch away, then re-select the Profile tab a second time.
+    container.read(selectedTabIndexProvider.notifier).setIndex(0);
+    container.read(selectedTabIndexProvider.notifier).setIndex(4);
+    await tester.pumpAndSettle();
+    expect(callCount, initialCallCount + 2);
+  });
 
   testWidgets(
     "AppBar's LinearProgressIndicator shows only while refreshing with data "
@@ -237,10 +242,7 @@ void main() {
       final apiClient = buildApiClient((request) async {
         callCount++;
         await (callCount == 1 ? firstFetchGate : secondFetchGate).future;
-        return http.Response(
-          jsonEncode({'id': 'u1', 'username': 'user'}),
-          200,
-        );
+        return http.Response(jsonEncode({'id': 'u1', 'username': 'user'}), 200);
       });
 
       await tester.pumpWidget(wrap(apiClient, cacheService));
