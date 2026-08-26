@@ -46,18 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final publicApi = ref.read(publicApiProvider);
       if (_mode == _AuthMode.signUp) {
-        try {
-          await publicApi.register(username: username, password: password);
-        } on ApiException catch (e) {
-          if (e.statusCode == 400 && e.code == 'already_exists') {
-            throw ApiException(
-              statusCode: e.statusCode,
-              code: e.code,
-              message: l10n.loginUsernameTakenError,
-            );
-          }
-          rethrow;
-        }
+        await publicApi.register(username: username, password: password);
       }
       try {
         final token = await publicApi.login(
@@ -76,7 +65,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         rethrow;
       }
     } on ApiException catch (e) {
-      setState(() => _errorMessage = e.message);
+      setState(
+        () => _errorMessage = e.localizedMessage(
+          l10n,
+          overrides: {'already_exists': l10n.loginUsernameTakenError},
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

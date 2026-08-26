@@ -60,11 +60,14 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
         Navigator.of(context).pop();
       }
     } on ApiException catch (e) {
-      setState(() {
-        _errorMessage = (e.statusCode == 400 && e.code == 'invalid_input')
-            ? l10n.changePasswordIncorrectCurrentError
-            : e.message;
-      });
+      setState(
+        () => _errorMessage = e.localizedMessage(
+          l10n,
+          overrides: {
+            'invalid_input': l10n.changePasswordIncorrectCurrentError,
+          },
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
