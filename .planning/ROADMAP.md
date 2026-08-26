@@ -159,7 +159,7 @@ Plans:
   3. The existing automated test suite passes by asserting against a centralized test-strings utility rather than hardcoded English literals in `find.text(...)` calls.
   4. An `IndexedStack` tab that wasn't visible at the moment of a language switch still renders fully localized text once the user navigates to it.
 
-**Plans**: 12/13 plans executed
+**Plans**: 13/13 plans executed
 
 Plans:
 **Wave 1**
@@ -182,7 +182,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 13-13-PLAN.md — Cross-cutting smoke test (widget_test.dart) migration
+- [x] 13-13-PLAN.md — Cross-cutting smoke test (widget_test.dart) migration
 
 ### Phase 14: API Error Localization
 
@@ -217,5 +217,5 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | 10. Searchable Setlist Track Picker | v1.1 | 1/1 | Complete | 2026-08-22 |
 | 11. Duration mm:ss Input + Display | v1.2 | 2/2 | Complete    | 2026-08-25 |
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete    | 2026-08-25 |
-| 13. String Extraction & Screen Localization | v1.2 | 12/13 | In Progress|  |
+| 13. String Extraction & Screen Localization | v1.2 | 13/13 | In Progress|  |
 | 14. API Error Localization | v1.2 | 0/? | Not started | — |
