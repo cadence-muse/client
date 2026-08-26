@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../generated/app_localizations.dart';
+
 /// D-06: shared "offline with nothing ever cached" state, rendered by a
 /// screen's `error:` branch when its provider throws
 /// `OfflineNoCacheException`. Copy is identical across every screen this
@@ -16,6 +18,7 @@ class OfflineNoCacheView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -29,13 +32,13 @@ class OfflineNoCacheView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No cached data',
+              l10n.offlineNoCacheTitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
             Text(
-              'Connect to the internet to load this',
+              l10n.offlineNoCacheDescription,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
