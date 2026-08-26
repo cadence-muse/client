@@ -1,5 +1,28 @@
 # Milestones
 
+## v1.2 i18n and Duration Input (Shipped: 2026-08-26)
+
+**Phases completed:** 4 phases, 20 plans, 41 tasks
+
+**Key accomplishments:**
+
+- DurationTextInputFormatter auto-shapes digit keystrokes into mm:ss (capped at 99:59) while parseDurationSeconds() independently re-validates at submit time, wired end-to-end into both Create and Edit Track forms.
+- Retired setlist_formatting.dart's words-based `asMinutesAndSeconds` extension; every setlist screen (list rows, detail rows, setlist totals) now renders duration via the pre-existing `track_formatting.dart` `asMinutesSeconds` mm:ss extension.
+- ARB/gen-l10n pipeline with a SharedPreferences-backed LocaleController (mirroring ThemeController) wired end-to-end on the Settings screen — live language switch, English default, background-tab propagation, and restart/logout persistence, all proven by automated unit/widget/integration tests.
+- Landed the complete ~130-key ARB vocabulary for all of phase 13 in one batch, proved the ARB/gen-l10n/AppLocalizations/tester.strings pipeline handles ICU plurals and placeholders (not just simple strings) end-to-end on the Bands tab and Band Detail screen, with correct Russian one/few/many/other plural resolution verified at the CLDR boundaries.
+- Home tab and shared band-picker bottom sheet fully localized (EN/RU) via AppLocalizations, with locale_live_switch_test.dart now proving cross-tab locale propagation against real rendered Home AppBar text instead of just the ambient `Localizations.localeOf()` value.
+- Localized the bottom-nav bar's 5 labels and the offline banner's message via AppLocalizations, migrated both cross-cutting tests off hardcoded English literals, and fixed a regression this introduced in an unrelated locale-switch test that tapped the same nav labels.
+- Localized the shared offline-empty-state widget (consumed by ~6 list screens) and the login/signup screen, including its two thrown-exception error messages, using ARB keys landed by 13-01.
+- Localized edit_setlist_screen.dart, confirm_delete_setlist_dialog.dart, and setlist_list_screen.dart to AppLocalizations, completing the Setlists domain sweep alongside 13-09.
+- Localized the per-band Tracks feature's list, detail, and delete-confirm screens to route every visible string through `AppLocalizations`, using ARB keys already landed by 13-01.
+- create_track_screen.dart, edit_track_screen.dart, and the global cross-band tracks_screen.dart (last of the 5 bottom-nav tabs) fully localized via AppLocalizations, with all three widget test files migrated to tester.strings assertions.
+- Shared `ApiExceptionLocalization.localizedMessage()` extension mapping the 5-value `ErrorCode` enum to localized ARB messages, proven end-to-end on `CreateBandScreen` with a passing RED/GREEN widget test.
+- Mechanical one-line swap of `e.message` -> `e.localizedMessage(l10n)` across all 7 remaining Bands-feature `on ApiException catch (e)` sites, proven with 2 new known-error-code regression tests.
+- Wired create/edit/delete-track error catch sites to the shared `localizedMessage` extension, then refactored login's `already_exists` and change-password's `invalid_input` overrides onto the same `overrides` parameter mechanism (D-04), retiring the last 2 bespoke error-handling implementations in the app and adding LoginScreen's first-ever test coverage.
+- Wired the last 5 setlist-feature `on ApiException catch (e)` sites (create/edit/delete-setlist, remove-track SnackBar, add-tracks) to `ApiExceptionLocalization.localizedMessage()`, completing Phase 14's full-app catch-site coverage.
+
+---
+
 ## v1.1 UI Improvements (Shipped: 2026-08-22)
 
 **Phases completed:** 6 phases, 13 plans, 28 tasks

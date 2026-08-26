@@ -6,17 +6,22 @@ score: 5/9 requirements verified; 4/9 blocked by implementation gaps
 behavior_unverified: 0
 overrides_applied: 0
 gaps:
+
   - truth: "Offline cache-first pattern works end-to-end on real devices"
     status: failed
     reason: "CR-01: Hive nested-collection type-casting bug prevents cache reads in production. _HiveStore.get() does shallow Map<String, dynamic>.from() conversion only; Hive deserializes nested Map/List as untyped Map<dynamic, dynamic>/List<dynamic>. Code does lazy cast<Map<String, dynamic>>() on line 140 (readBands) and line 82 (band_detail_screen.dart), which throws TypeError on first element access."
     artifacts:
+
       - path: "lib/cache/cache_service.dart"
         issue: "Lines 24-26: shallow conversion only; nested collections remain untyped"
+
       - path: "lib/features/bands/bands_screen.dart"
         issue: "Line 102: final band = bands[index] - crashes when bands is cast List"
+
       - path: "lib/features/bands/band_detail_screen.dart"
         issue: "Line 82: (band['members'] as List).cast<Map<String, dynamic>>() - same lazy cast issue"
     missing:
+
       - "Recursive _deepConvert() helper in _HiveStore to recursively normalize all nested Map/List values read from Hive before returning them"
       - "Real Hive-backed integration test (not in-memory double) to exercise cache read/write round-trip and catch this class of serialization bug"
 
@@ -24,42 +29,59 @@ gaps:
     status: failed
     reason: "WR-03: Every mutation (create, join, edit, delete, leave, remove-member) only catches ApiException, silently swallowing SocketException, FormatException, TypeError (from CR-01 cache bug), etc. Button re-enables with no error message, appearing to the user as if nothing happened."
     artifacts:
+
       - path: "lib/features/bands/create_band_screen.dart"
         issue: "Line 52: only catches ApiException"
+
       - path: "lib/features/bands/join_band_dialog.dart"
         issue: "Line 117: only catches ApiException"
+
       - path: "lib/features/bands/edit_band_screen.dart"
         issue: "Line 64: only catches ApiException"
+
       - path: "lib/features/bands/confirm_delete_band_dialog.dart"
         issue: "Line 58: only catches ApiException"
+
       - path: "lib/features/bands/confirm_leave_band_dialog.dart"
         issue: "Line 55: only catches ApiException"
+
       - path: "lib/features/bands/confirm_remove_member_dialog.dart"
         issue: "Line 52: only catches ApiException (inferred from pattern)"
     missing:
+
       - "Add fallback catch (e) handler in all 6 mutation sites to show generic 'Something went wrong. Please try again.' for non-ApiException failures"
 
   - truth: "Renaming a band updates the band list immediately without stale-name revert"
     status: failed
     reason: "WR-01: EditBandScreen only invalidates/updates bandDetailDataProvider, never bandsListDataProvider. User renames band, returns to BandsScreen, and sees the old name in the list (BandsScreen stays mounted in RootScaffold's IndexedStack). Must pull-to-refresh or leave/return app before list catches up."
     artifacts:
+
       - path: "lib/features/bands/edit_band_screen.dart"
         issue: "Lines 57-61: only merges into bandDetailDataProvider, never invalidates bandsListDataProvider"
+
       - path: "lib/providers/bands_provider.dart"
         issue: "No setBandName() helper on BandsListData to patch a single band entry in-place"
     missing:
+
       - "Call ref.invalidate(bandsListDataProvider) after a successful updateBand() in EditBandScreen, OR add a renameBand(bandId, newName) method to BandsListData and call it from EditBandScreen"
 
   - truth: "Local band edits cannot be silently reverted by in-flight background refresh"
     status: failed
     reason: "WR-02: BandsListData and BandDetailData fire unawaited background _refresh() on cache hit (lines 31, 101), which unconditionally overwrites state with fetched data. No version guard — if the background refresh started before an edit and completes after updateName()/setBands(), it silently clobbers the just-applied local change back to the older data. Test comments even acknowledge this race exists and work around it with Future.delayed(50ms) instead of fixing it in the provider."
     artifacts:
+
       - path: "lib/providers/bands_provider.dart"
         issue: "Lines 46-52 (_refresh in BandsListData): unawaited, unconditional state assignment"
         issue: "Lines 116-122 (_refresh in BandDetailData): unawaited, unconditional state assignment"
     missing:
+
       - "Add _version counter (incremented on mutations, captured when _refresh starts) to guard against applying stale fetched data"
       - "OR: Cancel/ignore in-flight background refresh result once a local mutation (updateName/setBands) has been called"
+
+audit_acknowledged:
+  milestone: v1.2
+  at: 2026-08-26
+  status: gaps_found
 ---
 
 # Phase 02: Bands Management Verification Report

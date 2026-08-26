@@ -2,21 +2,30 @@
 
 ## What This Is
 
-Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands to manage their repertoire together: shared song catalog, band membership, and setlists for gigs. As of v1.1, the app has full band/track/setlist CRUD against the public API, runs on Riverpod state management with a Hive-backed cache-store pattern, always shows freshly-fetched server data when online, and falls back to last-fetched cache with a persistent warning banner when offline. Band owners can rotate invite codes and transfer ownership; the setlist track picker is searchable.
+Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands to manage their repertoire together: shared song catalog, band membership, and setlists for gigs. As of v1.2, the app has full band/track/setlist CRUD against the public API, runs on Riverpod state management with a Hive-backed cache-store pattern, always shows freshly-fetched server data when online, and falls back to last-fetched cache with a persistent warning banner when offline. Band owners can rotate invite codes and transfer ownership; the setlist track picker is searchable. The full UI is localized in English and Russian (live switch, no restart, ARB/gen-l10n pipeline, correct Russian pluralization) including API error messages, and track duration is entered/displayed as mm:ss everywhere.
 
 ## Core Value
 
 A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
 
-## Current Milestone: v1.2 i18n and Duration Input
+## Current State
 
-**Goal:** Users can switch the app's language between English and Russian, and enter track duration as minutes:seconds instead of raw seconds.
+**Shipped:** v1.2 i18n and Duration Input (2026-08-26)
 
-**Target features:**
-- Full UI string localization (EN/RU), switchable from Profile settings, English default, live locale switch (no restart)
-- Client-side mapping of known API error codes to localized (RU) messages; unmapped errors fall back to raw server text
-- Track duration input/display as mm:ss (client-side format only — `durationSeconds` API field unchanged)
-- Language preference persisted locally on-device (no API/account sync)
+Full UI string localization (EN/RU) with live no-restart switching from Profile settings, on-device persistence, correct Russian ICU pluralization, and localized API error messages (unmapped codes fall back to raw server text). Track duration is entered and displayed as mm:ss everywhere, with typing auto-format and invalid-input rejection — `durationSeconds` API field unchanged.
+
+## Next Milestone Goals
+
+Not yet defined — run `/gsd-new-milestone`.
+
+<details>
+<summary>Previous milestone context (v1.1 and earlier)</summary>
+
+**v1.1 UI Improvements (shipped 2026-08-22):** password change from Profile, richer band/track/setlist info (member count/role, key metadata icons), online-first cache behavior flip (fresh data when online, last-fetched cache + warning banner when offline), band owner invite-code rotation and ownership transfer, homepage quick actions, searchable setlist track picker.
+
+**v1.0 MVP (shipped 2026-08-17):** initial band/track/setlist CRUD, Riverpod migration off ChangeNotifier/prop-drilling, offline read cache with staleness indicators.
+
+</details>
 
 ## Requirements
 
@@ -48,10 +57,11 @@ A band member can open the app without signal — at a venue, in a basement, on 
 - ✓ User enters and views track duration as mm:ss instead of raw seconds; `durationSeconds` API field unchanged (DUR-01, DUR-02, DUR-03, DUR-04) — v1.2 Phase 11
 - ✓ User can switch app language between English and Russian from Profile settings; change applies live, no restart; ARB/gen-l10n pipeline and `LocaleController` established as the pattern every later i18n phase builds on (I18N-01, I18N-02, I18N-03) — v1.2 Phase 12
 - ✓ All UI strings across every screen/dialog are localized EN/RU, with grammatically correct Russian plural forms (1/2–4/5+) for count-bearing strings (I18N-04, I18N-06) — v1.2 Phase 13
+- ✓ Known API error codes are mapped to localized messages in the user's selected language; unmapped codes fall back to raw server text (I18N-05) — v1.2 Phase 14
 
 ### Active
 
-- [ ] Known API error codes are mapped to localized messages, unmapped errors fall back to raw server text
+(None yet — next milestone TBD)
 
 ### Out of Scope
 
@@ -65,7 +75,9 @@ A band member can open the app without signal — at a venue, in a basement, on 
 
 ## Context
 
-**Shipped state (v1.1, 2026-08-22):** ~24,800 LOC Dart across `lib/` + `test/`, 401 tests passing, `dart analyze` clean, zero TODO/stub/placeholder markers in production code. State flows through Riverpod (codegen'd AsyncNotifiers/family providers) end-to-end. `lib/cache/cache_service.dart`'s Hive-backed `_HiveStore` (with recursive `_deepConvert` for nested collections) backs 5 boxes (profile, homepage, bands, tracks, setlists). The old `{data, syncedAt}` staleness-badge system was retired this milestone: every cached screen now fetches fresh on open when online and falls back to last-fetched cache with a persistent offline warning banner when offline (`OfflineNoCacheException`/`OfflineNoCacheView`), with connectivity-gated mutations unchanged (`isOnlineProvider`, `connectivity_plus`).
+**Shipped state (v1.2, 2026-08-26):** ~29,800 LOC Dart across `lib/` + `test/`, 453 tests passing, `dart analyze` clean, zero TODO/stub/placeholder markers in production code. State flows through Riverpod (codegen'd AsyncNotifiers/family providers) end-to-end. `lib/cache/cache_service.dart`'s Hive-backed `_HiveStore` (with recursive `_deepConvert` for nested collections) backs 5 boxes (profile, homepage, bands, tracks, setlists). Every cached screen fetches fresh on open when online and falls back to last-fetched cache with a persistent offline warning banner when offline (`OfflineNoCacheException`/`OfflineNoCacheView`), with connectivity-gated mutations unchanged (`isOnlineProvider`, `connectivity_plus`).
+
+**Localization (v1.2):** ARB/gen-l10n pipeline generates `AppLocalizations`; `LocaleController` (async `@riverpod` `AsyncNotifier<Locale>`, `SharedPreferences`-backed) drives a live, no-restart EN/RU switch from Profile settings, defaulting to English and persisting on-device. ~130 ARB keys cover every screen/dialog with correct Russian ICU plural forms (one/few/many/other) for count-bearing strings. `ApiExceptionLocalization.localizedMessage()` maps known `ErrorCode` values to localized messages across all 16 `on ApiException catch` sites app-wide; unmapped codes fall back to raw server text. Track duration is entered/displayed as mm:ss everywhere via `DurationTextInputFormatter` (auto-format, capped 99:59) and `track_formatting.dart`'s `asMinutesSeconds` extension — `durationSeconds` API field unchanged.
 
 **API surface:** Full scope defined in `lib/api/publicapi.yml` (OpenAPI 3.0) — Users (register/login/me/homepage/password-change), Bands (CRUD, join, remove-member, rotate-invite-code, transfer-ownership), Band Tracks (CRUD), Band Setlists (CRUD, add/remove/reorder track, bulk-add), plus cross-band `POST /api/track/list` and `POST /api/setlist/list` (both `searchQuery`-bearing) for the global filterable tabs. All endpoints except register/login require `sessionAuth`.
 
@@ -107,6 +119,7 @@ A band member can open the app without signal — at a venue, in a basement, on 
 | `syncedAt` bump only fires after a confirmed cache write, not unconditionally alongside it | `CacheService.writeX` swallowed exceptions internally, so a failed persisted write could still report a fresh sync time (WR-02); `writeX` now returns `Future<bool>` and every call site gates the bump on `true` | ✓ Good — Phase 7 gap-closure |
 | Removed the entire `XSyncedAt` provider family (10 classes) rather than building a "last synced" UI to consume them | Code review (WR-03) found the providers were maintained on every fetch/mutation but had zero screen consumers — dead infrastructure; no product ask existed for a last-synced indicator, so deletion was the lower-risk choice over building unrequested UI | ✓ Good — Phase 7 gap-closure |
 | Behavioral changes (even small formatter fixes) must land as their own reviewed diff, not bundled into a string-extraction phase | Code review (CR-01) caught `DurationTextInputFormatter`'s in-phase algorithmic rewrite silently breaking backspace-to-empty clearing — untested because the phase's own test suite assumed pure string extraction; fixed same-session, but the bundling itself was flagged as scope creep (WR-02) | ✓ Fixed — Phase 13 code review; apply going forward: keep localization-only diffs isolated from behavior changes |
+| `ApiExceptionLocalization.localizedMessage()` as a shared extension over `ApiException`, with an `overrides` parameter for screen-specific error-code handling | 16 catch sites across Bands/Tracks/Setlists/Login needed the same known-code-to-localized-message mapping; the `overrides` mechanism let login's `already_exists` and change-password's `invalid_input` retire their bespoke handling onto the same path instead of staying special-cased (D-04) | ✓ Good — Phase 14; established pattern for any future ApiException catch site |
 
 ## Evolution
 
@@ -126,4 +139,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-26 after Phase 13*
+*Last updated: 2026-08-26 after v1.2 milestone*

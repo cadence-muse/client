@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: i18n and Duration Input
-current_phase: 14
-status: completed
+status: Awaiting next milestone
 stopped_at: Phase 14 complete — all phases complete
-last_updated: "2026-08-26T18:36:50.268Z"
+last_updated: "2026-08-26T18:41:22.576Z"
 last_activity: 2026-08-26
-last_activity_desc: Phase 14 complete
-state_head: a1f517aedc383376ce73e09087cc348394f1c356
+last_activity_desc: Milestone v1.2 completed and archived
+state_head: d3161fd1b8e69a4d848225c2936182ca23e188c3
 progress:
   total_phases: 15
   completed_phases: 4
   total_plans: 20
   completed_plans: 20
   percent: 27
+current_phase: 14
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 ## Current Position
 
-Phase: 14
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-08-26 — Phase 14 complete
+Phase: Milestone v1.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-26 — Milestone v1.2 completed and archived
 
 ## Performance Metrics
 
@@ -121,7 +121,6 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 260825-vn6 | fix track duration input - now when you put focus into the field and enter any number it blocks input completely until you manually delete one of the zeros in the beginning | 2026-08-25 | 0f3868f | [260825-vn6-fix-track-duration-input-now-when-you-pu](./quick/260825-vn6-fix-track-duration-input-now-when-you-pu/) |
 
 ### Roadmap Evolution
 
@@ -133,6 +132,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
+| verification_gaps | 02/02-VERIFICATION.md | gaps_found | 2026-08-26 | v1.2 |
 | verification_gaps | 02/02-VERIFICATION.md | gaps_found | 2026-08-22 | v1.1 |
 
 Items acknowledged and deferred at milestone close on 2026-08-17:
@@ -149,4 +149,4 @@ Resume file: .planning/phases/14-api-error-localization/14-CONTEXT.md
 
 ## Operator Next Steps
 
-- Plan Phase 14 (API Error Localization) with /gsd-plan-phase
+- Start the next milestone with /gsd-new-milestone
