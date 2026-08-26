@@ -15,6 +15,8 @@ import 'package:http/testing.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'test_strings.dart';
+
 /// Copied from `test/widget_test.dart` — a fake secure-storage backend so
 /// `TokenStorage` never touches the real platform channel in tests.
 class _FakeSecureStorage extends FlutterSecureStoragePlatform
@@ -65,9 +67,6 @@ class _FakeSecureStorage extends FlutterSecureStoragePlatform
 }
 
 void main() {
-  const bannerText = 'Showing cached data — may be out of date';
-  const tabLabels = ['Home', 'Bands', 'Tracks', 'Setlists', 'Profile'];
-
   /// Mirrors `test/widget_test.dart`'s `MockClient` handler shape, extended
   /// with `/api/track/list` and `/api/setlist/list` — with 1 band seeded via
   /// `/api/band/list`, the global Tracks and Setlists tabs both fetch their
@@ -149,6 +148,14 @@ void main() {
       await tester.pumpWidget(buildApp(ConnectivityStatus.offline));
       await tester.pumpAndSettle();
 
+      final tabLabels = [
+        tester.strings.navHome,
+        tester.strings.navBands,
+        tester.strings.navTracks,
+        tester.strings.navSetlists,
+        tester.strings.navProfile,
+      ];
+
       for (final label in tabLabels) {
         // A plain `find.text(label)` is ambiguous once a tab is selected —
         // its own AppBar title text can match the nav label too (e.g. both
@@ -163,7 +170,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.text(bannerText),
+          find.text(tester.strings.offlineBannerMessage),
           findsOneWidget,
           reason:
               'Offline banner missing (or duplicated) on the $label tab '
@@ -177,7 +184,7 @@ void main() {
       await tester.pumpWidget(buildApp(ConnectivityStatus.online));
       await tester.pumpAndSettle();
 
-      expect(find.text(bannerText), findsNothing);
+      expect(find.text(tester.strings.offlineBannerMessage), findsNothing);
     },
   );
 }
