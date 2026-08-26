@@ -80,6 +80,7 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
         ),
       );
     } on ApiException catch (e) {
+      if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       setState(() => _errorMessage = e.localizedMessage(l10n));
     } catch (_) {

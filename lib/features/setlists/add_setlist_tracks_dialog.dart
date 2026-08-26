@@ -119,6 +119,7 @@ class _AddSetlistTracksDialogState
         SnackBar(content: Text(l10n.addSetlistTracksSuccessSnackbar)),
       );
     } on ApiException catch (e) {
+      if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       setState(() => _errorMessage = e.localizedMessage(l10n));
     } catch (_) {
