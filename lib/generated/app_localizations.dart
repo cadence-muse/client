@@ -992,6 +992,12 @@ abstract class AppLocalizations {
   /// **'Create setlists in a band to see them here.'**
   String get setlistsTabEmptyDescription;
 
+  /// No description provided for @setlistsTabSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name'**
+  String get setlistsTabSearchHint;
+
   /// No description provided for @createSetlistAppBarTitle.
   ///
   /// In en, this message translates to:

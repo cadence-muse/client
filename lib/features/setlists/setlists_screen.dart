@@ -121,7 +121,7 @@ class _SetlistsScreenState extends ConsumerState<SetlistsScreen> {
                     controller: _searchController,
                     onChanged: _onSearchChanged,
                     decoration: InputDecoration(
-                      hintText: l10n.addSetlistTracksSearchHint,
+                      hintText: l10n.setlistsTabSearchHint,
                       prefixIcon: const Icon(Icons.search),
                     ),
                   ),
