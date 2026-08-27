@@ -1,7 +1,7 @@
 ---
 phase: 17
 slug: api-contract-sync
-status: draft
+status: approved
 design_system: flutter-material
 platform: flutter
 created: "2026-08-27"
@@ -126,19 +126,36 @@ Material Design 3 color scheme auto-generated from green seed:
 
 ## UI Considerations
 
-**State Coverage for Phase 17 changes:**
+**State coverage — resolved via ui-consideration-probe (24 applicable checks across 4 elements: E1 search TextField, E2 search results list, E3 setlist track picker, E4 login password validator). Confirmed by user 2026-08-27.**
 
-| Category | Element(s) | Status | Resolution |
-|----------|------------|--------|-----------|
-| Empty | Tracks tab (no results online) | ✅ covered | Empty state renders `commonNoSearchResults` copy centered in list area; matches existing "no available tracks" design |
-| Empty | Setlists tab (no results online) | ✅ covered | Same as Tracks tab — renders empty message centered |
-| Loading | Search debounce (300ms timer) | ✅ covered | Full list displayed during network request; no loading spinner overlay (mirrors picker behavior in `add_setlist_tracks_dialog.dart:77-82`) |
-| Error | Search network failure | ✅ covered | Render error message with "Retry" button; fallback to cached/offline list; matches picker error pattern (`add_setlist_tracks_dialog.dart:266-278`) |
-| Populated | Search results (online) | ✅ covered | Server results render immediately on network completion; list item structure unchanged (title, artist, trailing metadata) |
-| Offline | Search with no network | ✅ covered | Local substring filter applied to last-cached list; offline "no matches" message shown if query returns empty |
-| Validation | Password < 8 chars (login) | 🧪 backstop | LoginScreen validator must check `_AuthMode` before enforcing minLength; login mode accepts any non-empty value; signup mode enforces 8 chars; requires visual test of validation message state toggle |
-| Overflow | Long search query | ✅ covered | TextField handles overflow per Material Design; query text truncates in field if needed |
-| Overflow | Long track title in results | ✅ covered | ListTile `maxLines: 1, overflow: TextOverflow.ellipsis` already applied (`track_list_screen.dart:100-101`) |
+| Element | Category | Status | Resolution |
+|---------|----------|--------|-----------|
+| E1 Search TextField | empty | dismissed | Field has no empty state; results-empty covered by E2 |
+| E1 Search TextField | loading | dismissed | Field has no loading affordance; results-loading covered by E2 |
+| E1 Search TextField | error | dismissed | Field has no error state; results-error covered by E2 |
+| E1 Search TextField | populated | dismissed | Field always shows typed text; no distinct design needed |
+| E1 Search TextField | partial | dismissed | Text field content is atomic; no partial-fill state |
+| E1 Search TextField | overflow | resolved (explicit) | TextField truncates query text per Material default when it exceeds field width |
+| E1 Search TextField | zero-one-many | dismissed | Not a collection; N/A to a single text field |
+| E1 Search TextField | long-text | resolved (explicit) | Query text truncates in field per Material default; no wrap |
+| E2 Search results list | empty | resolved (explicit) | `commonNoSearchResults` copy centered in list area (Copywriting Contract) |
+| E2 Search results list | loading | resolved (explicit) | Full list stays visible during 300ms debounce; no spinner overlay (mirrors `add_setlist_tracks_dialog.dart:77-82`) |
+| E2 Search results list | error | resolved (explicit) | Error message + "Retry" button; falls back to cached/local list (`add_setlist_tracks_dialog.dart:266-278`) |
+| E2 Search results list | populated | resolved (explicit) | Server results render immediately on completion; list item structure unchanged (title, artist, trailing metadata) |
+| E2 Search results list | partial | dismissed | Search API returns complete result sets or empty; no partial-row rendering case |
+| E2 Search results list | overflow | resolved (explicit) | ListTile `maxLines: 1, overflow: TextOverflow.ellipsis` already applied (`track_list_screen.dart:100-101`) |
+| E2 Search results list | zero-one-many | resolved (explicit) | No singular/plural copy fork; identical rendering at 1 vs many results, consistent with existing track/setlist list screens |
+| E2 Search results list | long-text | resolved (explicit) | Same ellipsis truncation as overflow |
+| E3 Setlist track picker | loading | resolved (explicit) | Full list shown during debounce, same as tab search (`add_setlist_tracks_dialog.dart:77-82`) |
+| E3 Setlist track picker | error | resolved (explicit) | Retry + fallback pattern already implemented (`add_setlist_tracks_dialog.dart:266-278`) |
+| E3 Setlist track picker | long-text | resolved (explicit) | Ellipsis truncation reused from `track_list_screen` pattern |
+| E4 Login password validator | empty | dismissed | Empty-password "required" validation is pre-existing and out of phase scope; unaffected by D-04 |
+| E4 Login password validator | loading | dismissed | Synchronous client-side check; no async state |
+| E4 Login password validator | error | resolved (backstop) | Validator must gate `length < 8` on `_AuthMode == signUp`; login mode accepts non-empty, signup still enforces 8 chars — requires a widget test toggling mode to confirm both paths |
+| E4 Login password validator | partial | dismissed | Single field, not a composite form section; no partial-fill state |
+| E4 Login password validator | long-text | dismissed | No max-length change in this phase; existing long-input behavior unaffected by D-04 |
+
+Offline fallback (client-side substring filter on E1/E2/E3 while `isOnlineProvider` is false) stays covered per D-03/D-05 — no network-dependent state left unaddressed.
 
 ---
 
@@ -190,14 +207,14 @@ void _onSearchChanged(String value) {
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS — All user-facing strings defined with ARB keys and English copy
-- [ ] Dimension 2 Visuals: PASS — Search UI mirrors existing AddSetlistTracksDialog pattern; Material TextField + Icon; spacing follows grid
-- [ ] Dimension 3 Color: PASS — Green seed auto-generates all colors; error state uses Material error color
-- [ ] Dimension 4 Typography: PASS — Material TextTheme applied; heading/body/label roles mapped
-- [ ] Dimension 5 Spacing: PASS — 8-point grid, no exceptions
-- [ ] Dimension 6 Registry Safety: PASS — Flutter Material only, no third-party component registries
+- [x] Dimension 1 Copywriting: PASS — All user-facing strings defined with ARB keys and English copy
+- [x] Dimension 2 Visuals: FLAG (non-blocking) — Search UI mirrors existing AddSetlistTracksDialog pattern; recommend explicitly naming search TextField as primary focal point
+- [x] Dimension 3 Color: FLAG (non-blocking) — Accent reservation correctly constrained; recommend stating explicit 60/30/10 color distribution
+- [x] Dimension 4 Typography: PASS — Material TextTheme applied; heading/body/label roles mapped
+- [x] Dimension 5 Spacing: PASS — 8-point grid, no exceptions
+- [x] Dimension 6 Registry Safety: PASS — Flutter Material only, no third-party component registries
 
-**Approval:** pending
+**Approval:** approved (2 non-blocking recommendations, see above)
 
 ---
 
