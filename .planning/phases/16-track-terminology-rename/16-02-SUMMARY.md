@@ -139,3 +139,10 @@ RENAME-01 is fully closed: no file under `lib/` or `test/` contains "song" (case
 ---
 *Phase: 16-track-terminology-rename*
 *Completed: 2026-08-27*
+
+## Self-Check: PASSED
+
+- FOUND: test/providers/setlists_provider_test.dart
+- FOUND: .planning/phases/16-track-terminology-rename/16-02-SUMMARY.md
+- FOUND: commit 0752bd0
+- FOUND: commit 34e20d3
