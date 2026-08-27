@@ -60,7 +60,7 @@ void main() {
       final apiClient = buildApiClient((request) async {
         await Future<void>.delayed(const Duration(milliseconds: 100));
         return http.Response(
-          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
           200,
         );
       });
@@ -104,7 +104,7 @@ void main() {
       final cacheService = CacheService.inMemory();
       final apiClient = buildApiClient((request) async {
         return http.Response(
-          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
           200,
         );
       });
@@ -203,7 +203,7 @@ void main() {
     final apiClient = buildApiClient((request) async {
       await Future<void>.delayed(const Duration(milliseconds: 100));
       return http.Response(
-        jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+        jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
         200,
       );
     });
@@ -267,12 +267,12 @@ void main() {
       final cacheService = CacheService.inMemory();
       await cacheService.writeBandTrackDetail('b1', 't1', {
         'id': 't1',
-        'title': 'Song',
+        'title': 'Track',
         'artist': 'Artist',
       });
       final apiClient = buildApiClient((request) async {
         return http.Response(
-          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
           200,
         );
       });
@@ -303,7 +303,7 @@ void main() {
       final cacheService = CacheService.inMemory();
       final apiClient = buildApiClient((request) async {
         return http.Response(
-          jsonEncode({'id': 't1', 'title': 'Song', 'artist': 'Artist'}),
+          jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
           200,
         );
       });

@@ -64,7 +64,7 @@ void main() {
                             builder: (_) => const ConfirmDeleteTrackDialog(
                               bandId: 'b1',
                               trackId: 't1',
-                              trackTitle: 'My Song',
+                              trackTitle: 'My Track',
                             ),
                           ),
                           child: const Text('Open dialog'),
@@ -188,7 +188,7 @@ void main() {
                                 builder: (_) => const ConfirmDeleteTrackDialog(
                                   bandId: 'b1',
                                   trackId: 't1',
-                                  trackTitle: 'My Song',
+                                  trackTitle: 'My Track',
                                 ),
                               ),
                               child: const Text('Open dialog'),

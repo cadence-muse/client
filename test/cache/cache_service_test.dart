@@ -131,7 +131,7 @@ void main() {
     () async {
       var cache = CacheService.instance;
       await cache.writeBandTracks('b1', [
-        {'id': 't1', 'title': 'Song One', 'artist': 'Artist One'},
+        {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
       ]);
 
       await Hive.close();
@@ -143,7 +143,7 @@ void main() {
 
       expect(result, isNotNull);
       expect(result![0]['id'], 't1');
-      expect(result[0]['title'], 'Song One');
+      expect(result[0]['title'], 'Track One');
       expect(result[0]['artist'], 'Artist One');
       expect(result[0].containsKey('durationSeconds'), isFalse);
     },
@@ -156,7 +156,7 @@ void main() {
       var cache = CacheService.instance;
       await cache.writeBandTrackDetail('b1', 't1', {
         'id': 't1',
-        'title': 'Song One',
+        'title': 'Track One',
         'artist': 'Artist One',
         'durationSeconds': 225,
         'tempo': 120,
@@ -172,7 +172,7 @@ void main() {
       final result = await cache.readBandTrackDetail('b1', 't1');
 
       expect(result, isNotNull);
-      expect(result!['title'], 'Song One');
+      expect(result!['title'], 'Track One');
       expect(result['tempo'], 120);
       expect(result['key'], 'C');
       expect(result['notes'], 'Play it slow on the bridge');
@@ -272,14 +272,14 @@ void main() {
           {
             'trackId': 't1',
             'position': 0,
-            'title': 'Song One',
+            'title': 'Track One',
             'artist': 'Artist One',
             'durationSeconds': 225,
           },
           {
             'trackId': 't2',
             'position': 1,
-            'title': 'Song Two',
+            'title': 'Track Two',
             'artist': 'Artist Two',
           },
         ],
@@ -296,8 +296,8 @@ void main() {
       expect(result!['name'], 'Friday Night Show');
       final tracks = (result['tracks'] as List).cast<Map<String, dynamic>>();
       expect(tracks, hasLength(2));
-      expect(tracks[0]['title'], 'Song One');
-      expect(tracks[1]['title'], 'Song Two');
+      expect(tracks[0]['title'], 'Track One');
+      expect(tracks[1]['title'], 'Track Two');
       expect(tracks[1].containsKey('durationSeconds'), isFalse);
     },
   );

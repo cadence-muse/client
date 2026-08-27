@@ -83,7 +83,7 @@ void main() {
 
   Future<void> enterTitleAndArtist(WidgetTester tester) async {
     final fields = find.byType(TextFormField);
-    await tester.enterText(fields.at(0), 'My Song');
+    await tester.enterText(fields.at(0), 'My Track');
     await tester.enterText(fields.at(1), 'My Artist');
   }
 
@@ -110,10 +110,10 @@ void main() {
 
       expect(
         requestBody,
-        jsonEncode({'title': 'My Song', 'artist': 'My Artist'}),
+        jsonEncode({'title': 'My Track', 'artist': 'My Artist'}),
       );
       expect(
-        find.text(tester.strings.createTrackAddedSnackbar('My Song')),
+        find.text(tester.strings.createTrackAddedSnackbar('My Track')),
         findsOneWidget,
       );
       expect(find.byType(CreateTrackScreen), findsNothing);
@@ -243,7 +243,7 @@ void main() {
       expect(
         requestBody,
         jsonEncode({
-          'title': 'My Song',
+          'title': 'My Track',
           'artist': 'My Artist',
           'durationSeconds': 150,
         }),

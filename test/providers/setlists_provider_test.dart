@@ -659,14 +659,14 @@ void main() {
             {
               'trackId': 't1',
               'position': 0,
-              'title': 'Song One',
+              'title': 'Track One',
               'artist': 'Artist One',
               'durationSeconds': 200,
             },
             {
               'trackId': 't2',
               'position': 1,
-              'title': 'Song Two',
+              'title': 'Track Two',
               'artist': 'Artist Two',
               'durationSeconds': 200,
             },
@@ -690,14 +690,14 @@ void main() {
                   {
                     'trackId': 't1',
                     'position': 0,
-                    'title': 'Song One',
+                    'title': 'Track One',
                     'artist': 'Artist One',
                     'durationSeconds': 200,
                   },
                   {
                     'trackId': 't2',
                     'position': 1,
-                    'title': 'Song Two',
+                    'title': 'Track Two',
                     'artist': 'Artist Two',
                     'durationSeconds': 200,
                   },
@@ -723,7 +723,7 @@ void main() {
                   {
                     'trackId': 't2',
                     'position': 0,
-                    'title': 'Song Two',
+                    'title': 'Track Two',
                     'artist': 'Artist Two',
                     'durationSeconds': 200,
                   },
