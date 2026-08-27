@@ -14,12 +14,21 @@ A band member can open the app without signal — at a venue, in a basement, on 
 
 Full UI string localization (EN/RU) with live no-restart switching from Profile settings, on-device persistence, correct Russian ICU pluralization, and localized API error messages (unmapped codes fall back to raw server text). Track duration is entered and displayed as mm:ss everywhere, with typing auto-format and invalid-input rejection — `durationSeconds` API field unchanged.
 
-## Next Milestone Goals
+## Current Milestone: v1.3 Quality of Life
 
-Not yet defined — run `/gsd-new-milestone`.
+**Goal:** Close carried-over debt, sync the client to backend API changes, finish the song→track rename, and ship two standalone quality-of-life features (calendar date picker, metronome tool).
+
+**Target features:**
+- Fix WR-01 (invite-code copy gated behind `isOnline`) and re-stamp the stale `02-VERIFICATION.md` gaps that are already resolved in code
+- Adopt backend's server-side search: `ListUserTracks`/`ListUserSetlists` flip POST→GET with `SearchQuery`, band-track search moves to shared `$ref`; adopt `minLength: 8` password validation
+- Rename remaining "song" references to "track" throughout the codebase (tab label, `lib/features/songs/` → `tracks`, `SongsScreen` class, ARB keys) — full rename, not just user-facing strings
+- Setlist date input uses native `showDatePicker` instead of the current raw input
+- New metronome tool: audio tick + visual pulse, big round tempo selector (default 120, ±5/±1 quick actions), 4/4 only with accented beat 1, reachable from Homepage "Tools" section and from a track screen (prefilled with that track's tempo); built last in the milestone
 
 <details>
-<summary>Previous milestone context (v1.1 and earlier)</summary>
+<summary>Previous milestone context (v1.2 and earlier)</summary>
+
+**v1.2 i18n and Duration Input (shipped 2026-08-26):** full EN/RU localization with live switching, localized API errors, mm:ss duration input/display.
 
 **v1.1 UI Improvements (shipped 2026-08-22):** password change from Profile, richer band/track/setlist info (member count/role, key metadata icons), online-first cache behavior flip (fresh data when online, last-fetched cache + warning banner when offline), band owner invite-code rotation and ownership transfer, homepage quick actions, searchable setlist track picker.
 
@@ -61,7 +70,13 @@ Not yet defined — run `/gsd-new-milestone`.
 
 ### Active
 
-(None yet — next milestone TBD)
+- [ ] Fix invite-code copy button offline-gating regression (WR-01, carried from v1.1 Phase 8)
+- [ ] Re-verify/re-stamp `02-VERIFICATION.md` gaps (already resolved in code since Phase 2 gap-closure)
+- [ ] Adopt server-side search: `ListUserTracks`/`ListUserSetlists` GET+`SearchQuery`, band-track search via shared `$ref`
+- [ ] Adopt `minLength: 8` password validation (register + change-password)
+- [ ] Full song→track rename (UI strings, `lib/features/songs/` dir, `SongsScreen` class, ARB keys)
+- [ ] Setlist date input via native `showDatePicker`
+- [ ] Metronome tool (audio + visual, homepage Tools section + track-prefilled entry, 4/4 only)
 
 ### Out of Scope
 
@@ -139,4 +154,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-26 after v1.2 milestone*
+*Last updated: 2026-08-27 after starting v1.3 milestone*

@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: i18n and Duration Input
-status: Awaiting next milestone
-stopped_at: Phase 14 complete — all phases complete
-last_updated: "2026-08-26T18:41:22.576Z"
-last_activity: 2026-08-26
-last_activity_desc: Milestone v1.2 completed and archived
-state_head: d3161fd1b8e69a4d848225c2936182ca23e188c3
+milestone: v1.3
+milestone_name: Quality of Life
+status: planning
+last_updated: "2026-08-27T06:57:11.928Z"
+last_activity: 2026-08-27
 progress:
-  total_phases: 15
-  completed_phases: 4
-  total_plans: 20
-  completed_plans: 20
-  percent: 27
-current_phase: 14
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 ## Current Position
 
-Phase: Milestone v1.2 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-08-26 — Milestone v1.2 completed and archived
+Status: Defining requirements
+Last activity: 2026-08-27 — Milestone v1.3 started
 
 ## Performance Metrics
 
