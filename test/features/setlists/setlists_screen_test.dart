@@ -607,7 +607,7 @@ void main() {
 
       expect(find.byType(TextField), findsOneWidget);
       expect(
-        find.text(tester.strings.addSetlistTracksSearchHint),
+        find.text(tester.strings.setlistsTabSearchHint),
         findsOneWidget,
       );
       final textFieldY = tester.getTopLeft(find.byType(TextField)).dy;
