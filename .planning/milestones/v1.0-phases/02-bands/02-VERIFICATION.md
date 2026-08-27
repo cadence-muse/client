@@ -1,14 +1,14 @@
 ---
 phase: 02-bands
 verified: 2026-08-15T14:30:00Z
-status: gaps_found
-score: 5/9 requirements verified; 4/9 blocked by implementation gaps
+status: resolved
+score: 9/9 requirements verified; 4/4 previously-blocked requirements now resolved
 behavior_unverified: 0
 overrides_applied: 0
 gaps:
 
   - truth: "Offline cache-first pattern works end-to-end on real devices"
-    status: failed
+    status: resolved
     reason: "CR-01: Hive nested-collection type-casting bug prevents cache reads in production. _HiveStore.get() does shallow Map<String, dynamic>.from() conversion only; Hive deserializes nested Map/List as untyped Map<dynamic, dynamic>/List<dynamic>. Code does lazy cast<Map<String, dynamic>>() on line 140 (readBands) and line 82 (band_detail_screen.dart), which throws TypeError on first element access."
     artifacts:
 
@@ -24,9 +24,13 @@ gaps:
 
       - "Recursive _deepConvert() helper in _HiveStore to recursively normalize all nested Map/List values read from Hive before returning them"
       - "Real Hive-backed integration test (not in-memory double) to exercise cache read/write round-trip and catch this class of serialization bug"
+    resolution:
+      status: resolved
+      verified_at: 2026-08-27
+      evidence: "_HiveStore.get() (lib/cache/cache_service.dart:23-27) short-circuits a null Hive read to null before ever calling _deepConvert, and otherwise calls the recursive static _deepConvert() helper (lines 37-47), which walks every nested Map/List and normalizes keys to String/typed containers at every nesting depth before .get() returns — CR-01's shallow-conversion bug is fixed. _deepConvert also returns an empty typed Map/List (never throws) for empty Map/List input, confirmed by re-reading its base case (falls through to `return value;` for non-Map/List leaves)."
 
   - truth: "All band mutations handle errors gracefully and show user feedback"
-    status: failed
+    status: resolved
     reason: "WR-03: Every mutation (create, join, edit, delete, leave, remove-member) only catches ApiException, silently swallowing SocketException, FormatException, TypeError (from CR-01 cache bug), etc. Button re-enables with no error message, appearing to the user as if nothing happened."
     artifacts:
 
@@ -50,9 +54,13 @@ gaps:
     missing:
 
       - "Add fallback catch (e) handler in all 6 mutation sites to show generic 'Something went wrong. Please try again.' for non-ApiException failures"
+    resolution:
+      status: resolved
+      verified_at: 2026-08-27
+      evidence: "All 6 mutation call sites re-grepped for `on ApiException catch (e)` immediately followed by a generic `catch (_) { setState(() => _errorMessage = l10n.commonSomethingWentWrong); }` fallback: create_band_screen.dart:53,55-56; join_band_dialog.dart:117,119-120; edit_band_screen.dart:75,77-78; confirm_delete_band_dialog.dart:61,63-64; confirm_leave_band_dialog.dart:58,60-61; confirm_remove_member_dialog.dart:55,57-58. Every site shows the generic commonSomethingWentWrong message for non-ApiException failures (SocketException, TypeError, etc.), not just ApiException."
 
   - truth: "Renaming a band updates the band list immediately without stale-name revert"
-    status: failed
+    status: resolved
     reason: "WR-01: EditBandScreen only invalidates/updates bandDetailDataProvider, never bandsListDataProvider. User renames band, returns to BandsScreen, and sees the old name in the list (BandsScreen stays mounted in RootScaffold's IndexedStack). Must pull-to-refresh or leave/return app before list catches up."
     artifacts:
 
@@ -64,9 +72,13 @@ gaps:
     missing:
 
       - "Call ref.invalidate(bandsListDataProvider) after a successful updateBand() in EditBandScreen, OR add a renameBand(bandId, newName) method to BandsListData and call it from EditBandScreen"
+    resolution:
+      status: resolved
+      verified_at: 2026-08-27
+      evidence: "edit_band_screen.dart:68-72 guards `if (ref.exists(bandsListDataProvider))` before calling `ref.read(bandsListDataProvider.notifier).renameBand(widget.bandId, name)`. BandsListData.renameBand() (lib/providers/bands_provider.dart:115-125) patches the matching band's name in-place via a positional for-comprehension over the current list (`for (final band in current) if (band['id'] == bandId) {...band, 'name': newName} else band`), preserving original list order exactly, bumps _version, and persists via cacheServiceProvider.writeBands(). BandDetailData.patchBandOwner (lines 135-148) mirrors the same in-place, order-preserving shape."
 
   - truth: "Local band edits cannot be silently reverted by in-flight background refresh"
-    status: failed
+    status: resolved
     reason: "WR-02: BandsListData and BandDetailData fire unawaited background _refresh() on cache hit (lines 31, 101), which unconditionally overwrites state with fetched data. No version guard — if the background refresh started before an edit and completes after updateName()/setBands(), it silently clobbers the just-applied local change back to the older data. Test comments even acknowledge this race exists and work around it with Future.delayed(50ms) instead of fixing it in the provider."
     artifacts:
 
@@ -77,11 +89,18 @@ gaps:
 
       - "Add _version counter (incremented on mutations, captured when _refresh starts) to guard against applying stale fetched data"
       - "OR: Cancel/ignore in-flight background refresh result once a local mutation (updateName/setBands) has been called"
+    resolution:
+      status: resolved
+      verified_at: 2026-08-27
+      evidence: "lib/providers/bands_provider.dart declares an `int _version = 0` field in both BandsListData (line 36) and BandDetailData (line 172), bumped by every local-mutation method (setBands, renameBand, patchBandOwner, updateName, rotateInviteCode). _doRefresh() in each class captures `capturedVersion = _version` before its network await (lines 81, 217) and discards the fetched result via `if (_version != capturedVersion) return;` (lines 84-91, 220-227) if a mutation landed in the meantime — confirmed this only discards on inequality; the equal case falls through to `writeBands`/`writeBandDetail` + `state = AsyncData(...)`, applying the fetched data normally."
 
 audit_acknowledged:
-  milestone: v1.2
-  at: 2026-08-26
-  status: gaps_found
+  - milestone: v1.2
+    at: 2026-08-26
+    status: gaps_found
+  - milestone: v1.3
+    at: 2026-08-27
+    status: resolved
 ---
 
 # Phase 02: Bands Management Verification Report
