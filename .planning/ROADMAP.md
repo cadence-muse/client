@@ -54,7 +54,7 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
 
 - [x] **Phase 15: Carried-Over Fixes & Setlist Date Picker** - Invite-code copy works offline, stale verification gaps re-stamped, setlist dates use native picker (completed 2026-08-27)
 - [x] **Phase 16: Track Terminology Rename** - Full song→track rename across UI strings, directory, class, and ARB keys (completed 2026-08-27)
-- [ ] **Phase 17: API Contract Sync** - Server-side search (GET+SearchQuery) replaces client filtering; 8-char minimum password validation
+- [x] **Phase 17: API Contract Sync** - Server-side search (GET+SearchQuery) replaces client filtering; 8-char minimum password validation (completed 2026-08-27)
 - [ ] **Phase 18: Metronome Tool** - Audio+visual metronome reachable from Homepage Tools and a track's detail screen
 
 ## Phase Details
@@ -115,7 +115,7 @@ Plans:
   3. User attempting to register or change their password with a password under 8 characters sees a client-side validation error before any request is sent
   4. All existing search/list tests are updated and passing against the new GET-based mocks, with zero regressions
 
-**Plans:** 3/3 plans executed
+**Plans:** 3/3 plans complete
 
 - [x] 17-01-PLAN.md — GET migration for listUserTracks/listUserSetlists + debounced search UI on the global Tracks tab (TracksScreen) and Setlists tab (SetlistsScreen) (API-01)
 - [x] 17-02-PLAN.md — Setlist track picker renders debounced server search results instead of discarding them (API-01)
@@ -162,5 +162,5 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 14. API Error Localization | v1.2 | 4/4 | Complete | 2026-08-26 |
 | 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | Complete    | 2026-08-27 |
 | 16. Track Terminology Rename | v1.3 | 2/2 | Complete    | 2026-08-27 |
-| 17. API Contract Sync | v1.3 | 3/3 | In Progress|  |
+| 17. API Contract Sync | v1.3 | 3/3 | Complete    | 2026-08-27 |
 | 18. Metronome Tool | v1.3 | 0/TBD | Not started | - |
