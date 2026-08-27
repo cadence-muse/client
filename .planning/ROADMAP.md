@@ -53,7 +53,7 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
 **Milestone Goal:** Close carried-over debt, sync the client to backend API changes, finish the song→track rename, and ship two standalone quality-of-life features (calendar date picker, metronome tool).
 
 - [x] **Phase 15: Carried-Over Fixes & Setlist Date Picker** - Invite-code copy works offline, stale verification gaps re-stamped, setlist dates use native picker (completed 2026-08-27)
-- [ ] **Phase 16: Track Terminology Rename** - Full song→track rename across UI strings, directory, class, and ARB keys
+- [x] **Phase 16: Track Terminology Rename** - Full song→track rename across UI strings, directory, class, and ARB keys (completed 2026-08-27)
 - [ ] **Phase 17: API Contract Sync** - Server-side search (GET+SearchQuery) replaces client filtering; 8-char minimum password validation
 - [ ] **Phase 18: Metronome Tool** - Audio+visual metronome reachable from Homepage Tools and a track's detail screen
 
@@ -90,7 +90,7 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
   3. No ARB key or translation string contains "song" in English or Russian
   4. Full test suite passes with zero references to old song-named identifiers, and no stale generated (`.g.dart`) artifacts remain from the old names
 
-**Plans:** 2/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 **Wave 1**
@@ -156,6 +156,6 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 13. String Extraction & Screen Localization | v1.2 | 13/13 | Complete | 2026-08-26 |
 | 14. API Error Localization | v1.2 | 4/4 | Complete | 2026-08-26 |
 | 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | Complete    | 2026-08-27 |
-| 16. Track Terminology Rename | v1.3 | 2/2 | In Progress|  |
+| 16. Track Terminology Rename | v1.3 | 2/2 | Complete    | 2026-08-27 |
 | 17. API Contract Sync | v1.3 | 0/TBD | Not started | - |
 | 18. Metronome Tool | v1.3 | 0/TBD | Not started | - |
