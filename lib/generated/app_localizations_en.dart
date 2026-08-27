@@ -520,6 +520,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Create setlists in a band to see them here.';
 
   @override
+  String get setlistsTabSearchHint => 'Search by name';
+
+  @override
   String get createSetlistAppBarTitle => 'Create setlist';
 
   @override

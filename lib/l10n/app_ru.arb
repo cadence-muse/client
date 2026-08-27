@@ -240,6 +240,7 @@
   },
   "setlistsTabEmptyTitle": "Сетлистов нет",
   "setlistsTabEmptyDescription": "Создавайте сетлисты в группе, чтобы они отображались здесь.",
+  "setlistsTabSearchHint": "Поиск по названию",
   "createSetlistAppBarTitle": "Создать сетлист",
   "createSetlistDateHint": "ГГГГ-ММ-ДД",
   "createSetlistAddTracksOptionalHeader": "Добавить треки (необязательно)",

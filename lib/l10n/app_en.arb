@@ -240,6 +240,7 @@
   },
   "setlistsTabEmptyTitle": "No setlists",
   "setlistsTabEmptyDescription": "Create setlists in a band to see them here.",
+  "setlistsTabSearchHint": "Search by name",
   "createSetlistAppBarTitle": "Create setlist",
   "createSetlistDateHint": "YYYY-MM-DD",
   "createSetlistAddTracksOptionalHeader": "Add tracks (optional)",

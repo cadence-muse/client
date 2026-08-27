@@ -527,6 +527,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Создавайте сетлисты в группе, чтобы они отображались здесь.';
 
   @override
+  String get setlistsTabSearchHint => 'Поиск по названию';
+
+  @override
   String get createSetlistAppBarTitle => 'Создать сетлист';
 
   @override
