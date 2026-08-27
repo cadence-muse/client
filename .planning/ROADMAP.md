@@ -115,7 +115,12 @@ Plans:
   3. User attempting to register or change their password with a password under 8 characters sees a client-side validation error before any request is sent
   4. All existing search/list tests are updated and passing against the new GET-based mocks, with zero regressions
 
-**Plans**: TBD
+**Plans:** 0/3 plans complete
+
+- [ ] 17-01-PLAN.md — GET migration for listUserTracks/listUserSetlists + debounced search UI on the global Tracks tab (TracksScreen) and Setlists tab (SetlistsScreen) (API-01)
+- [ ] 17-02-PLAN.md — Setlist track picker renders debounced server search results instead of discarding them (API-01)
+- [ ] 17-03-PLAN.md — LoginScreen password validator gates the 8-char minimum to signup mode only, unblocking login for pre-existing short passwords (API-02)
+
 **UI hint**: yes
 
 ### Phase 18: Metronome Tool
