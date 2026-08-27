@@ -122,6 +122,11 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
     if (_dateController.text.isNotEmpty) {
       try {
         initialDate = DateTime.parse(_dateController.text);
+        if (initialDate.isBefore(firstDate)) {
+          initialDate = firstDate;
+        } else if (initialDate.isAfter(lastDate)) {
+          initialDate = lastDate;
+        }
       } catch (_) {
         initialDate = now;
       }
