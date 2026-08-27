@@ -60,51 +60,65 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
 ## Phase Details
 
 ### Phase 15: Carried-Over Fixes & Setlist Date Picker
+
 **Goal**: Users get the invite-code copy button working offline, previously-flagged verification gaps confirmed still resolved in code, and setlist dates entered via the platform's native date picker.
 **Depends on**: Nothing (continues from Phase 14)
 **Requirements**: BAND-13, QA-01, SETL-13
 **Success Criteria** (what must be TRUE):
+
   1. User can tap "copy invite code" on the band detail screen while offline and the code copies to the clipboard successfully (button no longer gated behind `isOnline`)
   2. `02-VERIFICATION.md`'s four previously-flagged gaps (Hive deep-convert, mutation error handling, band-rename list propagation, background-refresh version guard) are re-checked against current code and re-stamped resolved with evidence
   3. User creating or editing a setlist taps the date field and gets the platform's native `showDatePicker` instead of typing a raw date string
-**Plans:** 2 plans
-- [ ] 15-01-PLAN.md — Setlist date field uses native showDatePicker instead of raw text entry (SETL-13)
-- [ ] 15-02-PLAN.md — Invite-code copy works offline (BAND-13) + 02-VERIFICATION.md gaps re-verified and re-stamped resolved (QA-01)
+
+**Plans:** 2/2 plans executed
+
+- [x] 15-01-PLAN.md — Setlist date field uses native showDatePicker instead of raw text entry (SETL-13)
+- [x] 15-02-PLAN.md — Invite-code copy works offline (BAND-13) + 02-VERIFICATION.md gaps re-verified and re-stamped resolved (QA-01)
+
 **UI hint**: yes
 
 ### Phase 16: Track Terminology Rename
+
 **Goal**: The app's remaining "song" terminology is fully renamed to "track", eliminating a legacy naming split that predates the v1.0 track feature.
 **Depends on**: Phase 15
 **Requirements**: RENAME-01
 **Success Criteria** (what must be TRUE):
+
   1. Bottom-nav tab and every screen/dialog reads "Track(s)" not "Song(s)" in both English and Russian
   2. No file under `lib/` lives in a `songs/` directory or contains a `Song`-prefixed class name (e.g. `SongsScreen`) — fully renamed to `tracks`/`TracksScreen` equivalents
   3. No ARB key or translation string contains "song" in English or Russian
   4. Full test suite passes with zero references to old song-named identifiers, and no stale generated (`.g.dart`) artifacts remain from the old names
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 17: API Contract Sync
+
 **Goal**: The client's search behavior and password rules match the backend's updated `publicapi.yml` contract.
 **Depends on**: Phase 16 (rename lands first so the search-migration logic change is written once, in already-renamed files, instead of being touched again by the rename sweep)
 **Requirements**: API-01, API-02
 **Success Criteria** (what must be TRUE):
+
   1. User's cross-band Tracks and Setlists tab searches are served by real server-side filtering (GET + `SearchQuery`) instead of the client's offline substring filter
   2. The setlist track picker's search field sends the same shared `SearchQuery` contract as the two list endpoints
   3. User attempting to register or change their password with a password under 8 characters sees a client-side validation error before any request is sent
   4. All existing search/list tests are updated and passing against the new GET-based mocks, with zero regressions
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 18: Metronome Tool
+
 **Goal**: Users have a metronome tool for practicing, reachable from the Homepage and from any track's detail screen.
 **Depends on**: Nothing new — zero technical dependency on Phases 15-17; sequenced last per explicit user preference so other fixes stabilize first
 **Requirements**: METR-01, METR-02, METR-03, METR-04
 **Success Criteria** (what must be TRUE):
+
   1. User can open a metronome from a new "Tools" section on the Homepage, defaulting to 120 BPM
   2. User can open the metronome from a track's detail screen and see it prefilled with that track's tempo
   3. When playing, user hears an audio tick synced to a visual pulse in 4/4 time, with the first beat of each bar audibly and visually accented
   4. User can adjust tempo via a large round tempo selector, plus ±1 and ±5 quick-adjust buttons
+
 **Plans**: TBD
 **UI hint**: yes
 
@@ -130,7 +144,7 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete | 2026-08-25 |
 | 13. String Extraction & Screen Localization | v1.2 | 13/13 | Complete | 2026-08-26 |
 | 14. API Error Localization | v1.2 | 4/4 | Complete | 2026-08-26 |
-| 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 0/2 | Not started | - |
+| 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 2/2 | In Progress|  |
 | 16. Track Terminology Rename | v1.3 | 0/TBD | Not started | - |
 | 17. API Contract Sync | v1.3 | 0/TBD | Not started | - |
 | 18. Metronome Tool | v1.3 | 0/TBD | Not started | - |
