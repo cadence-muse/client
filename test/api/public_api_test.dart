@@ -160,7 +160,7 @@ void main() {
 
   group('listUserTracks', () {
     test(
-      'calling with bandIdFilter sends POST to /api/track/list with '
+      'calling with bandIdFilter sends GET to /api/track/list with '
       'bandId as a query parameter',
       () async {
         String? capturedMethod;
@@ -178,14 +178,14 @@ void main() {
 
         await api.listUserTracks(bandIdFilter: 'b1');
 
-        expect(capturedMethod, 'POST');
+        expect(capturedMethod, 'GET');
         expect(capturedPath, '/api/track/list');
         expect(capturedBandId, 'b1');
       },
     );
 
     test(
-      'calling with no bandIdFilter and no searchQuery sends POST with no '
+      'calling with no bandIdFilter and no searchQuery sends GET with no '
       'bandId query parameter',
       () async {
         String? capturedMethod;
@@ -201,26 +201,50 @@ void main() {
 
         await api.listUserTracks();
 
-        expect(capturedMethod, 'POST');
+        expect(capturedMethod, 'GET');
         expect(hasBandId, isFalse);
       },
     );
 
     test(
-      'calling with searchQuery sends a JSON body {searchQuery: value}',
+      'calling with searchQuery sends a GET whose queryParameters contains '
+      'searchQuery',
       () async {
-        Map<String, dynamic>? capturedBody;
+        String? capturedSearchQuery;
 
         final api = PublicApi(
           buildApiClient((request) async {
-            capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
+            capturedSearchQuery = request.url.queryParameters['searchQuery'];
             return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
           }),
         );
 
         await api.listUserTracks(searchQuery: 'wonderwall');
 
-        expect(capturedBody, {'searchQuery': 'wonderwall'});
+        expect(capturedSearchQuery, 'wonderwall');
+      },
+    );
+
+    test(
+      'calling with no searchQuery, or an empty searchQuery, sends a GET '
+      'whose queryParameters does not contain the searchQuery key',
+      () async {
+        var hasSearchQuery = false;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            hasSearchQuery = request.url.queryParameters.containsKey(
+              'searchQuery',
+            );
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserTracks();
+        expect(hasSearchQuery, isFalse);
+
+        await api.listUserTracks(searchQuery: '');
+        expect(hasSearchQuery, isFalse);
       },
     );
   });
@@ -271,7 +295,7 @@ void main() {
 
   group('listUserSetlists', () {
     test(
-      'calling with bandIdFilter sends POST to /api/setlist/list with '
+      'calling with bandIdFilter sends GET to /api/setlist/list with '
       'bandId as a query parameter',
       () async {
         String? capturedMethod;
@@ -289,14 +313,14 @@ void main() {
 
         await api.listUserSetlists(bandIdFilter: 'b1');
 
-        expect(capturedMethod, 'POST');
+        expect(capturedMethod, 'GET');
         expect(capturedPath, '/api/setlist/list');
         expect(capturedBandId, 'b1');
       },
     );
 
     test(
-      'calling with no bandIdFilter and no searchQuery sends POST with no '
+      'calling with no bandIdFilter and no searchQuery sends GET with no '
       'bandId query parameter',
       () async {
         String? capturedMethod;
@@ -312,26 +336,50 @@ void main() {
 
         await api.listUserSetlists();
 
-        expect(capturedMethod, 'POST');
+        expect(capturedMethod, 'GET');
         expect(hasBandId, isFalse);
       },
     );
 
     test(
-      'calling with searchQuery sends a JSON body {searchQuery: value}',
+      'calling with searchQuery sends a GET whose queryParameters contains '
+      'searchQuery',
       () async {
-        Map<String, dynamic>? capturedBody;
+        String? capturedSearchQuery;
 
         final api = PublicApi(
           buildApiClient((request) async {
-            capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
+            capturedSearchQuery = request.url.queryParameters['searchQuery'];
             return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
           }),
         );
 
         await api.listUserSetlists(searchQuery: 'wonderwall');
 
-        expect(capturedBody, {'searchQuery': 'wonderwall'});
+        expect(capturedSearchQuery, 'wonderwall');
+      },
+    );
+
+    test(
+      'calling with no searchQuery, or an empty searchQuery, sends a GET '
+      'whose queryParameters does not contain the searchQuery key',
+      () async {
+        var hasSearchQuery = false;
+
+        final api = PublicApi(
+          buildApiClient((request) async {
+            hasSearchQuery = request.url.queryParameters.containsKey(
+              'searchQuery',
+            );
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }),
+        );
+
+        await api.listUserSetlists();
+        expect(hasSearchQuery, isFalse);
+
+        await api.listUserSetlists(searchQuery: '');
+        expect(hasSearchQuery, isFalse);
       },
     );
   });

@@ -472,4 +472,228 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'renders a search TextField above the track list',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 't1',
+                'title': 'Track One',
+                'artist': 'Artist One',
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(
+        find.text(tester.strings.addSetlistTracksSearchHint),
+        findsOneWidget,
+      );
+      // TextField must appear above the track list in the widget tree.
+      final textFieldY = tester.getTopLeft(find.byType(TextField)).dy;
+      final listTileY = tester.getTopLeft(find.text('Track One')).dy;
+      expect(textFieldY, lessThan(listTileY));
+    },
+  );
+
+  testWidgets(
+    'online typing sends exactly one debounced GET to /api/track/list with '
+    'searchQuery as a query parameter after 300ms, and the resulting '
+    'response is what\'s displayed',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final capturedRequests = <http.Request>[];
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        capturedRequests.add(request);
+        if (request.url.queryParameters.containsKey('searchQuery')) {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 't2',
+                  'title': 'Search Result Track',
+                  'artist': 'Search Artist',
+                  'bandId': 'b1',
+                  'bandName': 'Band One',
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 't1',
+                'title': 'Track One',
+                'artist': 'Artist One',
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+              {
+                'id': 't1b',
+                'title': 'Track OneB',
+                'artist': 'Artist OneB',
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+      expect(find.text('Track One'), findsOneWidget);
+
+      final requestCountBeforeTyping = capturedRequests.length;
+
+      await tester.enterText(find.byType(TextField), 'wonder');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(capturedRequests.length, requestCountBeforeTyping);
+
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pumpAndSettle();
+
+      expect(capturedRequests.length, requestCountBeforeTyping + 1);
+      expect(
+        capturedRequests.last.url.queryParameters['searchQuery'],
+        'wonder',
+      );
+      expect(find.text('Search Result Track'), findsOneWidget);
+      expect(find.text('Track One'), findsNothing);
+      expect(find.text('Track OneB'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'online search returning zero results shows commonNoSearchResults',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.url.queryParameters.containsKey('searchQuery')) {
+          return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 't1',
+                'title': 'Track One',
+                'artist': 'Artist One',
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'nomatch');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tester.strings.commonNoSearchResults), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'offline typing filters the cached list immediately with zero '
+    'additional network calls',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'b1', 'name': 'Band One'},
+      ]);
+      await cacheService.writeUserTracks(null, [
+        {
+          'id': 't1',
+          'title': 'Wonderwall',
+          'artist': 'Oasis',
+          'bandId': 'b1',
+          'bandName': 'Band One',
+        },
+        {
+          'id': 't2',
+          'title': 'Yellow',
+          'artist': 'Coldplay',
+          'bandId': 'b1',
+          'bandName': 'Band One',
+        },
+      ]);
+
+      final capturedRequests = <http.Request>[];
+      final apiClient = buildApiClient((request) async {
+        capturedRequests.add(request);
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Wonderwall'), findsOneWidget);
+      expect(find.text('Yellow'), findsOneWidget);
+
+      final requestCountBeforeTyping = capturedRequests.length;
+
+      await tester.enterText(find.byType(TextField), 'wonder');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(find.text('Wonderwall'), findsOneWidget);
+      expect(find.text('Yellow'), findsNothing);
+      expect(capturedRequests.length, requestCountBeforeTyping);
+    },
+  );
 }

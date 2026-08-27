@@ -75,6 +75,8 @@
   "commonFailedToLoadSetlists": "Failed to load setlists. Tap to try again.",
   "commonActionCannotBeUndone": "This action cannot be undone.",
   "commonAddTracks": "Add tracks",
+  "commonNoSearchResults": "No tracks found.",
+  "commonNoSetlistSearchResults": "No setlists found.",
   "commonAtLeast8Chars": "At least 8 characters",
   "commonFieldRequired": "This field is required",
   "commonRefresh": "Refresh",

@@ -416,6 +416,18 @@ abstract class AppLocalizations {
   /// **'Add tracks'**
   String get commonAddTracks;
 
+  /// No description provided for @commonNoSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No tracks found.'**
+  String get commonNoSearchResults;
+
+  /// No description provided for @commonNoSetlistSearchResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No setlists found.'**
+  String get commonNoSetlistSearchResults;
+
   /// No description provided for @commonAtLeast8Chars.
   ///
   /// In en, this message translates to:

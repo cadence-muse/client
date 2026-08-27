@@ -75,6 +75,8 @@
   "commonFailedToLoadSetlists": "Не удалось загрузить сетлисты. Нажмите, чтобы повторить.",
   "commonActionCannotBeUndone": "Это действие нельзя отменить.",
   "commonAddTracks": "Добавить треки",
+  "commonNoSearchResults": "Треки не найдены.",
+  "commonNoSetlistSearchResults": "Сетлисты не найдены.",
   "commonAtLeast8Chars": "Не менее 8 символов",
   "commonFieldRequired": "Это поле обязательно",
   "commonRefresh": "Обновить",

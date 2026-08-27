@@ -204,6 +204,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commonAddTracks => 'Добавить треки';
 
   @override
+  String get commonNoSearchResults => 'Треки не найдены.';
+
+  @override
+  String get commonNoSetlistSearchResults => 'Сетлисты не найдены.';
+
+  @override
   String get commonAtLeast8Chars => 'Не менее 8 символов';
 
   @override

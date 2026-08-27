@@ -569,4 +569,228 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'renders a search TextField above the setlist list',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist One',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+      expect(
+        find.text(tester.strings.addSetlistTracksSearchHint),
+        findsOneWidget,
+      );
+      final textFieldY = tester.getTopLeft(find.byType(TextField)).dy;
+      final listTileY = tester.getTopLeft(find.text('Setlist One')).dy;
+      expect(textFieldY, lessThan(listTileY));
+    },
+  );
+
+  testWidgets(
+    'online typing sends exactly one debounced GET to /api/setlist/list '
+    'with searchQuery as a query parameter after 300ms, and the resulting '
+    'response is what\'s displayed',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final capturedRequests = <http.Request>[];
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        capturedRequests.add(request);
+        if (request.url.queryParameters.containsKey('searchQuery')) {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {
+                  'id': 's2',
+                  'name': 'Search Result Setlist',
+                  'tracksCount': 3,
+                  'durationSeconds': 300,
+                  'bandId': 'b1',
+                  'bandName': 'Band One',
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist One',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+      expect(find.text('Setlist One'), findsOneWidget);
+
+      final requestCountBeforeTyping = capturedRequests.length;
+
+      await tester.enterText(find.byType(TextField), 'wonder');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(capturedRequests.length, requestCountBeforeTyping);
+
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pumpAndSettle();
+
+      expect(capturedRequests.length, requestCountBeforeTyping + 1);
+      expect(
+        capturedRequests.last.url.queryParameters['searchQuery'],
+        'wonder',
+      );
+      expect(find.text('Search Result Setlist'), findsOneWidget);
+      expect(find.text('Setlist One'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'online search returning zero results shows commonNoSetlistSearchResults',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/list') {
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 'b1', 'name': 'Band One'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (request.url.queryParameters.containsKey('searchQuery')) {
+          return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+        }
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 's1',
+                'name': 'Setlist One',
+                'tracksCount': 1,
+                'durationSeconds': 200,
+                'bandId': 'b1',
+                'bandName': 'Band One',
+              },
+            ],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'nomatch');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.commonNoSetlistSearchResults),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'offline typing filters the cached list immediately by setlist name '
+    'with zero additional network calls',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBands([
+        {'id': 'b1', 'name': 'Band One'},
+      ]);
+      await cacheService.writeUserSetlists(null, [
+        {
+          'id': 's1',
+          'name': 'Wonderwall Night',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+          'bandId': 'b1',
+          'bandName': 'Band One',
+        },
+        {
+          'id': 's2',
+          'name': 'Yellow Show',
+          'tracksCount': 1,
+          'durationSeconds': 200,
+          'bandId': 'b1',
+          'bandName': 'Band One',
+        },
+      ]);
+
+      final capturedRequests = <http.Request>[];
+      final apiClient = buildApiClient((request) async {
+        capturedRequests.add(request);
+        return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, cacheService, isOnline: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Wonderwall Night'), findsOneWidget);
+      expect(find.text('Yellow Show'), findsOneWidget);
+
+      final requestCountBeforeTyping = capturedRequests.length;
+
+      await tester.enterText(find.byType(TextField), 'wonder');
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(find.text('Wonderwall Night'), findsOneWidget);
+      expect(find.text('Yellow Show'), findsNothing);
+      expect(capturedRequests.length, requestCountBeforeTyping);
+    },
+  );
 }
