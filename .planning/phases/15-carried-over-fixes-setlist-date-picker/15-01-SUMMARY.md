@@ -146,3 +146,7 @@ Each task was committed atomically:
 ---
 *Phase: 15-carried-over-fixes-setlist-date-picker*
 *Completed: 2026-08-27*
+
+## Self-Check: PASSED
+
+All created/modified files verified present on disk; commits `55e0529`, `42a0d3d`, `25ed5ba` verified present in `git log`.
