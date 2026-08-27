@@ -67,15 +67,15 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 - ✓ User can switch app language between English and Russian from Profile settings; change applies live, no restart; ARB/gen-l10n pipeline and `LocaleController` established as the pattern every later i18n phase builds on (I18N-01, I18N-02, I18N-03) — v1.2 Phase 12
 - ✓ All UI strings across every screen/dialog are localized EN/RU, with grammatically correct Russian plural forms (1/2–4/5+) for count-bearing strings (I18N-04, I18N-06) — v1.2 Phase 13
 - ✓ Known API error codes are mapped to localized messages in the user's selected language; unmapped codes fall back to raw server text (I18N-05) — v1.2 Phase 14
+- ✓ Invite-code copy button works offline (offline-gating regression fixed) (BAND-13) — v1.3 Phase 15
+- ✓ `02-VERIFICATION.md`'s 4 carried-over gaps re-verified against current code and re-stamped (QA-01) — v1.3 Phase 15
+- ✓ Setlist date input via native `showDatePicker`, with existing-date pre-population and out-of-range clamping into `[firstDate, lastDate]` (SETL-13) — v1.3 Phase 15
 
 ### Active
 
-- [ ] Fix invite-code copy button offline-gating regression (WR-01, carried from v1.1 Phase 8)
-- [ ] Re-verify/re-stamp `02-VERIFICATION.md` gaps (already resolved in code since Phase 2 gap-closure)
 - [ ] Adopt server-side search: `ListUserTracks`/`ListUserSetlists` GET+`SearchQuery`, band-track search via shared `$ref`
 - [ ] Adopt `minLength: 8` password validation (register + change-password)
 - [ ] Full song→track rename (UI strings, `lib/features/songs/` dir, `SongsScreen` class, ARB keys)
-- [ ] Setlist date input via native `showDatePicker`
 - [ ] Metronome tool (audio + visual, homepage Tools section + track-prefilled entry, 4/4 only)
 
 ### Out of Scope
@@ -135,6 +135,7 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 | Removed the entire `XSyncedAt` provider family (10 classes) rather than building a "last synced" UI to consume them | Code review (WR-03) found the providers were maintained on every fetch/mutation but had zero screen consumers — dead infrastructure; no product ask existed for a last-synced indicator, so deletion was the lower-risk choice over building unrequested UI | ✓ Good — Phase 7 gap-closure |
 | Behavioral changes (even small formatter fixes) must land as their own reviewed diff, not bundled into a string-extraction phase | Code review (CR-01) caught `DurationTextInputFormatter`'s in-phase algorithmic rewrite silently breaking backspace-to-empty clearing — untested because the phase's own test suite assumed pure string extraction; fixed same-session, but the bundling itself was flagged as scope creep (WR-02) | ✓ Fixed — Phase 13 code review; apply going forward: keep localization-only diffs isolated from behavior changes |
 | `ApiExceptionLocalization.localizedMessage()` as a shared extension over `ApiException`, with an `overrides` parameter for screen-specific error-code handling | 16 catch sites across Bands/Tracks/Setlists/Login needed the same known-code-to-localized-message mapping; the `overrides` mechanism let login's `already_exists` and change-password's `invalid_input` retire their bespoke handling onto the same path instead of staying special-cased (D-04) | ✓ Good — Phase 14; established pattern for any future ApiException catch site |
+| Clamp a persisted `eventDate` into the date picker's `[firstDate, lastDate]` window post-parse, rather than trusting the parsed value directly | `EditSetlistScreen`'s initial `showDatePicker` call asserts `initialDate` is in range and threw `AssertionError` for any setlist dated >5y past or >2y future (15-VERIFICATION.md Gap 1 / CR-01) | ✓ Good — Phase 15 gap-closure (15-03); same duplicated boundary math flagged again in 15-REVIEW.md (IN-01) as a future extraction candidate |
 
 ## Evolution
 
@@ -154,4 +155,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-27 after starting v1.3 milestone*
+*Last updated: 2026-08-27 after Phase 15*

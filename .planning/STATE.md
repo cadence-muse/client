@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-26)
+See: .planning/PROJECT.md (updated 2026-08-27)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 15 — Carried-Over Fixes & Setlist Date Picker
+**Current focus:** Phase 16 — Track Terminology Rename
 
 ## Current Position
 
@@ -115,6 +115,7 @@ Recent decisions affecting current work:
 - [Phase 13]: All 19 screens/9+ dialogs migrated to `AppLocalizations`; `test/test_strings.dart` centralizes test-string assertions (`tester.strings.keyName`) across 24 test files, replacing hardcoded English literals in `find.text(...)`.
 - [Phase 13]: `memberCount`/`trackCount`/`slotCount` use full ICU plural forms (one/few/many/other) for correct Russian 1/2–4/5+ pluralization.
 - [Phase 13 code review]: `DurationTextInputFormatter`'s in-phase algorithmic rewrite broke backspace-to-empty clearing (stuck at "0:00") — caught and fixed same-session (CR-01, commit 10a9544); flagged as scope creep bundled into a string-extraction phase (WR-02) — keep behavioral changes in their own reviewed diff going forward.
+- [Phase 15]: `EditSetlistScreen`'s date-picker `initialDate` now clamps a persisted `eventDate` into `[firstDate, lastDate]` post-parse instead of trusting the parsed value directly — an out-of-range date previously threw `AssertionError` (Gap 1 / CR-01), fixed in gap-closure plan 15-03.
 
 ### Pending Todos
 
@@ -123,7 +124,8 @@ None yet.
 ### Blockers/Concerns
 
 - v1.1: backend does not implement the `searchQuery` field on `ListBandTracks` — client extends `publicapi.yml` and sends it, but the setlist track picker degrades to offline substring filtering until backend support ships. Now tracked as API-01 in Phase 17.
-- v1.1 Phase 8 code review (WR-01): Copy-invite-code on `band_detail_screen.dart:248-256` is gated behind `isOnline`, regressing the pre-Phase-8 always-tappable behavior — clipboard copy needs no network and this contradicts both `08-CONTEXT.md` D-07 ("Copy stays visible to everyone as today") and the app's offline-first Core Value. Now tracked as BAND-13 in Phase 15.
+- [Phase 15 review, non-blocking] `CreateSetlistScreen._showDatePickerDialog` always opens with `initialDate: now` instead of the currently-picked date (WR-01, create_setlist_screen.dart:95-104) — reopening the picker loses the prior selection. No test coverage.
+- [Phase 15 review, non-blocking] Both setlist screens' `_showDatePickerDialog` call `setState()` after `await showDatePicker(...)` without a `mounted` check (WR-02) — could throw "setState() called after dispose()" if the widget is torn down mid-dialog (e.g. 403 auto-logout).
 
 ### Quick Tasks Completed
 
@@ -152,10 +154,10 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-27T07:31:05.671Z
+Last session: 2026-08-27T13:01:29.262Z
 Stopped at: Phase 15 complete, ready to plan Phase 16
-Resume file: /home/bulat.khafizov/projects/personal/cadence/client/.planning/phases/15-carried-over-fixes-setlist-date-picker/15-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 15 with `/gsd-plan-phase 15`
+- Plan Phase 16 with `/gsd-plan-phase 16`
