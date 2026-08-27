@@ -46,7 +46,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final publicApi = ref.read(publicApiProvider);
       if (_mode == _AuthMode.signUp) {
-        await publicApi.register(username: username, password: password);
+        try {
+          await publicApi.register(username: username, password: password);
+        } on ApiException catch (e) {
+          throw ApiException(
+            statusCode: e.statusCode,
+            code: e.code,
+            message: e.localizedMessage(
+              l10n,
+              overrides: {'already_exists': l10n.loginUsernameTakenError},
+            ),
+          );
+        }
       }
       try {
         final token = await publicApi.login(
@@ -55,22 +66,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         );
         await ref.read(authSessionProvider.notifier).signIn(token);
       } on ApiException catch (e) {
-        if (e.statusCode == 401) {
-          throw ApiException(
-            statusCode: e.statusCode,
-            code: e.code,
-            message: l10n.loginInvalidCredentialsError,
-          );
-        }
-        rethrow;
+        throw ApiException(
+          statusCode: e.statusCode,
+          code: e.code,
+          message: e.localizedMessage(
+            l10n,
+            overrides: {'invalid_input': l10n.loginInvalidCredentialsError},
+          ),
+        );
       }
     } on ApiException catch (e) {
-      setState(
-        () => _errorMessage = e.localizedMessage(
-          l10n,
-          overrides: {'already_exists': l10n.loginUsernameTakenError},
-        ),
-      );
+      setState(() => _errorMessage = e.message);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

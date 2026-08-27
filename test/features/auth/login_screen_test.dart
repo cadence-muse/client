@@ -123,12 +123,16 @@ void main() {
   );
 
   testWidgets(
-    'logging in with wrong credentials (401) still shows '
-    'loginInvalidCredentialsError -- the untouched statusCode-driven path',
+    'logging in with wrong credentials (400 invalid_input, per '
+    'publicapi.yml -- /api/login never returns 401) shows '
+    'loginInvalidCredentialsError',
     (tester) async {
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/login') {
-          return http.Response('', 401);
+          return http.Response(
+            jsonEncode({'code': 'invalid_input', 'message': 'bad login'}),
+            400,
+          );
         }
         return http.Response('', 200);
       });
@@ -149,12 +153,16 @@ void main() {
 
   testWidgets(
     'logging in with a short (7-char) but non-empty password reaches the '
-    'server -- proven by a mocked 401 surfacing loginInvalidCredentialsError, '
-    'not a client-side commonAtLeast8Chars validator error (D-04)',
+    'server -- proven by a mocked 400 invalid_input surfacing '
+    'loginInvalidCredentialsError, not a client-side commonAtLeast8Chars '
+    'validator error (D-04)',
     (tester) async {
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/login') {
-          return http.Response('', 401);
+          return http.Response(
+            jsonEncode({'code': 'invalid_input', 'message': 'bad login'}),
+            400,
+          );
         }
         return http.Response('', 200);
       });
