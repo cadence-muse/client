@@ -151,6 +151,16 @@ None - no external service configuration required.
 - `02-VERIFICATION.md` now accurately reflects Phase 2's real (already-fixed) state, closing out stale technical debt that had persisted across the v1.1 and v1.2 milestone-close audits.
 - No blockers for the remainder of Phase 15 (15-01, the SETL-13 date-picker plan, is independent — different files, no shared state).
 
+## Self-Check: PASSED
+
+- FOUND: `lib/features/bands/band_detail_screen.dart`
+- FOUND: `test/features/bands/band_detail_screen_test.dart`
+- FOUND: `.planning/milestones/v1.0-phases/02-bands/02-VERIFICATION.md`
+- FOUND: `.planning/phases/15-carried-over-fixes-setlist-date-picker/15-02-SUMMARY.md`
+- FOUND commit: `3182413` (Task 1)
+- FOUND commit: `4a54ba8` (Task 2)
+- FOUND commit: `4175332` (SUMMARY)
+
 ---
 *Phase: 15-carried-over-fixes-setlist-date-picker*
 *Completed: 2026-08-27*
