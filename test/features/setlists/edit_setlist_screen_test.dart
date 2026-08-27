@@ -329,6 +329,46 @@ void main() {
   );
 
   testWidgets(
+    'a persisted eventDate more than 5 years in the past clamps initialDate '
+    'to firstDate without throwing',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          setlistOverride: const {
+            'id': 's1',
+            'name': 'Old Name',
+            'eventLocation': 'Old Venue',
+            'eventDate': '2020-01-01',
+          },
+        ),
+      );
+      await openEditSetlistScreen(tester);
+      await tester.tap(find.byType(TextFormField).at(2));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      final now = DateTime.now();
+      final firstDate = DateTime(now.year - 5, now.month, now.day);
+      final dateField = tester.widget<TextFormField>(
+        find.byType(TextFormField).at(2),
+      );
+      expect(
+        dateField.controller!.text,
+        firstDate.toIso8601String().split('T')[0],
+      );
+    },
+  );
+
+  testWidgets(
     'a malformed persisted eventDate falls back to today as initialDate '
     'without throwing',
     (tester) async {
