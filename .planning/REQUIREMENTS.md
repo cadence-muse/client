@@ -22,7 +22,7 @@ Requirements for the "Quality of Life" milestone. Each maps to roadmap phases.
 
 ### Track Terminology
 
-- [ ] **RENAME-01**: No user-facing or internal "song" references remain; renamed to "track" throughout (bottom-nav tab label, `lib/features/songs/` directory, `SongsScreen` class, ARB keys/translations)
+- [x] **RENAME-01**: No user-facing or internal "song" references remain; renamed to "track" throughout (bottom-nav tab label, `lib/features/songs/` directory, `SongsScreen` class, ARB keys/translations)
 
 ### Setlists
 
@@ -56,7 +56,7 @@ None deferred this milestone — all discussed items are in v1.3 scope.
 | BAND-13 | Phase 15 | Complete |
 | QA-01 | Phase 15 | Complete |
 | SETL-13 | Phase 15 | Complete |
-| RENAME-01 | Phase 16 | Pending |
+| RENAME-01 | Phase 16 | Complete |
 | API-01 | Phase 17 | Pending |
 | API-02 | Phase 17 | Pending |
 | METR-01 | Phase 18 | Pending |
