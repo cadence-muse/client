@@ -9,11 +9,11 @@ Requirements for the "Quality of Life" milestone. Each maps to roadmap phases.
 
 ### Band Management
 
-- [ ] **BAND-13**: Invite-code copy button works offline (clipboard copy needs no network); fixes WR-01 regression from v1.1 Phase 8 where the button was incorrectly gated behind `isOnline`
+- [x] **BAND-13**: Invite-code copy button works offline (clipboard copy needs no network); fixes WR-01 regression from v1.1 Phase 8 where the button was incorrectly gated behind `isOnline`
 
 ### Quality Assurance
 
-- [ ] **QA-01**: Stale gaps in `02-VERIFICATION.md` (Hive deep-convert, mutation error handling, band-rename list propagation, background-refresh version guard) are re-verified against current code and re-stamped resolved
+- [x] **QA-01**: Stale gaps in `02-VERIFICATION.md` (Hive deep-convert, mutation error handling, band-rename list propagation, background-refresh version guard) are re-verified against current code and re-stamped resolved
 
 ### API Contract Sync
 
@@ -26,7 +26,7 @@ Requirements for the "Quality of Life" milestone. Each maps to roadmap phases.
 
 ### Setlists
 
-- [ ] **SETL-13**: Setlist date field uses the platform's native `showDatePicker` instead of raw text input
+- [x] **SETL-13**: Setlist date field uses the platform's native `showDatePicker` instead of raw text input
 
 ### Metronome
 
@@ -53,9 +53,9 @@ None deferred this milestone — all discussed items are in v1.3 scope.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BAND-13 | Phase 15 | Pending |
-| QA-01 | Phase 15 | Pending |
-| SETL-13 | Phase 15 | Pending |
+| BAND-13 | Phase 15 | Complete |
+| QA-01 | Phase 15 | Complete |
+| SETL-13 | Phase 15 | Complete |
 | RENAME-01 | Phase 16 | Pending |
 | API-01 | Phase 17 | Pending |
 | API-02 | Phase 17 | Pending |
@@ -65,6 +65,7 @@ None deferred this milestone — all discussed items are in v1.3 scope.
 | METR-04 | Phase 18 | Pending |
 
 **Coverage:**
+
 - v1.3 requirements: 10 total
 - Mapped to phases: 10
 - Unmapped: 0 ✓

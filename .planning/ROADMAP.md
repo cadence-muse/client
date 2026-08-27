@@ -52,7 +52,7 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
 
 **Milestone Goal:** Close carried-over debt, sync the client to backend API changes, finish the song→track rename, and ship two standalone quality-of-life features (calendar date picker, metronome tool).
 
-- [ ] **Phase 15: Carried-Over Fixes & Setlist Date Picker** - Invite-code copy works offline, stale verification gaps re-stamped, setlist dates use native picker
+- [x] **Phase 15: Carried-Over Fixes & Setlist Date Picker** - Invite-code copy works offline, stale verification gaps re-stamped, setlist dates use native picker (completed 2026-08-27)
 - [ ] **Phase 16: Track Terminology Rename** - Full song→track rename across UI strings, directory, class, and ARB keys
 - [ ] **Phase 17: API Contract Sync** - Server-side search (GET+SearchQuery) replaces client filtering; 8-char minimum password validation
 - [ ] **Phase 18: Metronome Tool** - Audio+visual metronome reachable from Homepage Tools and a track's detail screen
@@ -70,7 +70,7 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
   2. `02-VERIFICATION.md`'s four previously-flagged gaps (Hive deep-convert, mutation error handling, band-rename list propagation, background-refresh version guard) are re-checked against current code and re-stamped resolved with evidence
   3. User creating or editing a setlist taps the date field and gets the platform's native `showDatePicker` instead of typing a raw date string
 
-**Plans:** 3/3 plans executed (gap closure pending)
+**Plans:** 3/3 plans complete
 
 - [x] 15-01-PLAN.md — Setlist date field uses native showDatePicker instead of raw text entry (SETL-13)
 - [x] 15-02-PLAN.md — Invite-code copy works offline (BAND-13) + 02-VERIFICATION.md gaps re-verified and re-stamped resolved (QA-01)
@@ -145,7 +145,7 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete | 2026-08-25 |
 | 13. String Extraction & Screen Localization | v1.2 | 13/13 | Complete | 2026-08-26 |
 | 14. API Error Localization | v1.2 | 4/4 | Complete | 2026-08-26 |
-| 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | In Progress|  |
+| 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | Complete    | 2026-08-27 |
 | 16. Track Terminology Rename | v1.3 | 0/TBD | Not started | - |
 | 17. API Contract Sync | v1.3 | 0/TBD | Not started | - |
 | 18. Metronome Tool | v1.3 | 0/TBD | Not started | - |
