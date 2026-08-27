@@ -55,6 +55,7 @@ class _AddSetlistTracksDialogState
   final _searchController = TextEditingController();
   String _searchQuery = '';
   Timer? _debounceTimer;
+  List<Map<String, dynamic>>? _serverSearchResults;
 
   @override
   void dispose() {
@@ -68,8 +69,10 @@ class _AddSetlistTracksDialogState
   // online — arms a 300ms-debounced network request (D-03/D-04) sent
   // directly via publicApiProvider rather than trackListDataProvider, so
   // the shared cache (used by 6+ other call sites) is never keyed by search
-  // variants. That response is intentionally discarded (D-05): the
-  // displayed list never re-filters on it this milestone.
+  // variants. Phase 17 (D-03) now renders that response while online
+  // (build()'s availableTracks selection), superseding the milestone-13
+  // D-05 discard behavior. A failed request leaves _serverSearchResults
+  // (and the displayed list) exactly as they were — no new error state.
   void _onSearchChanged(String value) {
     setState(() => _searchQuery = value);
     _debounceTimer?.cancel();
@@ -79,7 +82,11 @@ class _AddSetlistTracksDialogState
       ref
           .read(publicApiProvider)
           .listBandTracks(widget.bandId, searchQuery: _searchQuery)
-          .catchError((_) => <Map<String, dynamic>>[]);
+          .then((results) {
+            if (!mounted) return;
+            setState(() => _serverSearchResults = results);
+          })
+          .catchError((_) {});
     });
   }
 
@@ -148,11 +155,21 @@ class _AddSetlistTracksDialogState
                 if (!widget.currentTrackIds.contains(track['id'] as String))
                   track,
             ];
-            // Offline search only visibly filters (D-05/D-06) — online, the
-            // debounced request fires (see _onSearchChanged) but the
-            // displayed list intentionally stays full/unfiltered. Order is
-            // preserved: no sort is introduced here.
-            if (!isOnline && _searchQuery.isNotEmpty) {
+            // Online, once a debounced server search has completed (D-03),
+            // the server's response replaces the unfiltered list — still
+            // excluding any track already in the setlist, so an
+            // already-in-setlist track can't reappear just because it
+            // matched the search. Offline search filters the unfiltered
+            // list locally via trackMatchesSearchQuery (D-02/D-05/D-07),
+            // no debounce delay needed for a pure local computation. Order
+            // is preserved: no sort is introduced here.
+            if (isOnline && _serverSearchResults != null) {
+              availableTracks = [
+                for (final track in _serverSearchResults!)
+                  if (!widget.currentTrackIds.contains(track['id'] as String))
+                    track,
+              ];
+            } else if (!isOnline && _searchQuery.isNotEmpty) {
               availableTracks = [
                 for (final track in availableTracks)
                   if (trackMatchesSearchQuery(track, _searchQuery)) track,
@@ -188,9 +205,7 @@ class _AddSetlistTracksDialogState
                       ),
                     ),
                   )
-                else if (!isOnline &&
-                    _searchQuery.isNotEmpty &&
-                    availableTracks.isEmpty)
+                else if (_searchQuery.isNotEmpty && availableTracks.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Center(child: Text(l10n.addSetlistTracksNoMatch)),
