@@ -59,7 +59,7 @@ void main() {
       await cacheService.writeBandTracks('b1', [
         {
           'id': 't1',
-          'title': 'Cached Song',
+          'title': 'Cached Track',
           'artist': 'Cached Artist',
           'durationSeconds': 225,
         },
@@ -71,7 +71,7 @@ void main() {
             'items': [
               {
                 'id': 't1',
-                'title': 'Cached Song',
+                'title': 'Cached Track',
                 'artist': 'Cached Artist',
                 'durationSeconds': 225,
               },
@@ -84,7 +84,7 @@ void main() {
       await tester.pumpWidget(wrap(apiClient, cacheService));
       await tester.pumpAndSettle();
 
-      expect(find.text('Cached Song'), findsOneWidget);
+      expect(find.text('Cached Track'), findsOneWidget);
       expect(find.text('Cached Artist'), findsOneWidget);
       expect(find.text('3:45'), findsOneWidget);
     },
@@ -198,7 +198,7 @@ void main() {
       await cacheService.writeBandTracks('b1', [
         {
           'id': 't1',
-          'title': 'Cached Song',
+          'title': 'Cached Track',
           'artist': 'Cached Artist',
           'durationSeconds': 225,
           'key': 'C',
@@ -211,7 +211,7 @@ void main() {
             'items': [
               {
                 'id': 't1',
-                'title': 'Cached Song',
+                'title': 'Cached Track',
                 'artist': 'Cached Artist',
                 'durationSeconds': 225,
                 'key': 'C',
@@ -237,7 +237,7 @@ void main() {
     await cacheService.writeBandTracks('b1', [
       {
         'id': 't1',
-        'title': 'Cached Song',
+        'title': 'Cached Track',
         'artist': 'Cached Artist',
         'durationSeconds': 225,
       },
@@ -249,7 +249,7 @@ void main() {
           'items': [
             {
               'id': 't1',
-              'title': 'Cached Song',
+              'title': 'Cached Track',
               'artist': 'Cached Artist',
               'durationSeconds': 225,
             },

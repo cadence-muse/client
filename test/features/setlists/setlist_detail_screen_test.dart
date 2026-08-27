@@ -126,14 +126,14 @@ void main() {
               {
                 'trackId': 't1',
                 'position': 0,
-                'title': 'Song One',
+                'title': 'Track One',
                 'artist': 'Artist One',
                 'durationSeconds': 225,
               },
               {
                 'trackId': 't2',
                 'position': 1,
-                'title': 'Song Two',
+                'title': 'Track Two',
                 'artist': 'Artist Two',
                 'durationSeconds': 200,
               },
@@ -157,8 +157,8 @@ void main() {
         find.text(tester.strings.setlistDetailTracksHeader(2)),
         findsOneWidget,
       );
-      expect(find.text('Song One'), findsOneWidget);
-      expect(find.text('Song Two'), findsOneWidget);
+      expect(find.text('Track One'), findsOneWidget);
+      expect(find.text('Track Two'), findsOneWidget);
       // Artist + duration are combined into one subtitle (trailing slot is
       // reserved for the edit-mode remove icon).
       expect(find.text('Artist One • 3:45'), findsOneWidget);
@@ -311,14 +311,14 @@ void main() {
               {
                 'trackId': 't1',
                 'position': 0,
-                'title': 'Song One',
+                'title': 'Track One',
                 'artist': 'Artist One',
                 'durationSeconds': 225,
               },
               {
                 'trackId': 't2',
                 'position': 1,
-                'title': 'Song Two',
+                'title': 'Track Two',
                 'artist': 'Artist Two',
                 'durationSeconds': 200,
               },
@@ -382,7 +382,7 @@ void main() {
                     {
                       'trackId': 't2',
                       'position': 0,
-                      'title': 'Song Two',
+                      'title': 'Track Two',
                       'artist': 'Artist Two',
                       'durationSeconds': 200,
                     },
@@ -391,14 +391,14 @@ void main() {
                     {
                       'trackId': 't1',
                       'position': 0,
-                      'title': 'Song One',
+                      'title': 'Track One',
                       'artist': 'Artist One',
                       'durationSeconds': 225,
                     },
                     {
                       'trackId': 't2',
                       'position': 1,
-                      'title': 'Song Two',
+                      'title': 'Track Two',
                       'artist': 'Artist Two',
                       'durationSeconds': 200,
                     },
@@ -421,8 +421,8 @@ void main() {
 
       expect(removedTrackId, 't1');
       expect(getSetlistCallCount, 2);
-      expect(find.text('Song One'), findsNothing);
-      expect(find.text('Song Two'), findsOneWidget);
+      expect(find.text('Track One'), findsNothing);
+      expect(find.text('Track Two'), findsOneWidget);
     },
   );
 
@@ -486,21 +486,21 @@ void main() {
               {
                 'trackId': 't1',
                 'position': 0,
-                'title': 'Song One',
+                'title': 'Track One',
                 'artist': 'Artist One',
                 'durationSeconds': 225,
               },
               {
                 'trackId': 't2',
                 'position': 1,
-                'title': 'Song Two',
+                'title': 'Track Two',
                 'artist': 'Artist Two',
                 'durationSeconds': 225,
               },
               {
                 'trackId': 't3',
                 'position': 2,
-                'title': 'Song Three',
+                'title': 'Track Three',
                 'artist': 'Artist Three',
                 'durationSeconds': 225,
               },
@@ -555,14 +555,14 @@ void main() {
               {
                 'trackId': 't1',
                 'position': 0,
-                'title': 'Song One',
+                'title': 'Track One',
                 'artist': 'Artist One',
                 'durationSeconds': 225,
               },
               {
                 'trackId': 't2',
                 'position': 1,
-                'title': 'Song Two',
+                'title': 'Track Two',
                 'artist': 'Artist Two',
                 'durationSeconds': 225,
               },
@@ -651,7 +651,7 @@ void main() {
           {
             'trackId': 't1',
             'position': 0,
-            'title': 'Song One',
+            'title': 'Track One',
             'artist': 'Artist One',
             'durationSeconds': 200,
           },
@@ -667,7 +667,7 @@ void main() {
               {
                 'trackId': 't1',
                 'position': 0,
-                'title': 'Song One',
+                'title': 'Track One',
                 'artist': 'Artist One',
                 'durationSeconds': 200,
               },
@@ -704,7 +704,7 @@ void main() {
               {
                 'trackId': 't1',
                 'position': 0,
-                'title': 'Song One',
+                'title': 'Track One',
                 'artist': 'Artist One',
                 'durationSeconds': 200,
               },
