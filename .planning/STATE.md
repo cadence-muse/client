@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-27)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 16 — Track Terminology Rename
+**Current focus:** Phase 17 — API Contract Sync
 
 ## Current Position
 
@@ -161,4 +161,4 @@ Resume file: .planning/phases/16-track-terminology-rename/16-CONTEXT.md
 
 ## Operator Next Steps
 
-- Plan Phase 16 with `/gsd-plan-phase 16`
+- Plan Phase 17 with `/gsd-plan-phase 17`

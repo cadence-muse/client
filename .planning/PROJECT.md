@@ -70,12 +70,12 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 - ✓ Invite-code copy button works offline (offline-gating regression fixed) (BAND-13) — v1.3 Phase 15
 - ✓ `02-VERIFICATION.md`'s 4 carried-over gaps re-verified against current code and re-stamped (QA-01) — v1.3 Phase 15
 - ✓ Setlist date input via native `showDatePicker`, with existing-date pre-population and out-of-range clamping into `[firstDate, lastDate]` (SETL-13) — v1.3 Phase 15
+- ✓ Full song→track rename: `lib/features/songs/` dir moved to `lib/features/tracks/`, `homeAddSongButton` ARB key renamed to `homeAddTrackButton`, all "song"-named test fixtures renamed — zero surviving "song" references in `lib/` or `test/` except the deferred `lib/api/publicapi.yml` Songs tag (RENAME-01) — v1.3 Phase 16
 
 ### Active
 
 - [ ] Adopt server-side search: `ListUserTracks`/`ListUserSetlists` GET+`SearchQuery`, band-track search via shared `$ref`
 - [ ] Adopt `minLength: 8` password validation (register + change-password)
-- [ ] Full song→track rename (UI strings, `lib/features/songs/` dir, `SongsScreen` class, ARB keys)
 - [ ] Metronome tool (audio + visual, homepage Tools section + track-prefilled entry, 4/4 only)
 
 ### Out of Scope
@@ -101,6 +101,8 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 **v1.1 schema catch-up (fe72e78, 2026-08-20):** client caught up to a server-side schema update — `POST /api/me/password`, `Band.membersCount`, member `id`/`role` (owner/member enum), `POST /api/band/{bandId}/rotate-invite-code`, `POST /api/band/{bandId}/transfer-ownership`; band/track/setlist mutation permissions loosened from owner-only to any-member (except delete-band, still owner-gated); `/api/track/list` and `/api/setlist/list` converted from GET to POST with a `searchQuery` request body; single-track setlist add/remove consolidated into the bulk `tracks` endpoints (`AddSetlistTracks`/`RemoveSetlistTracks`). App is unreleased, so no backward-compat shims were needed.
 
 **API gap this milestone:** `publicapi.yml`'s `ListBandTracks` request gained a client-defined `searchQuery` field (SETL-12) — the client sends it, but the backend does not yet implement server-side filtering; the picker degrades to offline substring filtering until backend support ships.
+
+**song→track rename scope (Phase 16):** client-code-only — `lib/api/publicapi.yml`'s `Songs` tag/operation names are untouched by design, deferred to Phase 17 (API Contract Sync) so the rename isn't touched twice.
 
 **Known non-blocking items carried into next milestone:** one manual accessibility check outstanding (offline-banner text under ≥200% font scaling, from v1.0 Phase 5); Nyquist `/gsd-validate-phase` never run this or the prior milestone (coverage TODO, not a compliance failure).
 
@@ -155,4 +157,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-27 after Phase 15*
+*Last updated: 2026-08-27 after Phase 16*
