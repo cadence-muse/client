@@ -86,21 +86,30 @@ Accent reserved for: Interactive element focus states, active tab indicators, pr
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
-| Empty state | Date field when no date set | ✅ covered | Field displays empty with placeholder text from label "Date"; tapping opens picker with `initialDate: today` |
-| Populated state | Date field with date set | ✅ covered | Field displays formatted date string (via `formatEventDate()` or formatted picker result); clear X icon visible in suffix position |
-| Focus/Interaction | Date field tap | ✅ covered | Field is `readOnly: true`; tap opens `showDatePicker(firstDate: now - 5 years, lastDate: now + 2 years, initialDate: existing date or today)` |
-| Error state | Invalid/out-of-range date | ✅ covered | Picker enforces range client-side via firstDate/lastDate parameters; no invalid date can be selected |
-| Offline behavior | Date picker availability | ✅ covered | Picker is a local Material dialog, works fully offline (no network required) |
-| Clear action | X suffix icon | ✅ covered | X button appears only after date is set; tapping clears `_dateController.text` to empty string, submits as `null` to API |
+| Empty state | Date field when no date set | ✅ resolved (explicit) | Field displays empty with placeholder text from label "Date"; tapping opens picker with `initialDate: today` |
+| Populated state | Date field with date set | ✅ resolved (explicit) | Field displays formatted date string (via `formatEventDate()` or formatted picker result); clear X icon visible in suffix position |
+| Focus/Interaction | Date field tap | ✅ resolved (explicit) | Field is `readOnly: true`; tap opens `showDatePicker(firstDate: now - 5 years, lastDate: now + 2 years, initialDate: existing date or today)` |
+| Error state | Invalid/out-of-range date | ✅ resolved (explicit) | Picker enforces range client-side via firstDate/lastDate parameters; no invalid date can be selected |
+| Offline behavior | Date picker availability | ✅ resolved (explicit) | Picker is a local Material dialog, works fully offline (no network required) |
+| Clear action | X suffix icon | ✅ resolved (explicit) | X button appears only after date is set; tapping clears `_dateController.text` to empty string, submits as `null` to API |
+| Loading state | Date field | ✅ dismissed — not applicable | Field is backed by setlist state already resident in memory when the screen renders; there is no async load for a single date value. |
+| Partial/incomplete data | Date field | ✅ dismissed — not applicable | The field holds one scalar date value — it is either empty or a complete date, with no partial representation possible. |
+| Overflow | Date field content | ✅ dismissed — not applicable | Content is a fixed-format `YYYY-MM-DD` string (10 characters); it cannot exceed the field's rendered width. |
+| Long text | Date field content | ✅ dismissed — not applicable | Same fixed-format date string as Overflow above — no variable-length text exists to truncate or wrap. |
 
 ### Invite Code Copy Button (BAND-13)
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
-| Online availability | Copy icon button | ✅ covered | Button always enabled; `isOnline` gate removed from this button only. Other band actions (rotate/regenerate/edit/delete/leave/remove) remain gated. |
-| Offline availability | Copy icon button | ✅ covered | Button works fully offline; clipboard copy is a local operation. Tooltip shows "Copy" in both online and offline states. |
-| Feedback | Copy action | ✅ covered | Tapping copy shows "Copied!" snackbar via `bandDetailCopiedSnackbar` localized string |
-| Accessibility | Icon button touch target | ✅ covered | Material IconButton minimum 48px touch target (Flutter default) |
+| Online availability | Copy icon button | ✅ resolved (explicit) | Button always enabled; `isOnline` gate removed from this button only. Other band actions (rotate/regenerate/edit/delete/leave/remove) remain gated. |
+| Offline availability | Copy icon button | ✅ resolved (explicit) | Button works fully offline; clipboard copy is a local operation. Tooltip shows "Copy" in both online and offline states. |
+| Feedback | Copy action | ✅ resolved (explicit) | Tapping copy shows "Copied!" snackbar via `bandDetailCopiedSnackbar` localized string |
+| Accessibility | Icon button touch target | ✅ resolved (explicit) | Material IconButton minimum 48px touch target (Flutter default) |
+| Empty state | Copy icon button | ✅ dismissed — not applicable | The button renders the same static `Icons.content_copy` glyph regardless of state — there is no data-driven empty variant. |
+| Loading state | Copy icon button | ✅ dismissed — not applicable | `Clipboard.setData` is a synchronous platform call; there is no async loading state for this action. |
+| Error state | Copy icon button | ✅ dismissed — not applicable | Clipboard writes have no user-observable failure path in Flutter; no error state is modeled for this action. |
+| Overflow | Tooltip / snackbar text | ✅ dismissed — not applicable | "Copy" and "Copied!" are fixed, short localized strings with no risk of exceeding their containers. |
+| Long text | Tooltip / snackbar text | ✅ dismissed — not applicable | Same fixed short strings as Overflow above — no long-text handling is needed. |
 
 ---
 
