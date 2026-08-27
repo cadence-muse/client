@@ -189,6 +189,9 @@ void main() {
 
   testWidgets('clearing the date field also sends an explicit null instead of '
       'omitting the key', (tester) async {
+    // Date field is readOnly (SETL-13, D-01) — clearing now happens via the
+    // clear (X) suffixIcon rather than enterText, which cannot type into a
+    // readOnly field.
     String? requestBody;
     final apiClient = buildApiClient((request) async {
       requestBody = request.body;
@@ -197,7 +200,8 @@ void main() {
 
     await tester.pumpWidget(wrap(apiClient));
     await openEditSetlistScreen(tester);
-    await tester.enterText(find.byType(TextFormField).at(2), '');
+    await tester.tap(find.byIcon(Icons.clear));
+    await tester.pump();
     await tester.tap(
       find.widgetWithText(FilledButton, tester.strings.commonSave),
     );
@@ -301,4 +305,92 @@ void main() {
     final onlineButton = tester.widget<FilledButton>(find.byType(FilledButton));
     expect(onlineButton.onPressed, isNotNull);
   });
+
+  testWidgets(
+    'confirming the picker with the existing date unchanged keeps the date '
+    "field showing the setlist's eventDate",
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditSetlistScreen(tester);
+      await tester.tap(find.byType(TextFormField).at(2));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      final dateField = tester.widget<TextFormField>(
+        find.byType(TextFormField).at(2),
+      );
+      expect(dateField.controller!.text, '2026-09-01');
+    },
+  );
+
+  testWidgets(
+    'a malformed persisted eventDate falls back to today as initialDate '
+    'without throwing',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          setlistOverride: const {
+            'id': 's1',
+            'name': 'Old Name',
+            'eventLocation': 'Old Venue',
+            'eventDate': 'not-a-date',
+          },
+        ),
+      );
+      await openEditSetlistScreen(tester);
+      await tester.tap(find.byType(TextFormField).at(2));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'with a pre-populated date, the clear icon empties the field and saving '
+    'sends eventDate: null',
+    (tester) async {
+      String? requestBody;
+      final apiClient = buildApiClient((request) async {
+        requestBody = request.body;
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openEditSetlistScreen(tester);
+
+      expect(find.byIcon(Icons.clear), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.clear));
+      await tester.pump();
+
+      final dateField = tester.widget<TextFormField>(
+        find.byType(TextFormField).at(2),
+      );
+      expect(dateField.controller!.text, '');
+
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonSave),
+      );
+      await tester.pumpAndSettle();
+
+      final decoded = jsonDecode(requestBody!) as Map<String, dynamic>;
+      expect(decoded.containsKey('eventDate'), isTrue);
+      expect(decoded['eventDate'], isNull);
+    },
+  );
 }

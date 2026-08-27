@@ -114,6 +114,33 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
     }
   }
 
+  Future<void> _showDatePickerDialog(BuildContext context) async {
+    final now = DateTime.now();
+    final firstDate = DateTime(now.year - 5, now.month, now.day);
+    final lastDate = DateTime(now.year + 2, now.month, now.day);
+    DateTime initialDate;
+    if (_dateController.text.isNotEmpty) {
+      try {
+        initialDate = DateTime.parse(_dateController.text);
+      } catch (_) {
+        initialDate = now;
+      }
+    } else {
+      initialDate = now;
+    }
+    final selected = await showDatePicker(
+      context: context,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDate: initialDate,
+    );
+    if (selected != null) {
+      setState(() {
+        _dateController.text = selected.toIso8601String().split('T')[0];
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isOnline = ref.watch(isOnlineProvider);
@@ -150,11 +177,18 @@ class _EditSetlistScreenState extends ConsumerState<EditSetlistScreen> {
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _dateController,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _submit(),
+                  readOnly: true,
+                  onTap: () => _showDatePickerDialog(context),
                   decoration: InputDecoration(
                     labelText: l10n.commonDateLabel,
                     border: const OutlineInputBorder(),
+                    suffixIcon: _dateController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () =>
+                                setState(() => _dateController.clear()),
+                          )
+                        : null,
                   ),
                 ),
                 if (_errorMessage != null) ...[
