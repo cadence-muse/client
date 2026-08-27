@@ -272,21 +272,26 @@ class PublicApi {
 
   /// Returns tracks across every band the current user belongs to
   /// (`UserTrackListItem` — id/title/artist/durationSeconds/bandId/bandName),
-  /// optionally narrowed to a single band via [bandIdFilter]. `GET`->`POST`
-  /// migration per the `fe72e78` schema update; `bandIdFilter` remains a
-  /// query parameter (`BandIdFilter` is still `in: query`). [searchQuery] is
-  /// accepted by the wire schema (`ListUserTracksRequestBody`) but not yet
-  /// driven by any UI in this phase — no search input exists yet (distinct
-  /// from Phase 10's `SETL-12`, a different endpoint's `searchQuery`).
+  /// optionally narrowed to a single band via [bandIdFilter] and/or filtered
+  /// by [searchQuery] (both `BandIdFilter`/`SearchQuery` query parameters —
+  /// `ListUserTracks` is a `get:` operation per `publicapi.yml`). Mirrors
+  /// [listBandTracks]'s exact query-parameter shape; [searchQuery] is sent
+  /// only when non-null and non-empty.
   Future<List<Map<String, dynamic>>> listUserTracks({
     String? bandIdFilter,
     String? searchQuery,
   }) async {
+    final effectiveSearchQuery = (searchQuery != null && searchQuery.isNotEmpty)
+        ? searchQuery
+        : null;
+    final queryParameters = <String, String>{
+      'bandId': ?bandIdFilter,
+      'searchQuery': ?effectiveSearchQuery,
+    };
     final response = await _client.send(
-      'POST',
+      'GET',
       '/api/track/list',
-      queryParameters: bandIdFilter == null ? null : {'bandId': bandIdFilter},
-      body: {'searchQuery': ?searchQuery},
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
     return (response!['items'] as List).cast<Map<String, dynamic>>();
   }
@@ -431,18 +436,25 @@ class PublicApi {
   /// Returns setlists across every band the current user belongs to
   /// (`UserSetlistListItem` — id/name/tracksCount/durationSeconds/bandId/
   /// bandName + optional eventDate), optionally narrowed to a single band
-  /// via [bandIdFilter]. Mirrors `listUserTracks` exactly (D-03, SETL-10),
-  /// including its `GET`->`POST` migration and optional [searchQuery] (per
-  /// the `fe72e78` schema update; `bandIdFilter` stays a query parameter).
+  /// via [bandIdFilter] and/or filtered by [searchQuery] (both
+  /// `BandIdFilter`/`SearchQuery` query parameters — `ListUserSetlists` is a
+  /// `get:` operation per `publicapi.yml`). Mirrors `listUserTracks` exactly
+  /// (D-03, SETL-10).
   Future<List<Map<String, dynamic>>> listUserSetlists({
     String? bandIdFilter,
     String? searchQuery,
   }) async {
+    final effectiveSearchQuery = (searchQuery != null && searchQuery.isNotEmpty)
+        ? searchQuery
+        : null;
+    final queryParameters = <String, String>{
+      'bandId': ?bandIdFilter,
+      'searchQuery': ?effectiveSearchQuery,
+    };
     final response = await _client.send(
-      'POST',
+      'GET',
       '/api/setlist/list',
-      queryParameters: bandIdFilter == null ? null : {'bandId': bandIdFilter},
-      body: {'searchQuery': ?searchQuery},
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
     );
     return (response!['items'] as List).cast<Map<String, dynamic>>();
   }

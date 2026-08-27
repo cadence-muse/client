@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../generated/app_localizations.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/bands_provider.dart';
+import '../../providers/connectivity_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/tracks_provider.dart';
 import '../../widgets/offline_no_cache_view.dart';
+import '../setlists/add_setlist_tracks_dialog.dart' show trackMatchesSearchQuery;
 import '../tracks/track_detail_screen.dart';
 import '../tracks/track_formatting.dart';
 
@@ -14,11 +19,63 @@ import '../tracks/track_formatting.dart';
 /// across every band the user belongs to, with a band-name badge per row and
 /// a filter dropdown to narrow to one band. See `03-UI-SPEC.md`
 /// "GlobalTracksScreen".
-class TracksScreen extends ConsumerWidget {
+class TracksScreen extends ConsumerStatefulWidget {
   const TracksScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TracksScreen> createState() => _TracksScreenState();
+}
+
+class _TracksScreenState extends ConsumerState<TracksScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  Timer? _debounceTimer;
+  List<Map<String, dynamic>>? _serverSearchResults;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  // Drives the offline substring filter immediately (zero-delay, pure local
+  // computation), and — only while online — arms a 300ms-debounced network
+  // request sent directly via publicApiProvider (bypassing
+  // userTracksListDataProvider/cacheServiceProvider entirely, mirroring
+  // AddSetlistTracksDialog's D-02/D-03/D-04 pattern), so the shared on-disk
+  // cache is never keyed by search variants. Unlike that dialog, the
+  // response here IS displayed: on success it replaces the shown list; on
+  // failure the previously-displayed list is left unchanged (no new error
+  // UI).
+  //
+  // Accepted simplification: `_serverSearchResults` is not proactively
+  // cleared when the band filter dropdown changes mid-search — it
+  // self-corrects on the next debounced fetch.
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+    _debounceTimer?.cancel();
+    if (!ref.read(isOnlineProvider)) return;
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      try {
+        final results = await ref
+            .read(publicApiProvider)
+            .listUserTracks(
+              bandIdFilter: ref.read(selectedBandIdFilterProvider),
+              searchQuery: _searchQuery,
+            );
+        if (!mounted) return;
+        setState(() => _serverSearchResults = results);
+      } catch (_) {
+        // Leave _serverSearchResults as-is — no new error UI, per the
+        // behavior spec.
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     // D-01: this tab screen is kept alive by RootScaffold's IndexedStack, so
     // build() only runs once per app session by default — re-selecting the
@@ -51,6 +108,17 @@ class TracksScreen extends ConsumerWidget {
           : Column(
               children: [
                 _buildFilterDropdown(context, ref, bands),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: l10n.addSetlistTracksSearchHint,
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: _buildTracksBody(context, ref, userTracksAsync),
                 ),
@@ -103,8 +171,22 @@ class TracksScreen extends ConsumerWidget {
     WidgetRef ref,
     AsyncValue<List<Map<String, dynamic>>> tracksAsync,
   ) {
+    final isOnline = ref.watch(isOnlineProvider);
     return tracksAsync.when(
-      data: (tracks) => _buildContent(context, ref, tracks),
+      data: (tracks) {
+        final List<Map<String, dynamic>> displayed;
+        if (isOnline && _serverSearchResults != null) {
+          displayed = _serverSearchResults!;
+        } else if (!isOnline && _searchQuery.isNotEmpty) {
+          displayed = [
+            for (final track in tracks)
+              if (trackMatchesSearchQuery(track, _searchQuery)) track,
+          ];
+        } else {
+          displayed = tracks;
+        }
+        return _buildContent(context, ref, displayed);
+      },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) {
         if (error is OfflineNoCacheException) {
@@ -123,6 +205,10 @@ class TracksScreen extends ConsumerWidget {
     WidgetRef ref,
     List<Map<String, dynamic>> tracks,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    if (tracks.isEmpty && _searchQuery.isNotEmpty) {
+      return Center(child: Text(l10n.commonNoSearchResults));
+    }
     if (tracks.isEmpty) {
       return _buildEmptyState(context, ref, showViewBandsButton: false);
     }

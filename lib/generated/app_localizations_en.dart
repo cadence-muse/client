@@ -198,6 +198,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonAddTracks => 'Add tracks';
 
   @override
+  String get commonNoSearchResults => 'No tracks found.';
+
+  @override
   String get commonAtLeast8Chars => 'At least 8 characters';
 
   @override
