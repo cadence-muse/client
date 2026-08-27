@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-27)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 17 — API Contract Sync
+**Current focus:** Phase 18 — Metronome Tool
 
 ## Current Position
 
@@ -118,6 +118,9 @@ Recent decisions affecting current work:
 - [Phase 13]: `memberCount`/`trackCount`/`slotCount` use full ICU plural forms (one/few/many/other) for correct Russian 1/2–4/5+ pluralization.
 - [Phase 13 code review]: `DurationTextInputFormatter`'s in-phase algorithmic rewrite broke backspace-to-empty clearing (stuck at "0:00") — caught and fixed same-session (CR-01, commit 10a9544); flagged as scope creep bundled into a string-extraction phase (WR-02) — keep behavioral changes in their own reviewed diff going forward.
 - [Phase 15]: `EditSetlistScreen`'s date-picker `initialDate` now clamps a persisted `eventDate` into `[firstDate, lastDate]` post-parse instead of trusting the parsed value directly — an out-of-range date previously threw `AssertionError` (Gap 1 / CR-01), fixed in gap-closure plan 15-03.
+- [Phase 17]: `listUserTracks`/`listUserSetlists` migrated POST+body → GET+`SearchQuery` query params, mirroring `listBandTracks`; cross-band Tracks/Setlists tabs gained real debounced (300ms), online-gated server search with offline substring fallback unchanged.
+- [Phase 17]: `AddSetlistTracksDialog`'s debounced online search response is now rendered (`_serverSearchResults` state), not discarded — same "capture into nullable state, consume in build()" pattern now used by all three debounced-search call sites.
+- [Phase 17 code review, CR-01 fixed]: `LoginScreen`'s error handling branched on `statusCode == 401` for `/api/login`, but the contract only ever returns `400` — dead code, masked by a test mocking an impossible response. Fixed to key off the `400` response's `invalid_input` code via `localizedMessage`'s `overrides`, scoped separately from `register()`'s own `already_exists` override so a signup-time `invalid_input` isn't mislabeled "Invalid credentials".
 
 ### Pending Todos
 
@@ -125,9 +128,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- v1.1: backend does not implement the `searchQuery` field on `ListBandTracks` — client extends `publicapi.yml` and sends it, but the setlist track picker degrades to offline substring filtering until backend support ships. Now tracked as API-01 in Phase 17.
+- v1.1: backend implementation status of the `searchQuery` field on `ListBandTracks` is unconfirmed. API-01 (Phase 17) shipped the client-side portion — the setlist track picker now renders whatever the server returns instead of discarding it — but whether the server actually filters by `searchQuery` was not verified this phase.
 - [Phase 15 review, non-blocking] `CreateSetlistScreen._showDatePickerDialog` always opens with `initialDate: now` instead of the currently-picked date (WR-01, create_setlist_screen.dart:95-104) — reopening the picker loses the prior selection. No test coverage.
 - [Phase 15 review, non-blocking] Both setlist screens' `_showDatePickerDialog` call `setState()` after `await showDatePicker(...)` without a `mounted` check (WR-02) — could throw "setState() called after dispose()" if the widget is torn down mid-dialog (e.g. 403 auto-logout).
+- [Phase 17 review, non-blocking] Debounced search in `tracks_screen.dart`/`setlists_screen.dart`/`add_setlist_tracks_dialog.dart` cancels the debounce timer but not the in-flight request — an out-of-order slow response can overwrite a fresher one (17-REVIEW.md WR-01).
+- [Phase 17 review, non-blocking] Setlists tab search field reuses `addSetlistTracksSearchHint` ("Search by title or artist"), but setlists only have a `name` field to match against (17-REVIEW.md WR-02).
+- [Phase 17 review, non-blocking] `LoginScreen._submit()` has no generic fallback for non-`ApiException` failures (raw network errors), unlike the sibling `add_setlist_tracks_dialog.dart` changed the same phase (17-REVIEW.md WR-03).
 
 ### Quick Tasks Completed
 
@@ -156,10 +162,10 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-27T14:31:43.746Z
+Last session: 2026-08-27T18:51:32.000Z
 Stopped at: Phase 17 complete, ready to plan Phase 18
-Resume file: /home/bulat.khafizov/projects/personal/cadence/client/.planning/phases/17-api-contract-sync/17-UI-SPEC.md
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 17 with `/gsd-plan-phase 17`
+- Plan Phase 18 with `/gsd-plan-phase 18`
