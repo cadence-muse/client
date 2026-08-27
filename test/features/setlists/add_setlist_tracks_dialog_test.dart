@@ -482,12 +482,23 @@ void main() {
   testWidgets(
     'while online, typing in the search field sends exactly one debounced '
     'GET request carrying the typed searchQuery after 300ms, and the '
-    'checklist still shows every available track unfiltered (D-05)',
+    "checklist renders the server's search response instead of the "
+    'unfiltered list (D-03)',
     (tester) async {
       final capturedRequests = <http.Request>[];
       final apiClient = buildApiClient((request) async {
         if (request.url.path == '/api/band/b1/track/list') {
           capturedRequests.add(request);
+          if (request.url.queryParameters.containsKey('searchQuery')) {
+            return http.Response(
+              jsonEncode({
+                'items': [
+                  {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+                ],
+              }),
+              200,
+            );
+          }
           return http.Response(
             jsonEncode({
               'items': [
@@ -511,12 +522,15 @@ void main() {
       expect(capturedRequests, hasLength(1));
 
       await tester.pump(const Duration(milliseconds: 250));
+      await tester.pumpAndSettle();
       expect(capturedRequests, hasLength(2));
       expect(
         capturedRequests.last.url.queryParameters['searchQuery'],
         'wonder',
       );
-      expect(find.byType(CheckboxListTile), findsNWidgets(2));
+      expect(find.byType(CheckboxListTile), findsNWidgets(1));
+      expect(find.text('Track One'), findsOneWidget);
+      expect(find.text('Track Two'), findsNothing);
     },
   );
 
