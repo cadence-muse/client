@@ -93,7 +93,12 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
 **Plans:** 2 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 16-01-PLAN.md — Merge lib/features/songs/ into lib/features/tracks/ (D-01/D-06); rename homeAddSongButton ARB key to homeAddTrackButton and sweep "Add Song" comments (D-02/D-03/D-06)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 16-02-PLAN.md — Rename "Song"-named test fixture data to "Track" equivalents across 7 test files (D-05); phase-wide closing audit for zero "song" references
 
 **UI hint**: yes
