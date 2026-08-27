@@ -1279,7 +1279,7 @@ void main() {
         await container.read(userSetlistsListDataProvider.future);
 
         expect(capturedBandIdFilters, contains('band-x'));
-        expect(capturedMethods, everyElement('POST'));
+        expect(capturedMethods, everyElement('GET'));
       },
     );
   });

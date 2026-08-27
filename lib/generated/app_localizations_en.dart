@@ -201,6 +201,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonNoSearchResults => 'No tracks found.';
 
   @override
+  String get commonNoSetlistSearchResults => 'No setlists found.';
+
+  @override
   String get commonAtLeast8Chars => 'At least 8 characters';
 
   @override

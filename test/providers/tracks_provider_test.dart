@@ -878,7 +878,7 @@ void main() {
       await container.read(userTracksListDataProvider.future);
 
       expect(capturedBandIdFilters, contains('band-x'));
-      expect(capturedMethods, everyElement('POST'));
+      expect(capturedMethods, everyElement('GET'));
     });
   });
 }
