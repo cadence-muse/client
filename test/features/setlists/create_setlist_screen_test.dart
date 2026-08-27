@@ -370,4 +370,92 @@ void main() {
       expect(onlineButton.onPressed, isNotNull);
     },
   );
+
+  testWidgets('tapping the date field opens the native date picker dialog', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient(defaultHandler);
+
+    await tester.pumpWidget(wrap(apiClient));
+    await openCreateSetlistScreen(tester);
+    await tester.tap(find.byType(TextFormField).at(2));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+  });
+
+  testWidgets(
+    'confirming the picker with today unchanged sets the date field to '
+    "today's ISO date",
+    (tester) async {
+      final apiClient = buildApiClient(defaultHandler);
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openCreateSetlistScreen(tester);
+      await tester.tap(find.byType(TextFormField).at(2));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      final dateField = tester.widget<TextFormField>(
+        find.byType(TextFormField).at(2),
+      );
+      expect(
+        dateField.controller!.text,
+        DateTime.now().toIso8601String().split('T')[0],
+      );
+    },
+  );
+
+  testWidgets(
+    'after a date is set, the clear icon empties the field and the request '
+    'sends no eventDate',
+    (tester) async {
+      String? requestBody;
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+        }
+        if (request.method == 'POST' &&
+            request.url.path == '/api/band/b1/setlist') {
+          requestBody = request.body;
+          return http.Response(jsonEncode({'id': 's1'}), 201);
+        }
+        return http.Response(
+          jsonEncode({
+            'id': 's1',
+            'name': 'My Setlist',
+            'durationSeconds': 0,
+            'tracks': <dynamic>[],
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await openCreateSetlistScreen(tester);
+      await tester.tap(find.byType(TextFormField).at(2));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.clear), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.clear));
+      await tester.pump();
+
+      final dateField = tester.widget<TextFormField>(
+        find.byType(TextFormField).at(2),
+      );
+      expect(dateField.controller!.text, '');
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'My Setlist');
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.commonCreate),
+      );
+      await tester.pumpAndSettle();
+
+      expect(requestBody, jsonEncode({'name': 'My Setlist'}));
+    },
+  );
 }

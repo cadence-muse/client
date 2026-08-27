@@ -92,6 +92,23 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
     }
   }
 
+  Future<void> _showDatePickerDialog(BuildContext context) async {
+    final now = DateTime.now();
+    final firstDate = DateTime(now.year - 5, now.month, now.day);
+    final lastDate = DateTime(now.year + 2, now.month, now.day);
+    final selected = await showDatePicker(
+      context: context,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDate: now,
+    );
+    if (selected != null) {
+      setState(() {
+        _dateController.text = selected.toIso8601String().split('T')[0];
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final tracksAsync = ref.watch(trackListDataProvider(widget.bandId));
@@ -129,10 +146,19 @@ class _CreateSetlistScreenState extends ConsumerState<CreateSetlistScreen> {
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _dateController,
+                  readOnly: true,
+                  onTap: () => _showDatePickerDialog(context),
                   decoration: InputDecoration(
                     labelText: l10n.commonDateLabel,
                     hintText: l10n.createSetlistDateHint,
                     border: const OutlineInputBorder(),
+                    suffixIcon: _dateController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () =>
+                                setState(() => _dateController.clear()),
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 24),
