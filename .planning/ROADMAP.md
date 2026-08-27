@@ -90,7 +90,12 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
   3. No ARB key or translation string contains "song" in English or Russian
   4. Full test suite passes with zero references to old song-named identifiers, and no stale generated (`.g.dart`) artifacts remain from the old names
 
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Merge lib/features/songs/ into lib/features/tracks/ (D-01/D-06); rename homeAddSongButton ARB key to homeAddTrackButton and sweep "Add Song" comments (D-02/D-03/D-06)
+- [ ] 16-02-PLAN.md — Rename "Song"-named test fixture data to "Track" equivalents across 7 test files (D-05); phase-wide closing audit for zero "song" references
+
 **UI hint**: yes
 
 ### Phase 17: API Contract Sync
@@ -146,6 +151,6 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 13. String Extraction & Screen Localization | v1.2 | 13/13 | Complete | 2026-08-26 |
 | 14. API Error Localization | v1.2 | 4/4 | Complete | 2026-08-26 |
 | 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | Complete    | 2026-08-27 |
-| 16. Track Terminology Rename | v1.3 | 0/TBD | Not started | - |
+| 16. Track Terminology Rename | v1.3 | 0/2 | Not started | - |
 | 17. API Contract Sync | v1.3 | 0/TBD | Not started | - |
 | 18. Metronome Tool | v1.3 | 0/TBD | Not started | - |
