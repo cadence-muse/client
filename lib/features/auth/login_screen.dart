@@ -133,9 +133,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       labelText: l10n.loginPasswordLabel,
                       border: const OutlineInputBorder(),
                     ),
-                    validator: (value) => (value == null || value.length < 8)
-                        ? l10n.commonAtLeast8Chars
-                        : null,
+                    validator: (value) {
+                      if (isSignUp && (value == null || value.length < 8)) {
+                        return l10n.commonAtLeast8Chars;
+                      }
+                      if (value == null || value.isEmpty) {
+                        return l10n.commonFieldRequired;
+                      }
+                      return null;
+                    },
                   ),
                   if (_errorMessage != null) ...[
                     const SizedBox(height: 16),
