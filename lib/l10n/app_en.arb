@@ -191,7 +191,7 @@
   },
   "homeQuickActionsHeader": "Quick Actions",
   "homeAddBandButton": "Add Band",
-  "homeAddSongButton": "Add Song",
+  "homeAddTrackButton": "Add Track",
   "homeAddSetlistButton": "Add Setlist",
   "homeErrorTitle": "Couldn't load home",
   "bandPickerErrorMessage": "Could not load bands. Please try again.",

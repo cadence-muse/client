@@ -191,7 +191,7 @@
   },
   "homeQuickActionsHeader": "Быстрые действия",
   "homeAddBandButton": "Добавить группу",
-  "homeAddSongButton": "Добавить песню",
+  "homeAddTrackButton": "Добавить трек",
   "homeAddSetlistButton": "Добавить сетлист",
   "homeErrorTitle": "Не удалось загрузить главную страницу",
   "bandPickerErrorMessage": "Не удалось загрузить группы. Попробуйте ещё раз.",

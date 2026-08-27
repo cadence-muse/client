@@ -31,7 +31,7 @@ void main() {
     'lib/features/home/home_screen.dart',
     'lib/features/bands/bands_screen.dart',
     'lib/features/bands/band_detail_screen.dart',
-    'lib/features/songs/tracks_screen.dart',
+    'lib/features/tracks/tracks_screen.dart',
     'lib/features/tracks/track_list_screen.dart',
     'lib/features/tracks/track_detail_screen.dart',
     'lib/features/setlists/setlists_screen.dart',

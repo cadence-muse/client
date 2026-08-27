@@ -800,11 +800,11 @@ abstract class AppLocalizations {
   /// **'Add Band'**
   String get homeAddBandButton;
 
-  /// No description provided for @homeAddSongButton.
+  /// No description provided for @homeAddTrackButton.
   ///
   /// In en, this message translates to:
-  /// **'Add Song'**
-  String get homeAddSongButton;
+  /// **'Add Track'**
+  String get homeAddTrackButton;
 
   /// No description provided for @homeAddSetlistButton.
   ///

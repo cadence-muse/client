@@ -25,7 +25,7 @@ import '../../test_strings.dart';
 void main() {
   // Routes `/api/band/list` to [bands] before delegating to [handler] for
   // everything else (`/api/homepage`, etc.) — since Task 1 wires "Add
-  // Song"/"Add Setlist" to a band-picker backed by bandsListDataProvider,
+  // Track"/"Add Setlist" to a band-picker backed by bandsListDataProvider,
   // any test that opens the picker needs the mock handler to answer that
   // path too, mirroring bands_screen_test.dart's per-path routing.
   ApiClient buildApiClient(
@@ -76,7 +76,7 @@ void main() {
   }
 
   testWidgets(
-    'bandsCount 0 renders Quick Actions with Add Song/Add Setlist disabled '
+    'bandsCount 0 renders Quick Actions with Add Track/Add Setlist disabled '
     'and Add Band enabled (D-02/D-09/D-10)',
     (tester) async {
       final cacheService = CacheService.inMemory();
@@ -105,10 +105,10 @@ void main() {
       );
       expect(addBand.onPressed, isNotNull);
 
-      final addSong = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, tester.strings.homeAddSongButton),
+      final addTrack = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, tester.strings.homeAddTrackButton),
       );
-      expect(addSong.onPressed, isNull);
+      expect(addTrack.onPressed, isNull);
 
       final addSetlist = tester.widget<ElevatedButton>(
         find.widgetWithText(
@@ -145,7 +145,7 @@ void main() {
 
       for (final label in [
         tester.strings.homeAddBandButton,
-        tester.strings.homeAddSongButton,
+        tester.strings.homeAddTrackButton,
         tester.strings.homeAddSetlistButton,
       ]) {
         final button = tester.widget<ElevatedButton>(
@@ -339,7 +339,7 @@ void main() {
   });
 
   testWidgets(
-    'tapping "Add Song" with bandsCount > 0 opens a bottom sheet listing '
+    'tapping "Add Track" with bandsCount > 0 opens a bottom sheet listing '
     'each seeded band by name, and selecting one navigates to '
     'CreateTrackScreen carrying that band\'s id (HOME-02)',
     (tester) async {
@@ -362,7 +362,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.widgetWithText(ElevatedButton, tester.strings.homeAddSongButton),
+        find.widgetWithText(ElevatedButton, tester.strings.homeAddTrackButton),
       );
       await tester.pumpAndSettle();
 
@@ -443,7 +443,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(
-      find.widgetWithText(ElevatedButton, tester.strings.homeAddSongButton),
+      find.widgetWithText(ElevatedButton, tester.strings.homeAddTrackButton),
     );
     await tester.pumpAndSettle();
 

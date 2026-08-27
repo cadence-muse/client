@@ -6,7 +6,7 @@ import '../../providers/bands_provider.dart';
 import '../setlists/create_setlist_screen.dart';
 import '../tracks/create_track_screen.dart';
 
-/// Shows the shared band-picker bottom sheet for the "Add Song" and
+/// Shows the shared band-picker bottom sheet for the "Add Track" and
 /// "Add Setlist" Homepage quick actions (HOME-02, D-05/D-06/D-07/D-08).
 ///
 /// Lists every band from [bandsListDataProvider] as a `ListTile` showing the

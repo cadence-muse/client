@@ -63,7 +63,7 @@ class HomeScreen extends ConsumerWidget {
 
   // Phase 9 (D-01/D-02/D-03/D-09/D-10): one unified layout for both the
   // zero-bands and populated states — a welcome card, a "Quick Actions"
-  // header, and a 3-button row where "Add Song"/"Add Setlist" are disabled
+  // header, and a 3-button row where "Add Track"/"Add Setlist" are disabled
   // until bandsCount > 0. Replaces the old bandsCount==0-only empty-state
   // block and the old populated-state band-count display text entirely.
   Widget _buildContent(
@@ -125,7 +125,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             // D-10: all 3 buttons always render; only enabled/disabled
-            // state of Add Song/Add Setlist changes with bandsCount.
+            // state of Add Track/Add Setlist changes with bandsCount.
             Wrap(
               spacing: 16,
               runSpacing: 8,
@@ -142,7 +142,7 @@ class HomeScreen extends ConsumerWidget {
                       ? () => showBandPickerSheet(context, ref, forTrack: true)
                       : null,
                   icon: const Icon(Icons.music_note),
-                  label: Text(l10n.homeAddSongButton),
+                  label: Text(l10n.homeAddTrackButton),
                 ),
                 ElevatedButton.icon(
                   onPressed: bandsCount > 0

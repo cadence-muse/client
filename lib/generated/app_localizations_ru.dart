@@ -421,7 +421,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeAddBandButton => 'Добавить группу';
 
   @override
-  String get homeAddSongButton => 'Добавить песню';
+  String get homeAddTrackButton => 'Добавить трек';
 
   @override
   String get homeAddSetlistButton => 'Добавить сетлист';

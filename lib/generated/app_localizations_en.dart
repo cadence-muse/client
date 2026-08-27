@@ -413,7 +413,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAddBandButton => 'Add Band';
 
   @override
-  String get homeAddSongButton => 'Add Song';
+  String get homeAddTrackButton => 'Add Track';
 
   @override
   String get homeAddSetlistButton => 'Add Setlist';
