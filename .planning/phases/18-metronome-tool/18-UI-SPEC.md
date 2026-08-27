@@ -52,23 +52,21 @@ Declared values (all multiples of 4):
 
 ## Typography
 
+**Scale:** 4 sizes, 2 weights (700 for emphasis, 400 for body/secondary)
+
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
-| Display Large | 57px | 700 (bold) | 1.2 | Not used in metronome this phase |
 | Headline Large | 32px | 700 (bold) | 1.2 | **BPM number in dial center** (e.g., "120") |
-| Headline Medium | 28px | 600 | 1.2 | Page titles (e.g., "Metronome" screen title in AppBar) |
-| Title Medium | 16px | 600 | 1.5 | Section headers ("Tools" on Homepage) |
-| Body Large | 16px | 400 | 1.5 | Body copy, labels for quick-adjust buttons |
-| Body Medium | 14px | 400 | 1.5 | Secondary text, unit label ("BPM" beside/below number) |
-| Label Large | 14px | 500 | 1.25 | Button labels, CTA text |
-| Label Small | 12px | 500 | 1.25 | Tooltip text, micro copy |
+| Title Medium | 16px | 400 | 1.5 | AppBar title, section headers ("Tools" on Homepage) |
+| Body Medium | 14px | 400 | 1.5 | Body labels, unit label ("BPM" beside/below number), button labels |
+| Label Small | 12px | 400 | 1.25 | Tooltip text, micro copy |
 
 **Metronome-Specific Typography:**
-- **BPM number:** headlineLarge, 700 weight, displayed in dial center
-- **BPM unit ("BPM"):** bodyMedium, 400 weight, positioned below or beside the number in smaller size
-- **Section headers ("Tools"):** titleMedium, 600 weight
-- **Quick-adjust button tooltips:** labelSmall (e.g., "–5 BPM")
-- **AppBar title:** headlineMedium
+- **BPM number:** Headline Large, 700 weight, displayed in dial center
+- **BPM unit ("BPM"):** Body Medium, 400 weight, positioned below or beside the number in smaller size
+- **Section headers ("Tools"):** Title Medium, 400 weight
+- **Quick-adjust button tooltips:** Label Small, 400 weight (e.g., "–5 BPM")
+- **AppBar title ("Metronome"):** Title Medium, 400 weight
 
 ---
 
