@@ -211,6 +211,63 @@ void main() {
   );
 
   testWidgets(
+    'tapping Copy while offline still copies the trimmed invite code and '
+    'shows the Copied! snackbar, with no isOnline gate on the button (D-05)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      await cacheService.writeBandDetail(
+        'b1',
+        band(inviteCode: '  abc-123-def  '),
+      );
+
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode(band(inviteCode: '  abc-123-def  ')),
+          200,
+        );
+      });
+
+      final copiedTexts = <String>[];
+      TestWidgetsFlutterBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+            if (call.method == 'Clipboard.setData') {
+              final args = call.arguments as Map<dynamic, dynamic>;
+              copiedTexts.add(args['text'] as String);
+            }
+            return null;
+          });
+      addTearDown(() {
+        TestWidgetsFlutterBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null);
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService, isOnline: false));
+      await tester.pumpAndSettle();
+
+      final copyButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.content_copy),
+      );
+      expect(copyButton.onPressed, isNotNull);
+
+      final copyTooltip = tester.widget<Tooltip>(
+        find.ancestor(
+          of: find.widgetWithIcon(IconButton, Icons.content_copy),
+          matching: find.byType(Tooltip),
+        ),
+      );
+      expect(copyTooltip.message, tester.strings.bandDetailCopyTooltip);
+
+      await tester.tap(find.widgetWithIcon(IconButton, Icons.content_copy));
+      await tester.pump();
+
+      expect(copiedTexts, ['abc-123-def']);
+      expect(find.text(tester.strings.bandDetailCopiedSnackbar), findsOneWidget);
+
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
     'online build() fetches fresh data and renders it, with no spinner '
     'once settled',
     (tester) async {

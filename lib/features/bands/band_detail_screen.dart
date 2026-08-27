@@ -253,14 +253,10 @@ class BandDetailScreen extends ConsumerWidget {
                 ),
               ),
               Tooltip(
-                message: isOnline
-                    ? l10n.bandDetailCopyTooltip
-                    : l10n.commonRequiresConnection,
+                message: l10n.bandDetailCopyTooltip,
                 child: IconButton(
                   icon: const Icon(Icons.content_copy),
-                  onPressed: isOnline
-                      ? () => _copyInviteCode(context, inviteCode)
-                      : null,
+                  onPressed: () => _copyInviteCode(context, inviteCode),
                 ),
               ),
               if (isOwner == true)
