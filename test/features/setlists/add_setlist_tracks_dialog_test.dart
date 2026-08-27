@@ -535,6 +535,88 @@ void main() {
   );
 
   testWidgets(
+    'while online, currentTrackIds exclusion also applies to server search '
+    'results, not just the initial load',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          if (request.url.queryParameters.containsKey('searchQuery')) {
+            return http.Response(
+              jsonEncode({
+                'items': [
+                  {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+                  {'id': 't2', 'title': 'Track Two', 'artist': 'Artist Two'},
+                ],
+              }),
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, currentTrackIds: {'t1'}, isOnline: true),
+      );
+      await openDialog(tester);
+
+      await tester.enterText(find.byType(TextField), 'track');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CheckboxListTile), findsNWidgets(1));
+      expect(find.text('Track One'), findsNothing);
+      expect(find.text('Track Two'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'while online, a server search that returns zero results shows the '
+    'same "no match" copy as the offline zero-match case',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/band/b1/track/list') {
+          if (request.url.queryParameters.containsKey('searchQuery')) {
+            return http.Response(jsonEncode({'items': <dynamic>[]}), 200);
+          }
+          return http.Response(
+            jsonEncode({
+              'items': [
+                {'id': 't1', 'title': 'Track One', 'artist': 'Artist One'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 204);
+      });
+
+      await tester.pumpWidget(
+        wrap(apiClient, currentTrackIds: {}, isOnline: true),
+      );
+      await openDialog(tester);
+
+      await tester.enterText(find.byType(TextField), 'nomatch');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(find.text(tester.strings.addSetlistTracksNoMatch), findsOneWidget);
+      expect(
+        find.text(tester.strings.addSetlistTracksNoneAvailable),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
     'offline: typing a search query immediately narrows the checklist to '
     'title/artist matches, with no debounce delay',
     (tester) async {
