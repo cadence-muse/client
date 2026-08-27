@@ -6,15 +6,15 @@ current_phase: 15
 current_phase_name: Carried-Over Fixes & Setlist Date Picker
 status: executing
 stopped_at: Phase 15 UI-SPEC approved
-last_updated: "2026-08-27T07:54:13.623Z"
+last_updated: "2026-08-27T12:48:05.604Z"
 last_activity: 2026-08-27
-last_activity_desc: Phase 15 execution started
-state_head: 5b20070bdb8d872c2a1af809e04091e4195cf048
+last_activity_desc: Phase 15 execution resumed (wave continue)
+state_head: 1f0c05c898432f45cd2e3c58697e62e776f91d34
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 2
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 2
   percent: 0
 ---
 
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 Phase: 15 (Carried-Over Fixes & Setlist Date Picker) — EXECUTING
 Plan: 1 of 2
 Status: Executing Phase 15
-Last activity: 2026-08-27 — Phase 15 execution started
+Last activity: 2026-08-27 — Phase 15 execution resumed (wave continue)
 
 Progress: [░░░░░░░░░░] 0%
 

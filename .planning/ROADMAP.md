@@ -70,11 +70,11 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
   2. `02-VERIFICATION.md`'s four previously-flagged gaps (Hive deep-convert, mutation error handling, band-rename list propagation, background-refresh version guard) are re-checked against current code and re-stamped resolved with evidence
   3. User creating or editing a setlist taps the date field and gets the platform's native `showDatePicker` instead of typing a raw date string
 
-**Plans:** 2/3 plans executed (gap closure pending)
+**Plans:** 3/3 plans executed (gap closure pending)
 
 - [x] 15-01-PLAN.md — Setlist date field uses native showDatePicker instead of raw text entry (SETL-13)
 - [x] 15-02-PLAN.md — Invite-code copy works offline (BAND-13) + 02-VERIFICATION.md gaps re-verified and re-stamped resolved (QA-01)
-- [ ] 15-03-PLAN.md — Gap closure: clamp EditSetlistScreen's initialDate into [firstDate, lastDate] to fix AssertionError crash on out-of-range persisted eventDate (SETL-13)
+- [x] 15-03-PLAN.md — Gap closure: clamp EditSetlistScreen's initialDate into [firstDate, lastDate] to fix AssertionError crash on out-of-range persisted eventDate (SETL-13)
 
 **UI hint**: yes
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 12. Locale + i18n Infrastructure | v1.2 | 1/1 | Complete | 2026-08-25 |
 | 13. String Extraction & Screen Localization | v1.2 | 13/13 | Complete | 2026-08-26 |
 | 14. API Error Localization | v1.2 | 4/4 | Complete | 2026-08-26 |
-| 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 2/2 | In Progress|  |
+| 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | In Progress|  |
 | 16. Track Terminology Rename | v1.3 | 0/TBD | Not started | - |
 | 17. API Contract Sync | v1.3 | 0/TBD | Not started | - |
 | 18. Metronome Tool | v1.3 | 0/TBD | Not started | - |
