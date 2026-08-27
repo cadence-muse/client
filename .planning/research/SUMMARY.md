@@ -1,146 +1,135 @@
-# Project Research Summary
+# Project Research Summary: Cadence v1.3 Quality of Life
 
-**Project:** Cadence (Flutter mobile app for band repertoire management)
-**Domain:** Flutter app i18n (EN/RU) + specialized numeric text input (mm:ss duration)
-**Researched:** 2026-08-25
+**Project:** Cadence Flutter Mobile App  
+**Domain:** Mobile music practice tool (metronome feature)  
+**Researched:** 2026-08-27  
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This is a brownfield localization + input-formatting milestone on a mature, well-tested Flutter app (~24,800 LOC, 401 passing tests, zero i18n today). Two independent features: (1) full EN/RU UI localization with a live, no-restart language switch persisted locally, and known API error codes mapped to localized text with a raw-text fallback; (2) a client-side mm:ss duration input/display for tracks, with the `durationSeconds` int API field completely unchanged.
+The metronome feature for Cadence v1.3 is a purely client-side, session-scoped tool with zero backend dependencies and zero blocking dependencies on other v1.3 items (WR-01 fix, API sync, song→track rename, date picker). The critical technical decision is **audio timing precision**: Timer.periodic alone drifts 100–1000ms and is unsuitable for a musical tool. The recommended approach is **flutter_gapless_loop** with its built-in MetronomePlayer (sample-accurate on native audio engines: AVAudioEngine on iOS, AudioTrack on Android), wrapped in Riverpod providers following existing state-management patterns.
 
-The recommended approach reuses established patterns rather than introducing new architecture: a `LocaleController` Riverpod provider that mirrors the existing `ThemeController` (ValueNotifier-based settings toggle, already wired into the Profile screen) provides the locale-switch mechanism, Flutter's built-in `gen-l10n` codegen (triggered by `generate: true` in `pubspec.yaml`, requiring only the official `intl` + `flutter_localizations` packages — zero third-party i18n dependency) provides type-safe string lookup, and a small custom `TextInputFormatter` (no external package) handles mm:ss input parsing without touching the duration display extension that already exists.
-
-The main risk is scale, not novelty: ~20+ screens/dialogs carry hardcoded English strings, and the existing 401-test suite widely asserts against those literal English strings — both research and pitfalls agree this string-extraction sweep plus test-string centralization is the highest-effort, highest-regression-risk part of the milestone, not the mm:ss formatter (which is a small, self-contained utility). Locale-change propagation to already-built (`IndexedStack`-kept-alive) tabs is the other cross-cutting risk that needs an explicit pattern established early rather than discovered late.
+The feature presents three categories of risk: (1) audio timing validation under real load (requires device testing), (2) battery drain from wakelock mismanagement (requires lifecycle-aware acquire/release), and (3) post-rename artifact staleness (pre/post-build audits required). The suggested build order places metronome as a build-last feature due to zero dependencies, allowing it to stabilize other items first.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Zero third-party i18n dependency: Flutter's official `intl` package plus SDK-bundled `flutter_localizations`, driven by ARB (JSON) translation files and the built-in `gen-l10n` codegen (`generate: true` in `pubspec.yaml`). Locale state and duration formatting reuse the app's existing Riverpod + Hive stack — no new state-management or persistence library.
+Flutter_gapless_loop is the recommended audio engine for the metronome. It includes a built-in MetronomePlayer with sample-accurate timing, native low-latency support (2ms I/O buffer on iOS, 48kHz sample rate on Android), configurable time signatures (4/4 included), and a beat stream for UI synchronization. This eliminates Timer.periodic drift, requires no additional audio-player dependency, and is purpose-built for music production apps. State management leverages existing Riverpod patterns (2.6.1, already in codebase).
 
 **Core technologies:**
-- `intl` (0.19.0+): message translation/plural/locale support — official Dart package, works with Riverpod, supports plain ARB files with no extra codegen tool
-- `flutter_localizations` (Flutter SDK): Material/Cupertino widget localization — required for `MaterialApp.locale` switching
-- `riverpod` (existing, 2.6.1): new `LocaleController` provider mirrors the existing `ThemeController` pattern exactly — live switch, no restart
-- `hive` (existing, 2.2.3): persists the selected locale locally, alongside theme mode — no API/account sync (matches the "local device only" scope decision)
-- Custom `TextInputFormatter` (no dependency): 15–20 line mm:ss formatter + parser; a masking-library dependency isn't justified for this scope
+- **flutter_gapless_loop 0.0.12+**: Sample-accurate metronome with beat stream for UI sync — no Timer.periodic drift, native audio engine support, designed for music production
+- **Riverpod 2.6.1 (@riverpod Notifier, not AsyncNotifier)**: State management for tempo, isPlaying, currentBeat — session-scoped, zero persistence needed
+- **audioplayers**: Audio asset playback for click/accent sounds — standard cross-platform choice, graceful silent fallback if unavailable
+- **Dart 3.12.2+**: Already required; no version bump
+- **Flutter SDK (stable)**: Requires Flutter 3.0+; all modern versions supported
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Language switcher (EN/RU) in Profile settings, live-switch, no restart
-- All UI strings — including error messages, validation feedback, dialogs — localized EN/RU
-- Language preference persisted locally, restored on restart, no API round-trip
-- Track duration entered and displayed as mm:ss everywhere (create/edit forms, lists, detail views) — `durationSeconds` API contract unchanged
-- Known API error codes (e.g. `already_exists`, `unauthorized`) mapped to localized messages; unmapped codes fall back to raw server text
+- Play / Pause control — essential interaction; two-state toggle
+- Audio click/tick sound — core function; ~16ms tolerance required
+- Visual beat pulse — sync with audio; animated indicator on each beat
+- Tempo display (BPM) — show current state; update in real-time
+- Tempo selector (circular dial) — primary UI; one-handed use during practice
+- Quick-adjust buttons (±1, ±5 BPM) — fine-tuning without dial hunting
+- Default tempo (120 BPM) — standard practice tempo
+- 4/4 time signature with beat-1 accent — musical context; two distinct sounds
+- Two entry points — Tools section (default 120 BPM) + track detail (prefilled with track tempo)
 
-**Should have (competitive, not blocking):**
-- mm:ss input placeholder/hint text ("2:30")
-- Auto-formatting separator insertion as the user types (e.g. "230" → "2:30")
-
-**Defer (explicitly out of scope, confirmed against user's own scoping answers):**
-- Server-side language preference sync (would require a new `publicapi.yml` field — against the project's "no inventing API fields" constraint)
-- Offline language-pack downloads (strings ship baked into the binary; no network-dependent localization)
-- Device-locale auto-detection on first launch (English default is intentional, per user's explicit answer)
-- Russian plural-form grammar (1/2–4/5+ track counts) — real risk if RU strings use counts, but treated as a P2 nice-to-have unless requirements demand it
-- Date/time localization (no dates surface in current UI)
-- HH:mm:ss duration format (no >1hr tracks in current data model)
+**Should have (competitive differentiators, defer to v2+):**
+- Tap tempo — intuitive; medium complexity; deferred
+- Background audio — keep metronome active when app backgrounded; requires iOS/Android lifecycle hooks; deferred
+- Vibration feedback — deaf musicians or high-volume venues; medium complexity; deferred
+- Custom time signatures (3/4, 6/8, etc.) — explicitly out of scope for v1; defer with "4/4 only" documented constraint
 
 ### Architecture Approach
 
-`LocaleController` (Riverpod, codegen'd) is a straight structural copy of the existing `ThemeController`: it holds `Locale` state, exposes `setLocale()`, and persists to local storage. `CadenceApp`'s `MaterialApp` watches it via `ref.watch(localeControllerProvider)` and feeds `locale`/`localizationsDelegates`/`supportedLocales` — the same wiring pattern already used for `themeMode`. The Profile screen (where the theme toggle already lives — architecture research calls this "SettingsScreen" but the codebase's actual location is `lib/features/profile/profile_screen.dart`) gains a Language section using the same list-tile pattern as the theme toggle. Duration conversion is a single boundary: a `TextInputFormatter` constrains keystrokes to mm:ss shape in the field, and one parse function converts "3:45" → 225 only at submit time, so `durationSeconds: int` on the wire never changes. Error-code localization is a small provider that watches the locale and maps known `ApiException.code` values to localized strings, falling back to the raw server `message` when a code isn't in the map.
+The metronome integrates as a self-contained feature with zero architectural changes to existing code. It follows the established Riverpod + lib/features/ pattern: MetronomeScreen (lib/features/metronome/) watches metronomeStateProvider, which supplies tempo/isPlaying/currentBeat state; a metronomeTimerProvider wraps a reactive Stream that fires on each beat; a metronomeServiceProvider encapsulates audio playback. Two entry points (MaterialPageRoute.push() from home_screen.dart and track_detail_screen.dart) pass optional tempo parameter without named routes. No backend calls, no caching, no API extensions required. Build-last ordering is safe—zero blocking dependencies on WR-01, API sync, rename, or date picker.
 
 **Major components:**
-1. `LocaleController` (new, `lib/providers/locale_provider.dart`) — Riverpod locale state + Hive persistence, mirrors `ThemeController`
-2. ARB files (`lib/l10n/app_en.arb`, `app_ru.arb`) + `l10n.yaml` — string source of truth, feeds Flutter's built-in `gen-l10n` codegen
-3. `DurationFormatter`/`parseMMSStoSeconds` (new, in or near `lib/features/tracks/track_formatting.dart`) — mm:ss input formatting and seconds conversion, reusing the existing `asMinutesSeconds` display extension unchanged
-4. Error-code-to-localized-string mapping provider — watches locale, wraps `ApiException` handling in existing catch blocks
+1. **MetronomeScreen** (lib/features/metronome/metronome_screen.dart) — UI layer; ConsumerStatefulWidget watching state provider; renders tempo display, beat indicator, adjustment buttons, play/pause FAB
+2. **metronomeStateProvider** (lib/providers/metronome_provider.dart) — Riverpod @riverpod Notifier; state shape {tempo: int, isPlaying: bool, currentBeat: int}; no AsyncNotifier (zero async/persistence)
+3. **metronomeTimerProvider** — Reactive Stream that fires once per beat, watches isPlaying and tempo, auto-recreates interval when state changes
+4. **MetronomeService** (lib/services/metronome_service.dart) — Audio wrapper; playTick() / playAccent() methods; silent fallback if audio unavailable
 
 ### Critical Pitfalls
 
-1. **~279 test assertions hardcode English strings** — every `find.text('...')` in the 401-test suite is a landmine; tests will silently pass on wrong content or break in bulk the moment strings move to ARB lookups. Catalog and centralize these into a test-strings utility before writing any i18n screen code, not after.
-2. **Locale change doesn't propagate to already-built tabs** — the app's `IndexedStack`-based bottom nav keeps all 5 tabs mounted; a screen that doesn't explicitly `ref.watch(localeControllerProvider)` won't rebuild when the user switches language on another tab. Establish a "every localized screen watches locale" rule from the first plan, not discovered mid-milestone.
-3. **mm:ss parser must reject malformed input strictly** — "5:60", "-5:30", "5:", empty string, and multi-colon input must all be rejected, not silently coerced; validate each component (minutes ≥0, 0 ≤ seconds ≤ 59) before converting to `durationSeconds`.
-4. **Russian text overflows English-sized layouts** — badges, chips, and fixed-width cells sized for English will clip Russian (typically ~20-30% longer). Anything with a fixed `SizedBox` width around text needs to flex instead; test with real RU strings, not placeholder Latin text.
-5. **Two existing duration-format conventions must converge before adding input** — `track_formatting.dart` and `setlist_formatting.dart` reportedly format duration differently ("mm:ss" vs a words-based "42m 35s"); pick one canonical mm:ss format and apply it everywhere before wiring the new input, or the input and display will visibly disagree.
-6. **Cache must store raw data, not locale-rendered strings** — the Hive cache stores API responses; if any code path caches a pre-formatted localized string instead of the raw value, switching language won't update what's shown from cache until the next online fetch. Render localized text at the provider/widget layer, never at the cache-write layer.
+1. **Timer.periodic Drift** — Timer.periodic does not guarantee callback intervals; ±10–20ms variance compounds rapidly (2–4% drift at 120 BPM). After 20–30 seconds, users perceive tempo as "off." Prevention: use flutter_gapless_loop's MetronomePlayer (hardware-backed timing) for audio; reserve Timer.periodic for state updates only; test on real device under load; plan 3–5 hours for audio library spike if high-precision timing uncertain.
+
+2. **Stale Generated Artifacts After Rename** — After renaming lib/features/songs/ to lib/features/tracks/, old .g.dart (Riverpod) and .arb files persist; build_runner only generates new files, doesn't delete old ones. Tests pass (they import new class) but dead code bloats binary; IDE autocomplete may find old class, causing runtime provider-lookup failures. Prevention: pre-rename artifact inventory (find all .g.dart, .arb files), rename in controlled order (Dart file → class → part statement → ARB → l10n.yaml), post-build audit (grep for stale names), force clean with --delete-conflicting-outputs; allocate 1 hour for cleanup and verification.
+
+3. **Test Assertions Break on POST→GET API Migration** — Existing tests assert on HTTP method: `expect(request.method, equals('POST'))`. After ListUserTracks/ListUserSetlists migrate from POST+JSON to GET+query-params, mocks still expect POST and pass locally, but real app fails on server (400/415). Prevention: inventory test files mocking affected endpoints, update mock setup to .get(), validate query-param encoding in assertions, test both endpoints in single changelist, add integration tests against real API, test edge cases (spaces, &, ?, Unicode); allocate 2–3 hours for test updates.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+Based on research, v1.3 suggests a linear build order with metronome as a build-last feature (zero dependencies allow other items to stabilize first):
 
-### Phase A: Locale + i18n Infrastructure
-**Rationale:** Every other i18n-touching phase depends on `LocaleController` existing and the ARB/gen-l10n pipeline being wired into `app.dart` and the Profile screen. Pitfalls #1 (test strings) and #2 (locale propagation) are architectural decisions, not per-screen fixes — cheapest to establish once, upfront.
-**Delivers:** `LocaleController` (Hive-persisted, mirrors `ThemeController`), `lib/l10n/app_en.arb`/`app_ru.arb` + `l10n.yaml`, `MaterialApp` locale wiring, Profile screen Language section, a documented "watch locale" pattern for screens, and a centralized test-strings utility replacing raw `find.text('...')` literals.
-**Addresses:** Language switcher, persistent language preference
-**Avoids:** Pitfall #1 (hardcoded test strings), #2 (locale propagation to mounted tabs), #6 (cache storing rendered strings)
+### Phase 1: WR-01 Copy Invite Code
+**Rationale:** Smallest scope; unblocks testing infrastructure  
+**Delivers:** Copy-to-clipboard interaction on band screens  
+**Avoids:** No pitfalls; straightforward UI enhancement
 
-### Phase B: Duration mm:ss Input + Display
-**Rationale:** Fully independent of i18n work (per FEATURES.md's dependency graph, duration input only requires a formatter utility, not locale infrastructure) — safe to build in parallel with Phase A, or immediately after if sequencing serially. Isolating it also isolates its regression risk to the track create/edit forms.
-**Delivers:** `DurationFormatter`/`parseMMSStoSeconds` utility (with thorough edge-case unit tests per Pitfall #3), updated `create_track_screen.dart`/`edit_track_screen.dart` duration fields, and format convergence across `track_formatting.dart`/`setlist_formatting.dart` per Pitfall #5.
-**Uses:** Custom `TextInputFormatter` (STACK.md), existing `asMinutesSeconds` extension
-**Implements:** mm:ss ↔ `durationSeconds` conversion boundary (ARCHITECTURE.md)
+### Phase 2: API Sync - POST→GET Migration (ListUserTracks, ListUserSetlists)
+**Rationale:** Foundation for search/filtering; must precede query-param encoding work  
+**Delivers:** GET endpoints with queryParameters support  
+**Implements:** Uri builder pattern (STACK finding: correct encoding essential)  
 
-### Phase C: String Extraction & Screen Localization
-**Rationale:** The highest-volume, highest-regression-risk work (20+ screens' hardcoded strings) — sequenced after Phase A's infrastructure and test-string centralization are proven, so this phase can move mechanically screen-by-screen without re-deriving the pattern each time.
-**Delivers:** All hardcoded UI strings replaced with `AppLocalizations.of(context)!.key` lookups across every screen/dialog, Russian translations for the full string set.
-**Addresses:** "All UI strings localized EN/RU" (FEATURES.md table stakes)
+**Research flag:** Phase needs `/gsd-plan-phase --research-phase 2` to validate API response shape changes and query encoding edge cases
 
-### Phase D: API Error Localization
-**Rationale:** Depends on Phase A's ARB/locale infrastructure but is otherwise small and isolated to `ApiException` handling — safe to sequence last since it touches error paths, not happy-path UI, and is lower-risk to get wrong.
-**Delivers:** Error-code-to-localized-string mapping, wired into existing `ApiException` catch blocks across screens, with confirmed raw-text fallback for unmapped codes.
-**Addresses:** "Known API error codes map to localized messages" (FEATURES.md table stakes)
+### Phase 3: Song→Track Rename Sweep
+**Rationale:** Prepare data model for metronome tempo prefilling (track needs tempo field)  
+**Delivers:** Consistent Track/TrackListData naming; template strings in ARB; Riverpod provider renames  
+**Implements:** Architecture pattern: feature directory + provider naming conventions  
+
+**Research flag:** Phase needs dedicated sub-task: "Clean build_runner artifacts" with --delete-conflicting-outputs flag; verify no old class imports remain
+
+### Phase 4: Date Picker Enhancement
+**Rationale:** UI polish for track metadata; completes data-layer foundation  
+**Delivers:** Improved date selection UX  
+
+### Phase 5: Metronome Feature
+**Rationale:** Build last (zero dependencies); lets other items stabilize; audio timing research completed in Phase 2 informs this phase  
+**Delivers:** Full metronome tool: play/pause, tempo selector, beat indicator, two entry points (Tools + track prefill), audio + visual feedback  
+**Uses:** flutter_gapless_loop (STACK.md recommendation), Riverpod Notifier pattern (existing), MaterialPageRoute for navigation (existing)  
+**Implements:** Session-scoped state; stream-based timer lifecycle; MetronomeService audio wrapper  
+
+**Research flag:** Phase does NOT need research-phase (metronome patterns well-documented, no API calls, STACK/FEATURES/ARCHITECTURE all HIGH confidence).
 
 ### Phase Ordering Rationale
 
-- Locale infrastructure (Phase A) must exist before any screen can be localized (Phase C) or error codes mapped (Phase D) — hard dependency.
-- Duration input (Phase B) has zero dependency on locale infrastructure per FEATURES.md's dependency graph, so it can run in parallel with Phase A if the roadmap allows, or serially without blocking either feature on the other.
-- String extraction (Phase C) is sequenced after infrastructure specifically so the "watch locale" rule and test-string centralization (Pitfalls #1, #2) are already-proven patterns being applied, not being invented mid-sweep across 20+ files.
-- Error localization (Phase D) is last because it's the smallest, most isolated surface (catch blocks only) and benefits from the ARB pipeline already existing.
-
-### Research Flags
-
-Phases likely needing deeper research during planning:
-- **Phase C (String Extraction):** Real per-screen scope is unknown until every hardcoded string is enumerated — recommend a screen-by-screen audit at plan time to size the work accurately, since 401 existing tests widely assert on this same text (Pitfall #1).
-- **Phase A (Locale Infrastructure):** Confirm exactly how the existing `ThemeController`/Profile-screen pattern persists to Hive (vs. `flutter_secure_storage`, which ARCHITECTURE.md assumed but STACK.md and PROJECT.md indicate is Hive) before writing `LocaleController` — the two research docs disagree slightly on storage layer and this should be resolved by reading the actual `ThemeController` implementation, not assumed.
-
-Phases with standard patterns (skip research-phase):
-- **Phase B (Duration Input):** Well-understood `TextInputFormatter` pattern with a concrete parser/formatter implementation already sketched in STACK.md.
-- **Phase D (Error Localization):** Small, mechanical mapping-table pattern with a clear existing `ApiException` integration point.
+1. **Dependency chain:** WR-01 (trivial) → API sync (foundation for search) → rename (data model consistency) → date picker (UI) → metronome (new feature on stable foundation)
+2. **Risk isolation:** Rename artifacts (Phase 3) resolved before Phase 5 starts
+3. **Testing:** By Phase 5, 453 tests are proven stable on POST→GET API and renamed notifiers; metronome tests add to proven foundation
+4. **Build-last strategy:** Metronome has zero blocking deps on other phases; placing it last ensures other critical fixes land first
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Official Flutter/Dart tooling only, zero new third-party dependencies, verified against current package versions |
-| Features | HIGH | Clear table-stakes/differentiator/anti-feature split, directly cross-checked against the user's own milestone scoping answers |
-| Architecture | HIGH | Mirrors an existing, proven in-app pattern (`ThemeController`) rather than introducing new architecture |
-| Pitfalls | HIGH | Grounded in this specific codebase's known characteristics (401 tests, IndexedStack tabs, two divergent duration formats) |
+| Stack | **HIGH** | flutter_gapless_loop MetronomePlayer is purpose-built, well-documented, active maintenance; AVAudioEngine/AudioTrack integration proven in production apps |
+| Features | **HIGH** | Table stakes derived from established metronome UX; differentiators aligned with common feature requests |
+| Architecture | **HIGH** | Zero backend changes; Riverpod patterns mirror existing auth/theme providers; stream-based timer proven pattern |
+| Pitfalls | **MEDIUM-HIGH** | Timer.periodic drift well-documented; rename-artifact risk based on Cadence's 453-test suite structure; POST→GET test breakage specific to this migration |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH for metronome core (audio timing, UI, state management).
 
 ### Gaps to Address
 
-- **Storage layer for `LocaleController` (Hive vs. `flutter_secure_storage`):** ARCHITECTURE.md's sketch persists locale via `flutter_secure_storage`; STACK.md and this summary assume Hive (matching `ThemeController`'s actual persistence layer per PROJECT.md). Resolve by reading `lib/theme/theme_controller.dart` directly at plan time and copying its exact persistence mechanism — don't re-derive.
-- **"SettingsScreen" vs. Profile screen naming:** ARCHITECTURE.md and STACK.md both refer to a "SettingsScreen" for the language picker; the actual codebase has no separate settings screen — the theme toggle lives in `lib/features/profile/profile_screen.dart`. Treat all "SettingsScreen" references in STACK.md/ARCHITECTURE.md as meaning the Profile screen.
-- **Scope of the string-extraction sweep (Phase C):** Not sized here — needs a concrete inventory of hardcoded strings across all screens/dialogs during phase planning, per the Research Flag above.
-- **Whether Russian plural forms are required in v1.2:** FEATURES.md treats this as P2/defer, but if any P1 string involves a count (e.g. "N tracks", "N members" — which already exists in the shipped BAND-10 member-count display), a decision is needed on whether English-style pluralization is acceptable in Russian for this milestone or must be grammatically correct from day one.
+- **Track tempo field existence**: Verify publicapi.yml includes tempo/BPM field on Track object; if missing, API extension required before Phase 5
+- **Audio asset bundling**: Confirm asset sourcing for metronome_accent.wav and metronome_tick.wav
+- **iOS silent mode handling**: Validate AVAudioSession routing on physical iOS device
+- **Battery profiling**: Wakelock + audio drain over 30-minute session on real devices during Phase 5 testing
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Flutter Internationalization Documentation](https://docs.flutter.dev/accessibility-and-localization/internationalization)
-- [intl package on pub.dev](https://pub.dev/packages/intl) — 0.19.0+, null-safe, ARB support
-- [ARB (App Resource Bundle) Specification](https://github.com/google/app-resource-bundle/wiki/ApplicationResourceBundleSpecification)
-- Codebase precedent: `ThemeController`, existing `asMinutesSeconds` duration extension, `ApiException` model
-
-### Secondary (MEDIUM confidence)
-- [CLDR Plural Rules](http://cldr.unicode.org/index/cldr-spec/plural-rules) — Russian pluralization reference, not yet applied to this codebase's specific strings
-
-### Tertiary (LOW confidence)
-- Competitor feature comparisons (Bandcamp Mobile, SetList.co) in FEATURES.md — general market observation, not verified against current app versions
+- STACK.md — flutter_gapless_loop technical comparison, native audio engine specs
+- FEATURES.md — User expectations survey, feature dependencies, MVP ordering
+- ARCHITECTURE.md — Riverpod pattern integration, build-order analysis, zero-dependency rationale
+- PITFALLS.md — Timer.periodic drift research, rename-artifact risk, API migration test breakage
 
 ---
-*Research completed: 2026-08-25*
-*Ready for roadmap: yes*
+
+*Research completed: 2026-08-27*  
+*Ready for roadmap: YES*

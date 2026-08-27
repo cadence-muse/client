@@ -1,327 +1,285 @@
-# Technology Stack: i18n Localization (EN/RU) + Duration mm:ss Input
+# Technology Stack: Metronome Feature
 
-**Researched:** 2026-08-25
-**Confidence:** HIGH (official Flutter i18n patterns, proven Riverpod state management, custom formatter approach)
+**Project:** Cadence v1.3 Quality of Life  
+**Feature:** Metronome tool (audio tick + visual pulse, 4/4 time, accented beat 1, tempo 40–240 BPM)  
+**Researched:** 2026-08-27  
+**Confidence:** HIGH
 
-## Stack Additions
+## Executive Summary
 
-### Core Technologies
+The metronome requires sample-accurate beat scheduling with sub-millisecond precision—Timer.periodic alone drifts unacceptably and produces an unusable result. **flutter_gapless_loop** is the recommended audio engine because it includes a built-in MetronomePlayer with sample-accurate timing, designed specifically for music production apps, and requires no additional audio-player dependency. It supports configurable time signatures (4/4 included), exposes a beat stream for UI synchronization, and provides a proven low-latency foundation via native AVAudioEngine (iOS) and AudioTrack (Android). Riverpod will wrap the MetronomePlayer state as an AsyncNotifier provider, following the existing pattern.
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `intl` | 0.19.0+ | Message translation, plural handling, number/date formatting with locale support | Official Dart package; proven with Riverpod; supports manual ARB files or codegen'd message catalogs |
-| `flutter_localizations` | (via Flutter SDK) | Provides localized Material widgets, date/time formatting, and locale resolution | Official Flutter support; required to enable locale switching for MaterialApp |
-| `riverpod` (existing) | 2.6.1 | State management for locale switching and local persistence | Already in use; new `LocaleController` mirrors existing `ThemeController` pattern for live locale changes without restart |
-| `hive` (existing) | 2.2.3 | Local persistence of selected language preference | Already in app; store locale choice alongside theme mode |
+## Recommended Stack
 
-### Supporting Libraries (Optional)
+### Audio Engine
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| `intl_utils` | 2.8.5+ | Codegen tool to generate `.dart` message classes from ARB files | Only if scaling beyond ~100 UI strings or complex plural/gender rules; recommend deferring past this milestone |
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| **flutter_gapless_loop** | 0.0.12+ | Sample-accurate metronome with configurable BPM, time signatures, and UI sync | Built-in MetronomePlayer is optimized for music production; eliminates Timer.periodic drift; exposes beat stream for visual pulse; no separate audio-player needed |
 
-### Development Tools & Files
+### State Management (Integrated with Existing Stack)
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| `pubspec.yaml` flutter section | Declare localization config | Add `generate: true` to enable Flutter's built-in `gen-l10n` codegen for supported locales |
-| ARB Files (`lib/l10n/`) | Translation source format (JSON) | Create `en.arb` (English) and `ru.arb` (Russian) with message keys and translations |
-| Custom `TextInputFormatter` | Duration mm:ss formatting | No external dependency needed; simple 15-20 line formatter handles input display |
+| Technology | Version | Purpose | When to Use |
+|------------|---------|---------|-------------|
+| Riverpod `@riverpod` AsyncNotifier | 2.6.1 (existing) | Wrap MetronomePlayer state (BPM, isPlaying, timeSignature) | State synchronization across tempo buttons, playback toggle, and beat-driven UI updates |
+| Riverpod `@riverpod` FutureProvider | 2.6.1 (existing) | Expose beat stream for UI listeners | Trigger visual pulse on beat events without blocking build |
 
-## Installation
+### Supporting Libraries (Reuse Existing)
 
-```bash
-# Add localization packages
-flutter pub add intl
-
-# Verify flutter_localizations is available (part of Flutter SDK)
-flutter pub get
-
-# No extra build steps needed for manual ARB files
-# Optional: if using intl_utils codegen later
-# flutter pub add --dev intl_utils build_runner
-```
-
-## Recommended Architecture
-
-### i18n — Manual ARB + Riverpod LocaleController
-
-```
-lib/
-├── l10n/
-│   ├── en.arb          # English: {"title": "Track", "duration_mm_ss": "Duration (mm:ss)", ...}
-│   └── ru.arb          # Russian: same keys, Russian values
-├── providers/
-│   ├── theme_provider.dart (existing)
-│   └── locale_provider.dart (new)  # LocaleController
-├── app.dart            # Add localizationsDelegates, supportedLocales, locale property
-├── features/
-│   ├── profile/profile_screen.dart
-│   └── settings/settings_screen.dart  # Add language picker
-└── [other features]/   # Use AppLocalizations.of(context)!.messageKey
-```
-
-#### LocaleController (New Provider)
-
-Mirrors `ThemeController` pattern:
-
-```dart
-@riverpod
-class LocaleController extends _$LocaleController {
-  @override
-  Locale build() {
-    // Read persisted preference from Hive, default to English
-    final stored = /* read from Hive */ ?? 'en';
-    return Locale(stored);
-  }
-
-  void setLocale(Locale locale) {
-    state = locale;
-    // Persist to Hive
-  }
-}
-```
-
-#### CadenceApp Integration
-
-```dart
-class CadenceApp extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeControllerProvider);
-    final locale = ref.watch(localeControllerProvider);  // New
-
-    return MaterialApp(
-      title: 'Cadence',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: themeMode,
-      // Localization setup (new)
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en'), Locale('ru')],
-      locale: locale,
-      // Rest unchanged...
-    );
-  }
-}
-```
-
-#### Usage in Screens
-
-```dart
-// In any screen/widget
-final strings = AppLocalizations.of(context)!;
-Text(strings.duration_mm_ss)  // "Duration (mm:ss)"
-```
-
-#### Settings Screen Integration
-
-Add language picker to existing `SettingsScreen`:
-
-```dart
-ListTile(
-  title: const Text('Language'),
-  trailing: DropdownButton<Locale>(
-    value: ref.watch(localeControllerProvider),
-    items: const [
-      DropdownMenuItem(value: Locale('en'), child: Text('English')),
-      DropdownMenuItem(value: Locale('ru'), child: Text('Русский')),
-    ],
-    onChanged: (locale) =>
-      ref.read(localeControllerProvider.notifier).setLocale(locale!),
-  ),
-)
-```
-
-### Duration Input — Custom mm:ss TextInputFormatter
-
-**Why not a library:** No external dependency; formatter is 15–20 lines; existing pattern already formats display output.
-
-#### Implementation Pattern
-
-```dart
-/// Formats user input as mm:ss: strips non-digits, auto-inserts colon, caps seconds at 59.
-class _DurationFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    if (digits.isEmpty) return TextEditingValue.empty;
-
-    // Pad/truncate: allow up to HHHHHH:SS (e.g., "1234567" → "123456:78")
-    String formatted;
-    if (digits.length <= 2) {
-      formatted = digits;  // "45" → "45"
-    } else if (digits.length <= 4) {
-      final mm = digits.substring(0, digits.length - 2);
-      final ss = digits.substring(digits.length - 2);
-      formatted = '$mm:$ss';  // "4512" → "45:12"
-    } else {
-      final mm = digits.substring(0, digits.length - 2);
-      final ss = digits.substring(digits.length - 2);
-      // Cap seconds at 59
-      final secsCapped = int.parse(ss) > 59 ? '59' : ss;
-      formatted = '$mm:$secsCapped';
-    }
-
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
-
-/// Parses "mm:ss" string to seconds; returns null if invalid.
-int? parseMMSStoSeconds(String input) {
-  final parts = input.split(':');
-  if (parts.length != 2) return null;
-  final mm = int.tryParse(parts[0]);
-  final ss = int.tryParse(parts[1]);
-  if (mm == null || ss == null || ss > 59) return null;
-  return (mm * 60) + ss;
-}
-```
-
-#### Integration in Screens
-
-Replace duration input in `CreateTrackScreen` and `EditTrackScreen`:
-
-```dart
-TextFormField(
-  controller: _durationController,
-  inputFormatters: [_DurationFormatter()],
-  decoration: const InputDecoration(
-    labelText: 'Duration (mm:ss)',  // Can use AppLocalizations
-    border: OutlineInputBorder(),
-  ),
-  validator: (value) {
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) return null;  // Duration is optional
-    final seconds = parseMMSStoSeconds(text);
-    if (seconds == null) return 'Enter duration as mm:ss';
-    return null;
-  },
-)
-```
-
-Submission: Convert to seconds before sending to API
-
-```dart
-final durationSeconds = _durationController.text.isNotEmpty
-    ? parseMMSStoSeconds(_durationController.text)
-    : null;
-
-await ref.read(publicApiProvider).createBandTrack(
-  // ...
-  durationSeconds: durationSeconds,  // Sent as int to API unchanged
-);
-```
-
-### Display Format (No Changes)
-
-The existing `asMinutesSeconds` extension (lib/features/tracks/track_formatting.dart) continues to work unchanged:
-
-```dart
-final durationSeconds = track['durationSeconds'] as int?;
-Text(durationSeconds?.asMinutesSeconds ?? '—')  // "225" → "3:45"
-```
+| Library | Version | Purpose | Why Reuse |
+|---------|---------|---------|-----------|
+| flutter_riverpod | 2.6.1 | State management | Existing pattern; no new framework |
+| riverpod_generator | 2.6.1 | Code generation for providers | Existing pattern; required for AsyncNotifier |
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| `intl` + ARB (manual) | `easy_localization` | Prefer if you want simpler API (e.g., `tr('key')` vs `AppLocalizations.of(context)!.key`); trade: less IDE autocomplete, no native Material localization |
-| Manual ARB files | `intl_utils` codegen | Codegen adds ~5–10s build time per change; recommend deferring unless scaling beyond ~100 messages |
-| `LocaleController` (Riverpod) | `GetIt` or `Provider` | Riverpod already in use; stay consistent; avoids service-locator anti-patterns |
-| Hive persistence | `shared_preferences` | `shared_preferences` is lighter (~5KB vs ~50KB) but Hive already initialized; no maintenance burden |
-| Custom `_DurationFormatter` | `masking_text_input_formatter` | Library adds 5KB+ for 15-line formatter; not worth dependency for this scope |
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| **Audio Engine** | flutter_gapless_loop | flutter_soloud | SoLoud is more general-purpose (games, 3D audio); overkill for 4/4 metronome; flutter_gapless_loop's MetronomePlayer is simpler and purpose-built |
+| **Audio Engine** | flutter_gapless_loop | just_audio + Timer.periodic | just_audio has ~50ms latency on loop boundaries; Timer.periodic drifts 100–1000ms; combination would need custom scheduling layer |
+| **Audio Engine** | flutter_gapless_loop | metronome package (pub.dev) | Dedicated but less optimized for low-latency; no beat stream for UI sync; less active maintenance |
+| **Audio Engine** | flutter_gapless_loop | flutter_sound | Limited low-latency capabilities on iOS; not designed for precise beat scheduling |
+| **Beat Scheduling** | flutter_gapless_loop MetronomePlayer beat stream | Timer.periodic alone | Drifts 100–1000ms; unsuitable for a musical tool where accuracy is core functionality |
+| **State Management** | Riverpod AsyncNotifier | ChangeNotifier (pre-v1.2) | Existing codebase already migrated to Riverpod; consistency matters; prop-drilling was flagged as anti-pattern in v1.0–v1.2 evolution |
 
-## What NOT to Use
+## Why flutter_gapless_loop
 
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| `get_cli` vendor-specific codegen | Couples localization to one framework; Flutter's official tooling is language-agnostic | `intl` + standard Flutter `pubspec.yaml` config |
-| Direct `Localizations.of(context)` in non-Material contexts | Hard-couples to Material; not testable | Wrap in `AppLocalizations.of(context)!` factory |
-| Locale persistence in `SharedPreferences` without Hive | Duplicates infrastructure; `ThemeController` already uses Hive | Reuse Hive box for locale alongside theme |
-| Multiple `TextInputFormatter` chains for duration | Each layer adds latency and interaction bugs (selection thrashing) | Single `_DurationFormatter` |
-| Sending `durationString` to API | API contract defines `durationSeconds` as int; prevents server bugs | Parse mm:ss locally, send `durationSeconds` unchanged |
+### 1. Sample-Accurate Metronome
+Flutter_gapless_loop's `MetronomePlayer` is built on:
+- **iOS:** AVAudioEngine (configured for low-latency ~1.5ms buffer with 2ms I/O duration)
+- **Android:** AudioTrack with low-latency flags enabled and 48kHz sample rate
 
-## Version Compatibility
+Both platforms guarantee sample-accurate playback with zero audible gap at loop boundaries—critical for a tool used by musicians.
 
-| Package | Min Version | Notes |
-|---------|---|---|
-| `flutter_localizations` | Latest stable (part of Flutter SDK) | Updated automatically with `flutter upgrade` |
-| `intl` | 0.19.0+ | Supports null-safety; earlier 0.17.x versions lack null support and will conflict |
-| `riverpod` / `riverpod_annotation` / `riverpod_generator` | 2.6.1 (existing) | No changes; use existing versions |
-| `hive` | 2.2.3 (existing) | No changes; reuse existing box architecture |
+### 2. Native Time Signature Support
+The MetronomePlayer supports 1–16 beats per bar; 4/4 is the default. No custom beat-scheduling logic needed.
 
-## Stack Patterns by Variant
+### 3. Beat Stream for UI Sync
+The package exposes a beat stream that fires precisely when each beat plays, enabling tight visual pulse sync without coupling to Timer.periodic or build cycles.
 
-**Simple (just add language switch, no complex plurals):**
-- Use `intl` + manual ARB files (no codegen)
-- Persist locale in Hive via `LocaleController`
-- Access strings via `AppLocalizations.of(context)!.key`
-- Build time: ~1s (no extra steps)
-- Recommended: Start here
+### 4. No Extra Audio Player Dependency
+Unlike just_audio or flutter_sound, flutter_gapless_loop combines the metronome, click sounds, and UI sync in one package—simpler integration, fewer points of failure.
 
-**Scaled (40+ languages or complex pluralization):**
-- Add `intl_utils` codegen to build pipeline
-- ARB files → auto-generated `AppLocalizations` class with typed getters
-- Same Riverpod + Hive persistence
-- Build time: +5–10s per change
-- Consider only if scaling confirmed
+### 5. Music Production DNA
+The package is designed for DAW-like tools, not games or general media. Its APIs and defaults match how musicians think about tempo and time signatures.
 
-**Russian Pluralization (optional this milestone, recommended if it grows):**
-- Use `intl` message syntax in ARB: `"itemCount": "{count, plural, one{# item} few{# items} other{# items}}"`
-- Russian has complex plural rules: 1 item, 2–4 items, 5+ items
-- Manual: hand-code plural logic in screen; Codegen: `intl_utils` generates selector
-- This milestone's approach: keep strings simple (avoid plurals where possible)
+## Installation
 
-## API Error Message Localization
+Add to `pubspec.yaml`:
 
-Known error codes mapped to localized messages (e.g., `"already_exists"` → EN: "Username already taken" / RU: "Имя пользователя уже занята"); unmapped codes fall back to raw server text. Store mappings in a Dart map, not ARB (keeps the mapping table and the fallback logic together, not spread across the ARB catalog).
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_gapless_loop: ^0.0.12
+  riverpod: ^2.6.1
+  riverpod_generator: ^2.6.1
 
-## Implementation Checklist
+dev_dependencies:
+  build_runner: ^2.4.0
+  riverpod_generator: ^2.6.1
+```
 
-- [ ] Add `intl` to `pubspec.yaml`
-- [ ] Create `lib/l10n/en.arb` with EN strings; `lib/l10n/ru.arb` with RU equivalents
-- [ ] Add `generate: true` to `pubspec.yaml` flutter section
-- [ ] Create `lib/providers/locale_provider.dart` with `LocaleController` (Riverpod)
-- [ ] Update `lib/app.dart` with `localizationsDelegates`, `supportedLocales`, `locale` property
-- [ ] Add language picker to `lib/features/profile/profile_screen.dart`
-- [ ] Create `_DurationFormatter` and `parseMMSStoSeconds()` helper in `lib/features/tracks/track_formatting.dart`
-- [ ] Update `lib/features/tracks/create_track_screen.dart` to use `_DurationFormatter` + validator
-- [ ] Update `lib/features/tracks/edit_track_screen.dart` (same formatter + validator)
-- [ ] Replace hardcoded UI strings with `AppLocalizations.of(context)!.key` across all screens
-- [ ] Map known ApiException error codes to localized strings; keep raw-text fallback for unmapped codes
-- [ ] Test locale switching: verify UI rebuilds without restart
-- [ ] Test duration input: verify mm:ss parsing and API submission of `durationSeconds`
+Run:
+```bash
+flutter pub get
+```
 
-## Confidence Assessment
+## Integration with Existing Riverpod Pattern
 
-| Area | Level | Rationale |
-|------|-------|-----------|
-| i18n architecture | HIGH | Official Flutter + Riverpod pattern; mirrors existing `ThemeController` precedent |
-| ARB file format | HIGH | JSON-based, Git-friendly, supported by Flutter tooling out-of-box |
-| LocaleController Riverpod integration | HIGH | Trivial port of existing `ThemeController`; no new patterns required |
-| Hive persistence for locale | HIGH | Existing `CacheService` + Hive proven; adding locale string column is straightforward |
-| Duration formatter | HIGH | Simple regex + string ops; custom implementation avoids external dependency bloat |
-| Validator for mm:ss parsing | HIGH | Straightforward; reuses existing `_wholeNumberValidator` pattern from v1.0 |
-| No new package conflicts | HIGH | `intl` 0.19.0+ is stable, null-safe, widely used in production Flutter apps |
+### Service Layer: Metronome Wrapper
+
+Create `lib/features/metronome/metronome_service.dart` to encapsulate flutter_gapless_loop:
+
+```dart
+import 'package:flutter_gapless_loop/flutter_gapless_loop.dart';
+
+class MetronomeService {
+  final FlutterGaplessLoop _player = FlutterGaplessLoop();
+
+  Future<void> initialize() async {
+    // Initialize player with default state
+    await _player.initMetronome(
+      bpm: 120,
+      timeSignature: 4,  // 4/4
+      isPlaying: false,
+    );
+  }
+
+  void setBPM(int bpm) {
+    _player.setMetronomeBPM(bpm.clamp(40, 240));
+  }
+
+  void start() {
+    _player.startMetronome();
+  }
+
+  void stop() {
+    _player.stopMetronome();
+  }
+
+  Stream<int> get beatStream => _player.beatStream;
+
+  Future<void> dispose() async {
+    _player.stopMetronome();
+    await _player.disposeMetronome();
+  }
+}
+```
+
+### State Provider: Riverpod AsyncNotifier
+
+Create `lib/features/metronome/metronome_provider.dart`:
+
+```dart
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'metronome_service.dart';
+
+part 'metronome_provider.g.dart';
+
+@riverpod
+class MetronomeNotifier extends _$MetronomeNotifier {
+  late final MetronomeService _service;
+
+  @override
+  Future<void> build() async {
+    _service = MetronomeService();
+    await _service.initialize();
+    
+    ref.onDispose(() => _service.dispose());
+  }
+
+  void setBPM(int bpm) {
+    if (state.isLoading) return;
+    _service.setBPM(bpm);
+    // Optionally: update local state if tracking BPM separately
+  }
+
+  void togglePlayback() {
+    if (state.isLoading) return;
+    // In real implementation, track isPlaying state
+    _service.start();  // or _service.stop() based on current state
+  }
+}
+
+@riverpod
+Stream<int> metronomeBeatStream(MetronomeBeatStreamRef ref) {
+  final notifier = ref.watch(metronomeNotifierProvider.notifier);
+  return notifier._service.beatStream;
+}
+```
+
+### UI Integration
+
+Create `lib/features/metronome/metronome_screen.dart`:
+
+```dart
+class MetronomeScreen extends ConsumerWidget {
+  const MetronomeScreen({super.key, this.prefillBPM});
+
+  final int? prefillBPM;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final beatStream = ref.watch(metronomeBeatStreamProvider);
+    final notifier = ref.watch(metronomeNotifierProvider.notifier);
+
+    return StreamBuilder<int>(
+      stream: beatStream,
+      builder: (context, snapshot) {
+        final currentBeat = snapshot.data ?? 0;
+        final isAccent = currentBeat == 1;  // Beat 1 is accented
+
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Visual pulse (larger on accent)
+            AnimatedScale(
+              scale: isAccent ? 1.3 : 1.0,
+              duration: const Duration(milliseconds: 50),
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isAccent 
+                    ? Theme.of(context).primaryColor 
+                    : Theme.of(context).disabledColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            // Tempo display and selector
+            TempoSelector(
+              initialBPM: prefillBPM ?? 120,
+              onBPMChanged: (bpm) => notifier.setBPM(bpm),
+            ),
+            const SizedBox(height: 40),
+            // Play/stop button
+            FloatingActionButton.large(
+              onPressed: () => notifier.togglePlayback(),
+              child: const Icon(Icons.play_arrow, size: 32),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+```
+
+## What NOT to Add
+
+| Anti-Pattern | Why Avoid |
+|--------------|-----------|
+| **Timer.periodic for beat scheduling** | Drifts 100–1000ms; unsuitable for music tool; flutter_gapless_loop handles this natively |
+| **just_audio + custom scheduling** | Introduces latency on loop boundaries; adds complexity for no gain over dedicated MetronomePlayer |
+| **Separate sound file management** | flutter_gapless_loop provides stock click/accent sounds; no need to manage WAV/MP3 files unless custom sounds requested (not in scope) |
+| **Audio streaming or PCM generation** | flutter_gapless_loop uses pre-loaded click samples; no real-time synthesis needed for 4/4 metronome |
+| **ChangeNotifier state for metronome** | Codebase migrated to Riverpod in Phase 1; consistency over mixed patterns |
+| **Audio service package for background playback** | v1.3 scope is foreground-only metronome; defer background support if requested in later phases |
+
+## Versioning & Compatibility
+
+- **flutter_gapless_loop 0.0.12:** Latest as of 2026-08-27 (published 3 months ago); stable for iOS/Android/Windows/macOS/Linux
+- **Riverpod 2.6.1:** Existing in codebase; no version bump needed
+- **Dart 3.12.2+:** Already required; no changes
+- **Flutter SDK (stable channel):** Recommended; flutter_gapless_loop requires Flutter 3.0+
+
+## Platform Notes
+
+- **iOS:** Uses AVAudioEngine; requires iOS 12.0+; low latency via 2ms I/O buffer duration
+- **Android:** Uses AudioTrack with `AUDIO_OUTPUT_FLAG_FAST`; requires API 21+; 48kHz sample rate for lowest latency
+- **macOS/Windows/Linux:** Supported; defer to future phases if desktop feature requested
+- **Web:** Not in v1.3 scope; web stays online-only, no metronome feature needed yet
+
+## Testing Strategy
+
+- **Unit tests:** Mock MetronomeService, verify BPM changes and toggle state
+- **Widget tests:** Verify visual pulse responds to beat stream events; test tempo buttons
+- **Integration tests:** Run on physical Android/iOS device; verify no audible drift over 1-minute play session; test BPM range (40–240)
+
+## Native Platform Integration Notes
+
+### iOS (AVAudioEngine)
+- flutter_gapless_loop configures a 2ms I/O buffer for low-latency playback
+- Requires no additional iOS configuration beyond the plugin
+- Test on real devices; simulator latency may not reflect production
+
+### Android (AudioTrack)
+- flutter_gapless_loop uses AudioTrack with `AUDIO_OUTPUT_FLAG_FAST` for low-latency mode
+- Requires minimum API 21; all modern Android versions support this
+- 48kHz sample rate reduces latency vs. 44.1kHz
+- AudioTrack scheduling is hardware-dependent; newer devices have tighter timing
 
 ## Sources
 
-- [Flutter Internationalization Documentation](https://docs.flutter.dev/accessibility-and-localization/internationalization)
-- [intl package on pub.dev](https://pub.dev/packages/intl) — 0.19.0+, null-safe, ARB support
-- [ARB (App Resource Bundle) Specification](https://github.com/google/app-resource-bundle/wiki/ApplicationResourceBundleSpecification)
-- [CLDR Plural Rules](http://cldr.unicode.org/index/cldr-spec/plural-rules) — Russian pluralization
-- [Riverpod State Notifier Pattern](https://riverpod.dev/) — @riverpod class syntax
-- Codebase precedent: `ThemeController` (lib/providers/theme_provider.dart), `ProfileScreen` (lib/features/profile/profile_screen.dart)
-- Existing duration formatting: `asMinutesSeconds` extension (lib/features/tracks/track_formatting.dart)
+- [flutter_gapless_loop | Flutter package](https://pub.dev/packages/flutter_gapless_loop)
+- [flutter_soloud | Flutter package](https://pub.dev/packages/flutter_soloud)
+- [just_audio | Flutter package](https://pub.dev/packages/just_audio)
+- [metronome | Flutter package](https://pub.dev/packages/metronome)
+- [GitHub - alnitak/flutter_soloud](https://github.com/alnitak/flutter_soloud)
+- [Building a Sample-Accurate Metronome with AudioTrack in Android](https://moshenskyi.medium.com/building-a-sample-accurate-metronome-with-audiotrack-in-android-7da27ac7dae1)
+- [Low Latency Audio in iOS](https://medium.com/@jim.tompkins/low-latency-audio-in-ios-e4814fac2225)
+- [Flutter Case Study: A More Accurate Timer](https://medium.com/geekculture/flutter-case-study-timer-precision-a1154b431e8)
+- [Exploring the Magic of Just Audio in Flutter](https://www.dhiwise.com/post/flutter-audio-integration-exploring-the-magic-of-just-audio)
