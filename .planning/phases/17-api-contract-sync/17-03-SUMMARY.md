@@ -109,6 +109,14 @@ None - no external service configuration required.
 - API-02 requirement complete: `minLength: 8` password validation now correctly scoped to signup only, matching `publicapi.yml`'s `RegisterRequestBody.password` schema
 - No blockers for remaining Phase 17 plans
 
+## Self-Check: PASSED
+
+- FOUND: lib/features/auth/login_screen.dart
+- FOUND: test/features/auth/login_screen_test.dart
+- FOUND: .planning/phases/17-api-contract-sync/17-03-SUMMARY.md
+- FOUND: commit b7ac5a0 (task 1)
+- FOUND: commit 25c4404 (plan metadata)
+
 ---
 *Phase: 17-api-contract-sync*
 *Completed: 2026-08-27*
