@@ -5,7 +5,7 @@ import '../features/bands/bands_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/setlists/setlists_screen.dart';
-import '../features/songs/tracks_screen.dart';
+import '../features/tracks/tracks_screen.dart';
 import '../generated/app_localizations.dart';
 import '../providers/navigation_provider.dart';
 import '../widgets/offline_banner.dart';

@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
-import 'package:cadence/features/songs/tracks_screen.dart';
+import 'package:cadence/features/tracks/tracks_screen.dart';
 import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
 import 'package:cadence/providers/bands_provider.dart';
