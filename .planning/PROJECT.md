@@ -71,11 +71,11 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 - ✓ `02-VERIFICATION.md`'s 4 carried-over gaps re-verified against current code and re-stamped (QA-01) — v1.3 Phase 15
 - ✓ Setlist date input via native `showDatePicker`, with existing-date pre-population and out-of-range clamping into `[firstDate, lastDate]` (SETL-13) — v1.3 Phase 15
 - ✓ Full song→track rename: `lib/features/songs/` dir moved to `lib/features/tracks/`, `homeAddSongButton` ARB key renamed to `homeAddTrackButton`, all "song"-named test fixtures renamed — zero surviving "song" references in `lib/` or `test/` except the deferred `lib/api/publicapi.yml` Songs tag (RENAME-01) — v1.3 Phase 16
+- ✓ Adopt server-side search: `ListUserTracks`/`ListUserSetlists` migrated POST+body → GET+`SearchQuery`, cross-band Tracks/Setlists tabs get real debounced online-gated search, setlist track picker renders (not discards) its `listBandTracks(searchQuery:)` server response (API-01) — v1.3 Phase 17
+- ✓ Adopt `minLength: 8` password validation scoping — `LoginScreen`'s shared validator now gates the 8-char minimum to signup mode only, fixing a client-side block on legacy-password logins; login's `/api/login` error handling also corrected to key off the real `400 invalid_input` contract response instead of a `401` the API never sends (API-02) — v1.3 Phase 17
 
 ### Active
 
-- [ ] Adopt server-side search: `ListUserTracks`/`ListUserSetlists` GET+`SearchQuery`, band-track search via shared `$ref`
-- [ ] Adopt `minLength: 8` password validation (register + change-password)
 - [ ] Metronome tool (audio + visual, homepage Tools section + track-prefilled entry, 4/4 only)
 
 ### Out of Scope
@@ -138,6 +138,7 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 | Behavioral changes (even small formatter fixes) must land as their own reviewed diff, not bundled into a string-extraction phase | Code review (CR-01) caught `DurationTextInputFormatter`'s in-phase algorithmic rewrite silently breaking backspace-to-empty clearing — untested because the phase's own test suite assumed pure string extraction; fixed same-session, but the bundling itself was flagged as scope creep (WR-02) | ✓ Fixed — Phase 13 code review; apply going forward: keep localization-only diffs isolated from behavior changes |
 | `ApiExceptionLocalization.localizedMessage()` as a shared extension over `ApiException`, with an `overrides` parameter for screen-specific error-code handling | 16 catch sites across Bands/Tracks/Setlists/Login needed the same known-code-to-localized-message mapping; the `overrides` mechanism let login's `already_exists` and change-password's `invalid_input` retire their bespoke handling onto the same path instead of staying special-cased (D-04) | ✓ Good — Phase 14; established pattern for any future ApiException catch site |
 | Clamp a persisted `eventDate` into the date picker's `[firstDate, lastDate]` window post-parse, rather than trusting the parsed value directly | `EditSetlistScreen`'s initial `showDatePicker` call asserts `initialDate` is in range and threw `AssertionError` for any setlist dated >5y past or >2y future (15-VERIFICATION.md Gap 1 / CR-01) | ✓ Good — Phase 15 gap-closure (15-03); same duplicated boundary math flagged again in 15-REVIEW.md (IN-01) as a future extraction candidate |
+| Branch `ApiException` handling on the `code` returned in the response body, never on a `statusCode` the spec doesn't declare for that operation | Code review (CR-01) found `LoginScreen` special-cased `statusCode == 401` for `/api/login`, but `publicapi.yml` only ever declares `200`/`400` for that operation — the branch was unreachable dead code, and its test mocked an impossible response shape, masking the real (misrouted) error message | ✓ Fixed — Phase 17 code review; login now keys off the `400` response's `invalid_input` code via `localizedMessage`'s `overrides`, matching the established pattern from I18N-05 |
 
 ## Evolution
 
@@ -157,4 +158,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-27 after Phase 16*
+*Last updated: 2026-08-27 after Phase 17*
