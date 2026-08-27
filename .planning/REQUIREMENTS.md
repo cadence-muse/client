@@ -51,26 +51,24 @@ None deferred this milestone — all discussed items are in v1.3 scope.
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BAND-13 | TBD | Pending |
-| QA-01 | TBD | Pending |
-| API-01 | TBD | Pending |
-| API-02 | TBD | Pending |
-| RENAME-01 | TBD | Pending |
-| SETL-13 | TBD | Pending |
-| METR-01 | TBD | Pending |
-| METR-02 | TBD | Pending |
-| METR-03 | TBD | Pending |
-| METR-04 | TBD | Pending |
+| BAND-13 | Phase 15 | Pending |
+| QA-01 | Phase 15 | Pending |
+| SETL-13 | Phase 15 | Pending |
+| RENAME-01 | Phase 16 | Pending |
+| API-01 | Phase 17 | Pending |
+| API-02 | Phase 17 | Pending |
+| METR-01 | Phase 18 | Pending |
+| METR-02 | Phase 18 | Pending |
+| METR-03 | Phase 18 | Pending |
+| METR-04 | Phase 18 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 ⚠️ (resolved by roadmap creation)
+- Mapped to phases: 10
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-27*
-*Last updated: 2026-08-27 after initial definition*
+*Last updated: 2026-08-27 after roadmap creation (Phases 15-18)*

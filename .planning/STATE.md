@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Quality of Life
 status: planning
-last_updated: "2026-08-27T06:57:11.928Z"
+last_updated: "2026-08-27T07:15:00.000Z"
 last_activity: 2026-08-27
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Planning next milestone
+**Current focus:** Phase 15 (Carried-Over Fixes & Setlist Date Picker) — ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-08-27 — Milestone v1.3 started
+Phase: 15 of 18 (Carried-Over Fixes & Setlist Date Picker)
+Plan: — (not yet planned)
+Status: Roadmap created, ready to plan
+Last activity: 2026-08-27 — v1.3 ROADMAP.md created (Phases 15-18)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -85,6 +87,10 @@ Last activity: 2026-08-27 — Milestone v1.3 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- Roadmap: v1.3 phases continue numbering from v1.2's Phase 14, starting at Phase 15 (Phases 15-18). No phase-number reset requested.
+- Roadmap: BAND-13 (invite-code copy offline fix), QA-01 (re-stamp stale verification gaps), and SETL-13 (native date picker) are all small, low-risk, and mutually independent — bundled into Phase 15 to avoid three separate thin single-requirement phases, and sequenced first since nothing else in the milestone depends on them.
+- Roadmap: Phase 16 (song→track rename) sequenced before Phase 17 (API contract sync) — RENAME-01 and API-01 both touch the cross-band Tracks tab and setlist track picker; doing the mechanical rename first means the API-01 search-logic change lands once, in already-renamed files, instead of being touched again by the rename sweep.
+- Roadmap: Phase 18 (metronome) sequenced last per explicit user preference — zero dependency on any other item in the milestone, and building it last lets Phases 15-17 stabilize first.
 - Roadmap: v1.2 phases continue numbering from v1.1's Phase 10, starting at Phase 11 (Phases 11-14). No phase-number reset requested.
 - Roadmap: User requested Duration mm:ss (originally proposed as Phase 12) be sequenced before the Locale/i18n phases — the two are independent (per research SUMMARY.md dependency graph), so the swap has no correctness cost. Final order: Phase 11 (Duration mm:ss Input + Display) → Phase 12 (Locale + i18n Infrastructure) → Phase 13 (String Extraction & Screen Localization) → Phase 14 (API Error Localization).
 - Roadmap: Phase 11 (Duration mm:ss Input + Display) has no dependency on i18n infrastructure — ships first per explicit user preference.
@@ -110,8 +116,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- v1.1: backend does not implement the `searchQuery` field on `ListBandTracks` — client extends `publicapi.yml` and sends it, but the setlist track picker degrades to offline substring filtering until backend support ships. Carried into next milestone.
-- v1.1 Phase 8 code review (WR-01): Copy-invite-code on `band_detail_screen.dart:248-256` is gated behind `isOnline`, regressing the pre-Phase-8 always-tappable behavior — clipboard copy needs no network and this contradicts both `08-CONTEXT.md` D-07 ("Copy stays visible to everyone as today") and the app's offline-first Core Value. Non-blocking, not fixed this milestone. See `.planning/milestones/v1.1-phases/08-band-owner-tools/08-REVIEW.md`. Carried into next milestone.
+- v1.1: backend does not implement the `searchQuery` field on `ListBandTracks` — client extends `publicapi.yml` and sends it, but the setlist track picker degrades to offline substring filtering until backend support ships. Now tracked as API-01 in Phase 17.
+- v1.1 Phase 8 code review (WR-01): Copy-invite-code on `band_detail_screen.dart:248-256` is gated behind `isOnline`, regressing the pre-Phase-8 always-tappable behavior — clipboard copy needs no network and this contradicts both `08-CONTEXT.md` D-07 ("Copy stays visible to everyone as today") and the app's offline-first Core Value. Now tracked as BAND-13 in Phase 15.
 
 ### Quick Tasks Completed
 
@@ -121,6 +127,7 @@ None yet.
 ### Roadmap Evolution
 
 - Phase 06.1 inserted after Phase 6: API contract catch-up: RemoveSetlistTrack->RemoveSetlistTracks migration, ListUserTracks/ListUserSetlists GET->POST migration, per fe72e78 schema update missed by v1.1 roadmap (URGENT)
+- v1.3 ROADMAP.md created 2026-08-27: Phases 15 (Carried-Over Fixes & Setlist Date Picker), 16 (Track Terminology Rename), 17 (API Contract Sync), 18 (Metronome Tool). 10/10 requirements mapped.
 
 ## Deferred Items
 
@@ -139,10 +146,10 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-26T18:41:22.576Z
-Stopped at: Milestone v1.2 completed and archived
-Resume file: .planning/milestones/v1.2-phases/14-api-error-localization/14-CONTEXT.md
+Last session: 2026-08-27T07:15:00.000Z
+Stopped at: v1.3 ROADMAP.md and STATE.md created; REQUIREMENTS.md traceability updated
+Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan Phase 15 with `/gsd-plan-phase 15`
