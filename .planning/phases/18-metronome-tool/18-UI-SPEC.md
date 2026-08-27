@@ -1,7 +1,7 @@
 ---
 phase: 18
 slug: metronome-tool
-status: draft
+status: approved
 design_system: Flutter Material 3
 preset: none
 created: 2026-08-27
@@ -121,12 +121,24 @@ Applicable state coverage for metronome screen:
 | **Playing State** | Dial + Beat indicators + FAB | ✅ Covered | Beats cycle 1→2→3→4→1→... in sequence; beat 1 dot and audio tick accent audibly+visually; BPM number stays fixed; tempo changes take effect immediately on next tick (D-04) |
 | **Paused State** | Dial + Beat indicators + FAB | ✅ Covered | No beat indicator pulses; all 4 dots shown in neutral state; BPM number visible; FAB icon = play_arrow; taps start playback |
 | **Dragging State** | Dial + BPM number | ✅ Covered | User drags around dial circumference; BPM updates live (D-07) with each angle change; visual angle feedback; no audio ticks during drag |
-| **Loading State** | Entire screen | 🧪 Backstop | If audio assets load async, show CircularProgressIndicator + "Initializing metronome..." text (centered); gate play button until ready |
+| **Loading State** | Entire screen / FAB | 🧪 Backstop | If audio assets load async, show CircularProgressIndicator + "Initializing metronome..." text (centered); gate play button (FAB) until ready |
+| **Error State** | Entire screen / FAB | 🧪 Backstop | If audio assets fail to load, show "Couldn't load metronome. Try again." with a Retry action; FAB stays gated until retry succeeds |
 | **Dial Sizing (Responsive)** | Dial container | ✅ Covered | Dial width = min(80% screen width, 320px max); height = width (square dial); centered on screen |
 | **BPM Range** | BPM display + Drag bounds | ✅ Covered | Valid range 40–300 BPM (D-06); clamp dragging to this range; quick-adjust buttons respect bounds (e.g., at 300 BPM, "+5" button no-op or disabled) |
-| **No-Tempo Track Fallback** | Track Detail metronome entry point | ✅ Covered | Icon button only shown in AppBar.actions if track.tempo != null (D-11); no button at all if tempo is missing; tap opens metronome prefilled with track.tempo |
-| **Homepage Tools Entry** | Always defaulted | ✅ Covered | Homepage "Metronome" button always appears and always defaults to 120 BPM (no conditional logic); opens MetronomScreen(bpm: 120) |
-| **Overflow/Long Text** | BPM unit label + tooltips | ✅ Covered | BPM unit ("BPM") fits beside/below number in available space; tooltips truncate/wrap naturally in Material tooltip |
+| **No-Tempo Track Fallback** | Track Detail metronome entry point | ✅ Covered | Icon button only shown in AppBar.actions if track.tempo != null (D-11); no button at all if tempo is missing (not disabled — absent); tap opens metronome prefilled with track.tempo |
+| **Homepage Tools Entry** | Always defaulted | ✅ Covered | Homepage "Metronome" button always appears and always defaults to 120 BPM (no conditional logic, no empty/loading state — static nav entry); opens MetronomScreen(bpm: 120) |
+| **Overflow/Long Text** | BPM unit label + tooltips | ✅ Covered | BPM unit ("BPM") fits beside/below number in available space; tooltips are short fixed strings ("–5 BPM" etc.), truncate/wrap naturally in Material tooltip if ever needed |
+
+**Probe pass (ui-consideration-probe, 8 elements → 27 raised categories):** the automated classifier fires generic list/data-state cues (empty, populated, partial, zero-one-many) even against non-list, non-data-driven controls (dial, FAB, static nav buttons, fixed-string tooltips) — expected heuristic over-firing on a control-heavy screen with no lists. Disposition:
+
+- **Dial (custom drag control):** unclassified by the heuristic (no list/form cue trips) — ⚠ **Dismissed**: reason — bounded drag control over a fixed numeric range, not data/list driven; already covered by Dragging State + BPM Range rows above.
+- **Beat indicator row (empty/loading/error/populated/partial/overflow/zero-one-many):** ⚠ **Dismissed**: reason — always exactly 4 static dots, never data-driven, no empty/loading/error/partial variant exists; covered by Playing/Paused State rows above.
+- **FAB (empty/loading/error/populated):** loading/error → **Resolved** (see Loading State / Error State rows above, added to cover the FAB gate explicitly); empty/populated → ⚠ **Dismissed**: reason — icon-only control, not data-driven.
+- **Quick-adjust buttons (overflow/long-text):** ⚠ **Dismissed**: reason — fixed short tooltip strings ("–5 BPM"…"+5 BPM"), no dynamic/long content possible.
+- **BPM number (overflow/long-text):** ⚠ **Dismissed**: reason — bounded 40–300 range, max 3 digits, fits Headline Large at declared dial size with margin.
+- **Homepage entry (loading/error/long-text):** ⚠ **Dismissed**: reason — static nav button with fixed label "Metronome", no async fetch on the homepage tile itself.
+- **Track Detail entry (empty/loading/error/populated/long-text):** ⚠ **Dismissed**: reason — presence/absence is synchronous (`track.tempo != null` check, no fetch); already covered by No-Tempo Track Fallback row above.
+- **Error state general / long-text:** ⚠ **Dismissed**: reason — error copy is a fixed short string ("Couldn't load metronome. Try again."), no dynamic length.
 
 ---
 
@@ -177,14 +189,14 @@ Create a `metronomProvider` that holds:
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** Pending verification
+**Approval:** APPROVED (gsd-ui-checker, 2026-08-27)
 
 ---
 
