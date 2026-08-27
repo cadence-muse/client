@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-08-27)
 Phase: 18 — Metronome Tool
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-27 — Phase 17 complete, transitioned to Phase 18
+Last activity: 2026-08-27 - Completed quick task 260827-uqv: fix a bug, search bar in setlists says 'search by artist or title' same as tracks, but it should be different (by name)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -139,6 +139,7 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260827-uqv | fix a bug, search bar in setlists says 'search by artist or title' same as tracks, but it should be different (by name) | 2026-08-27 | d02b9a4 | [260827-uqv-fix-a-bug-search-bar-in-setlists-says-se](./quick/260827-uqv-fix-a-bug-search-bar-in-setlists-says-se/) |
 
 ### Roadmap Evolution
 
