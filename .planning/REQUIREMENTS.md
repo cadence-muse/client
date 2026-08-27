@@ -18,7 +18,7 @@ Requirements for the "Quality of Life" milestone. Each maps to roadmap phases.
 ### API Contract Sync
 
 - [ ] **API-01**: `ListUserTracks`/`ListUserSetlists` migrate from POST+body to GET+`SearchQuery` query param, and the setlist track picker's `searchQuery` field adopts the shared `SearchQuery` `$ref`, replacing offline substring filtering with real server-side search
-- [ ] **API-02**: Registration and password-change forms enforce a client-side 8-character minimum password length, matching the updated `publicapi.yml` schema
+- [x] **API-02**: Registration and password-change forms enforce a client-side 8-character minimum password length, matching the updated `publicapi.yml` schema
 
 ### Track Terminology
 
@@ -58,7 +58,7 @@ None deferred this milestone — all discussed items are in v1.3 scope.
 | SETL-13 | Phase 15 | Complete |
 | RENAME-01 | Phase 16 | Complete |
 | API-01 | Phase 17 | Pending |
-| API-02 | Phase 17 | Pending |
+| API-02 | Phase 17 | Complete |
 | METR-01 | Phase 18 | Pending |
 | METR-02 | Phase 18 | Pending |
 | METR-03 | Phase 18 | Pending |

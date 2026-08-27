@@ -146,4 +146,101 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'logging in with a short (7-char) but non-empty password reaches the '
+    'server -- proven by a mocked 401 surfacing loginInvalidCredentialsError, '
+    'not a client-side commonAtLeast8Chars validator error (D-04)',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        if (request.url.path == '/api/login') {
+          return http.Response('', 401);
+        }
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await fillCredentials(tester, password: 'short12');
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.loginLogInButton),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.loginInvalidCredentialsError),
+        findsOneWidget,
+      );
+      expect(find.text(tester.strings.commonAtLeast8Chars), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'logging in with an empty password shows commonFieldRequired and does '
+    'not reach the server (login-mode length check is skipped entirely)',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await fillCredentials(tester, password: '');
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.loginLogInButton),
+      );
+      await tester.pump();
+
+      expect(find.text(tester.strings.commonFieldRequired), findsOneWidget);
+      expect(find.text(tester.strings.commonAtLeast8Chars), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'signing up with a short (7-char) password still shows '
+    'commonAtLeast8Chars (D-04 must not relax signup enforcement)',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.tap(
+        find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
+      );
+      await tester.pump();
+      await fillCredentials(tester, password: 'short12');
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
+      );
+      await tester.pump();
+
+      expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'signing up with an empty password shows commonAtLeast8Chars, not '
+    'commonFieldRequired -- the length check runs before the empty check '
+    'in signup mode',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(wrap(apiClient));
+      await tester.tap(
+        find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, tester.strings.loginUsernameLabel),
+        'newuser',
+      );
+      await tester.tap(
+        find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
+      );
+      await tester.pump();
+
+      expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
+    },
+  );
 }
