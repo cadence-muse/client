@@ -33,7 +33,7 @@ Requirements for the "Quality of Life" milestone. Each maps to roadmap phases.
 - [x] **METR-01**: User can open a metronome tool from a new Homepage "Tools" section, defaulting to 120 BPM
 - [x] **METR-02**: User can open the metronome from a track's detail screen, prefilled with that track's `tempo`
 - [x] **METR-03**: Metronome plays an audio tick synced to a visual pulse, in 4/4 time only, with an accented first beat
-- [ ] **METR-04**: User can adjust tempo via a large round selector plus ±1/±5 quick-adjust buttons
+- [x] **METR-04**: User can adjust tempo via a large round selector plus ±1/±5 quick-adjust buttons
 
 ## v2 Requirements
 
@@ -62,7 +62,7 @@ None deferred this milestone — all discussed items are in v1.3 scope.
 | METR-01 | Phase 18 | Complete |
 | METR-02 | Phase 18 | Complete |
 | METR-03 | Phase 18 | Complete |
-| METR-04 | Phase 18 | Pending |
+| METR-04 | Phase 18 | Complete |
 
 **Coverage:**
 
