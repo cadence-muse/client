@@ -138,7 +138,7 @@ Plans:
 **Plans**: TBD
 
 - [x] 18-01-PLAN.md
-- [ ] 18-02-PLAN.md
+- [x] 18-02-PLAN.md
 
 **UI hint**: yes
 
@@ -167,4 +167,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | Complete    | 2026-08-27 |
 | 16. Track Terminology Rename | v1.3 | 2/2 | Complete    | 2026-08-27 |
 | 17. API Contract Sync | v1.3 | 3/3 | Complete    | 2026-08-27 |
-| 18. Metronome Tool | v1.3 | 1/2 | In Progress|  |
+| 18. Metronome Tool | v1.3 | 2/2 | In Progress|  |
