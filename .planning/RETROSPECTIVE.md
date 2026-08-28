@@ -116,6 +116,45 @@
 
 ---
 
+## Milestone: v1.3 — Quality of Life
+
+**Shipped:** 2026-08-28
+**Phases:** 4 | **Plans:** 10
+
+### What Was Built
+- Invite-code copy button works offline (isOnline gate removed) and `02-VERIFICATION.md`'s 4 carried-over gaps re-verified and re-stamped resolved; setlist date entry moved to native `showDatePicker`, with a same-phase gap-closure fixing an `AssertionError` crash on out-of-range persisted dates (Phase 15)
+- Full "song"→"track" terminology rename: directory move, ARB key rename, 51 test-fixture renames, zero surviving "song" references outside the deliberately-untouched `publicapi.yml` tag (Phase 16)
+- `ListUserTracks`/`ListUserSetlists` migrated POST→GET with `SearchQuery`, real debounced server-side search wired onto both global tabs and the setlist track picker (retiring the SETL-12 client-substring-filter gap noted at v1.1 close); login's password validator correctly scoped its 8-char minimum to signup only (Phase 17)
+- Standalone metronome tool: audio+visual 4/4 beat engine (independent per-player init, drift-resistant fixed-anchor scheduling), draggable round BPM dial, ±1/±5 quick-adjust, reachable from Homepage "Tools" and a track's detail screen (Phase 18)
+
+### What Worked
+- Sequencing the rename (Phase 16) before the API contract sync (Phase 17) meant the search-migration logic was written once in already-renamed files, instead of being touched twice — an explicit dependency choice that paid off with zero rework.
+- Phase 15's date-picker gap-closure (15-03) landed same-session after a regression test caught the `AssertionError` — the clamp-into-`[firstDate,lastDate]` fix and its lesson (validate picker bounds against real persisted data, not just today's date) generalized cleanly to the `CreateSetlistScreen`/`EditSetlistScreen` pair.
+- Phase 16's closing audit (grep for zero "song" references across `lib/`+`test/`) caught the rename phase clean on the first code review pass — the only phase this milestone with a `clean` review status.
+- Phase 18's `Future.wait()`-independent audio-player init and fixed-anchor tick scheduling both came from code-review findings (CR-01, WR-02) fixed same-session, and both were written up as reusable patterns (any future multi-resource async init; any future fixed-cadence scheduler) rather than one-off patches.
+
+### What Was Inefficient
+- Phase 17's `LoginScreen` carried dead code branching on a `401` status `/api/login` never sends per `publicapi.yml` — the branch's own test mocked an impossible response shape, masking that the real error path was misrouted. Caught only by code review (CR-01), not by the phase's own test suite, echoing v1.2 Phase 13's "phase's own tests assume the wrong thing" pattern.
+- Phase 18 had the milestone's highest finding count (3 critical, 3 warning) — a `LateInitializationError` risk, a missing error-UI surface for asset-load failure, and a Play FAB not gated on audio-load state — all in one new, dependency-heavy feature (audio playback + custom drag gesture + Timer scheduling) built with no prior in-repo pattern to mirror, unlike the retrofit-shaped phases 15-17.
+- No `/gsd-audit-milestone` was run before this close (second milestone running without one, after v1.2) — the operator again proceeded on 10/10 requirement traceability plus all-phases-verified status rather than the formal audit step.
+
+### Patterns Established
+- Fixed-anchor tick scheduling (accumulate from the previously *scheduled* time, not the actual firing time) as the standard shape for any future `Timer`-based cadence loop — prevents real-clock jitter from compounding into audible/visible drift, verified via fake-clock tests.
+- Independent `Future.wait()` initialization (each resource wrapped in its own defensive dispose) as the standard shape for any future multi-resource async init, replacing a single try/catch that lets one failure silently skip a sibling's `late final` assignment.
+- Clamp-parsed-date-into-picker-bounds as the standard defensive check before handing any persisted date to `showDatePicker`'s `initialDate` — flagged in 15-REVIEW.md (IN-01) as boundary math duplicated across two screens, a future extraction candidate.
+
+### Key Lessons
+1. Sequencing a mechanical rename ahead of a logic-change phase that touches the same files (Phase 16 before 17) avoids double-touching files — worth defaulting to this order whenever both a rename and a behavior change target overlapping surfaces.
+2. A phase's own test suite can mock an impossible response shape and hide a genuinely unreachable/misrouted code path (Phase 17's `401`-that's-never-sent branch) — code review remains load-bearing for catching contract mismatches that self-consistent-but-wrong tests can't.
+3. New, dependency-heavy features with no in-repo pattern to mirror (Phase 18's audio/gesture/Timer stack) concentrate more code-review findings than retrofit-shaped phases — budget for a heavier review pass, not just standard depth, on a milestone's first-of-its-kind feature phase.
+4. Formal `/gsd-audit-milestone` has now been skipped at two consecutive milestone closes (v1.2, v1.3) in favor of the traceability+verification proxy — if this becomes the default going forward, it should be a deliberate config choice, not an ad-hoc skip each time.
+
+### Cost Observations
+- Sessions: 2026-08-27 → 2026-08-28 (2-day span)
+- Notable: 121 files changed (+14,290/-335), ~44,100 LOC Dart at ship time, 461 tests passing, `dart analyze` clean. Phase 18 (metronome) was the milestone's largest single-feature build with zero prior in-repo pattern and the highest finding count (7); Phase 16 (rename) was the only phase to pass code review clean on the first pass.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -125,6 +164,7 @@
 | v1.0 | multiple | 5 | First milestone — established Riverpod+Hive cache pattern, gap-closure-plan convention, and the offline-retrofit-as-dedicated-phase approach |
 | v1.1 | multiple | 6 | Tracer-plan pattern for cross-screen retrofits (Phase 7); inserted decimal phase for an urgent mid-milestone API contract drift (06.1); post-execution code review became load-bearing for catching cache-race and UI-crash bugs tests missed |
 | v1.2 | multiple | 4 | Tracer-plan pattern generalized to a cross-screen data/vocabulary retrofit (Phase 13 string extraction, 130 ARB keys/13 plans); shared extension + `overrides` parameter pattern let bespoke error handlers retire onto common infrastructure (Phase 14) |
+| v1.3 | multiple | 4 | First milestone with a from-scratch, dependency-heavy feature with no in-repo pattern to mirror (Phase 18 metronome: audio + custom gesture + Timer scheduling) — concentrated the milestone's review findings; rename-before-logic-change sequencing (Phase 16 → 17) avoided double-touching files |
 
 ### Cumulative Quality
 
@@ -133,9 +173,12 @@
 | v1.0 | 284 | — | `connectivity_plus` (Phase 5); reordering used Flutter SDK's `ReorderableListView`, zero new deps |
 | v1.1 | 401 | — | No new dependencies — cache/online-first flip, owner tools, and search all built on existing Riverpod/Hive/connectivity_plus stack |
 | v1.2 | 453 | — | No new runtime dependencies — `flutter_localizations`/ARB/gen-l10n use Flutter SDK tooling; `LocaleController` reused the existing `SharedPreferences` dependency |
+| v1.3 | 461 | — | `audioplayers` added (Phase 18, metronome low-latency tick playback) — first new runtime dependency since v1.0's `connectivity_plus` |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Re-stamp verification/requirements docs immediately when a gap-closure plan or code-review fix lands — don't let a same-day fix look stale for a full milestone. Recurred 3 milestones running (v1.0 Phase 2, v1.1 Phase 7, v1.2 Phase 12) — worth a lightweight per-phase consistency check rather than relying on milestone close to keep catching it.
 2. A phase's code review findings should resolve before the phase is marked complete — an unresolved architectural question deferred to milestone close costs a context-switch that a same-phase resolution would avoid (v1.1); a behavioral change smuggled into a scoped-as-extraction-only phase costs the same way (v1.2 Phase 13 CR-01).
+3. A from-scratch feature phase with no in-repo pattern to mirror concentrates far more code-review findings than a retrofit-shaped phase touching existing screens (v1.3 Phase 18's 7 findings vs. Phase 16's clean pass) — worth planning for a heavier review pass on any milestone's first-of-its-kind feature.
+4. `/gsd-audit-milestone` has now been skipped at two consecutive closes (v1.2, v1.3) — if the traceability+verification proxy is the intended standing practice, it should become an explicit config choice rather than a per-milestone ad-hoc skip.
 3. A tracer plan that proves a cross-screen pattern once, before the remaining plans mirror it, prevents pattern drift on any retrofit phase touching many similar screens — works for behavioral retrofits (v1.0 Phase 5, v1.1 Phase 7) and data/vocabulary retrofits alike (v1.2 Phase 13).

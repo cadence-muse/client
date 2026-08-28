@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Quality of Life
-current_phase: 18
-status: completed
+status: Awaiting next milestone
 stopped_at: Phase 18 complete — all phases complete
-last_updated: "2026-08-28T07:10:33.771Z"
+last_updated: "2026-08-28T07:19:20.613Z"
 last_activity: 2026-08-28
-last_activity_desc: Phase 18 complete
-state_head: 3caadf629d04e013d5473825b01a3573483f80a4
+last_activity_desc: Milestone v1.3 completed and archived
+state_head: fd0abbd45308bb5d52774e38fdce0edbab086e93
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 10
   completed_plans: 10
   percent: 100
+current_phase: 18
 ---
 
 # Project State
@@ -24,16 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** v1.3 Quality of Life — milestone complete, ready to close out
+**Current focus:** Planning next milestone (`/gsd-new-milestone`)
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-08-28 — Phase 18 complete
-
-Progress: [████████████████████] 10/10 plans (100%)
+Phase: Milestone v1.3 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-08-28 — Milestone v1.3 completed and archived
 
 ## Performance Metrics
 
@@ -146,8 +144,6 @@ None yet.
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 260827-uqv | fix a bug, search bar in setlists says 'search by artist or title' same as tracks, but it should be different (by name) | 2026-08-27 | d02b9a4 | [260827-uqv-fix-a-bug-search-bar-in-setlists-says-se](./quick/260827-uqv-fix-a-bug-search-bar-in-setlists-says-se/) |
-| 260828-c98 | when online, if any of the API requests returns 401, clear current session token and show the login page with a toast like 'Session expired' | 2026-08-28 | 648f8b0 | [260828-c98-when-online-if-any-of-the-api-requests-r](./quick/260828-c98-when-online-if-any-of-the-api-requests-r/) |
 
 ### Roadmap Evolution
 
@@ -177,4 +173,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Complete milestone v1.3 with `/gsd-complete-milestone v1.3`
+- Start the next milestone with /gsd-new-milestone

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands to manage their repertoire together: shared song catalog, band membership, and setlists for gigs. As of v1.2, the app has full band/track/setlist CRUD against the public API, runs on Riverpod state management with a Hive-backed cache-store pattern, always shows freshly-fetched server data when online, and falls back to last-fetched cache with a persistent warning banner when offline. Band owners can rotate invite codes and transfer ownership; the setlist track picker is searchable. The full UI is localized in English and Russian (live switch, no restart, ARB/gen-l10n pipeline, correct Russian pluralization) including API error messages, and track duration is entered/displayed as mm:ss everywhere.
+Cadence is a Flutter mobile app (Android/iOS, with web build support) for bands to manage their repertoire together: shared track catalog, band membership, and setlists for gigs. As of v1.3, the app has full band/track/setlist CRUD against the public API, runs on Riverpod state management with a Hive-backed cache-store pattern, always shows freshly-fetched server data when online, and falls back to last-fetched cache with a persistent warning banner when offline. Band owners can rotate invite codes and transfer ownership; cross-band Tracks/Setlists search and the setlist track picker are served by real server-side search (GET+`SearchQuery`), not client-side filtering. The full UI is localized in English and Russian (live switch, no restart, ARB/gen-l10n pipeline, correct Russian pluralization) including API error messages, and track duration is entered/displayed as mm:ss everywhere. Setlist dates use the platform's native date picker, all "song" terminology has been fully renamed to "track", and a standalone metronome tool (audio+visual, draggable BPM dial) is reachable from the Homepage and from any track's detail screen.
 
 ## Core Value
 
@@ -10,23 +10,18 @@ A band member can open the app without signal — at a venue, in a basement, on 
 
 ## Current State
 
-**Shipped:** v1.2 i18n and Duration Input (2026-08-26)
+**Shipped:** v1.3 Quality of Life (2026-08-28)
 
-Full UI string localization (EN/RU) with live no-restart switching from Profile settings, on-device persistence, correct Russian ICU pluralization, and localized API error messages (unmapped codes fall back to raw server text). Track duration is entered and displayed as mm:ss everywhere, with typing auto-format and invalid-input rejection — `durationSeconds` API field unchanged.
+Server-side search (GET+`SearchQuery`) replaces client-side substring filtering on cross-band Tracks/Setlists tabs and the setlist track picker; 8-character minimum password validation scoped to signup only. Full "song"→"track" terminology rename across UI, directory structure, class names, and ARB keys — zero surviving "song" references outside the deferred `publicapi.yml` tag. Setlist dates use the platform's native `showDatePicker`. Invite-code copy works offline. New standalone metronome tool (audio tick + visual pulse in 4/4, draggable round BPM dial, ±1/±5 quick-adjust) reachable from Homepage "Tools" and from a track's detail screen.
 
-## Current Milestone: v1.3 Quality of Life
+## Next Milestone Goals
 
-**Goal:** Close carried-over debt, sync the client to backend API changes, finish the song→track rename, and ship two standalone quality-of-life features (calendar date picker, metronome tool).
-
-**Target features:**
-- Fix WR-01 (invite-code copy gated behind `isOnline`) and re-stamp the stale `02-VERIFICATION.md` gaps that are already resolved in code
-- Adopt backend's server-side search: `ListUserTracks`/`ListUserSetlists` flip POST→GET with `SearchQuery`, band-track search moves to shared `$ref`; adopt `minLength: 8` password validation
-- Rename remaining "song" references to "track" throughout the codebase (tab label, `lib/features/songs/` → `tracks`, `SongsScreen` class, ARB keys) — full rename, not just user-facing strings
-- Setlist date input uses native `showDatePicker` instead of the current raw input
-- New metronome tool: audio tick + visual pulse, big round tempo selector (default 120, ±5/±1 quick actions), 4/4 only with accented beat 1, reachable from Homepage "Tools" section and from a track screen (prefilled with that track's tempo); built last in the milestone
+No active milestone — planning next via `/gsd-new-milestone`.
 
 <details>
 <summary>Previous milestone context (v1.2 and earlier)</summary>
+
+**v1.3 Quality of Life (shipped 2026-08-28):** server-side search migration, password validation fix, full song→track rename, native setlist date picker, standalone metronome tool.
 
 **v1.2 i18n and Duration Input (shipped 2026-08-26):** full EN/RU localization with live switching, localized API errors, mm:ss duration input/display.
 
@@ -91,7 +86,7 @@ _(none — all v1.3 requirements shipped)_
 
 ## Context
 
-**Shipped state (v1.2, 2026-08-26):** ~29,800 LOC Dart across `lib/` + `test/`, 453 tests passing, `dart analyze` clean, zero TODO/stub/placeholder markers in production code. State flows through Riverpod (codegen'd AsyncNotifiers/family providers) end-to-end. `lib/cache/cache_service.dart`'s Hive-backed `_HiveStore` (with recursive `_deepConvert` for nested collections) backs 5 boxes (profile, homepage, bands, tracks, setlists). Every cached screen fetches fresh on open when online and falls back to last-fetched cache with a persistent offline warning banner when offline (`OfflineNoCacheException`/`OfflineNoCacheView`), with connectivity-gated mutations unchanged (`isOnlineProvider`, `connectivity_plus`).
+**Shipped state (v1.3, 2026-08-28):** ~44,100 LOC Dart across `lib/` + `test/` (121 files touched this milestone, +14,290/-335 lines), 461 tests passing, `dart analyze` clean, zero TODO/stub/placeholder markers in production code. State flows through Riverpod (codegen'd AsyncNotifiers/family providers) end-to-end. `lib/cache/cache_service.dart`'s Hive-backed `_HiveStore` (with recursive `_deepConvert` for nested collections) backs 5 boxes (profile, homepage, bands, tracks, setlists). Every cached screen fetches fresh on open when online and falls back to last-fetched cache with a persistent offline warning banner when offline (`OfflineNoCacheException`/`OfflineNoCacheView`), with connectivity-gated mutations unchanged (`isOnlineProvider`, `connectivity_plus`). `lib/features/tracks/` (renamed from `songs/`) now houses the track feature; `audioplayers` added as a dependency for the metronome's low-latency tick playback.
 
 **Localization (v1.2):** ARB/gen-l10n pipeline generates `AppLocalizations`; `LocaleController` (async `@riverpod` `AsyncNotifier<Locale>`, `SharedPreferences`-backed) drives a live, no-restart EN/RU switch from Profile settings, defaulting to English and persisting on-device. ~130 ARB keys cover every screen/dialog with correct Russian ICU plural forms (one/few/many/other) for count-bearing strings. `ApiExceptionLocalization.localizedMessage()` maps known `ErrorCode` values to localized messages across all 16 `on ApiException catch` sites app-wide; unmapped codes fall back to raw server text. Track duration is entered/displayed as mm:ss everywhere via `DurationTextInputFormatter` (auto-format, capped 99:59) and `track_formatting.dart`'s `asMinutesSeconds` extension — `durationSeconds` API field unchanged.
 
@@ -101,11 +96,11 @@ _(none — all v1.3 requirements shipped)_
 
 **v1.1 schema catch-up (fe72e78, 2026-08-20):** client caught up to a server-side schema update — `POST /api/me/password`, `Band.membersCount`, member `id`/`role` (owner/member enum), `POST /api/band/{bandId}/rotate-invite-code`, `POST /api/band/{bandId}/transfer-ownership`; band/track/setlist mutation permissions loosened from owner-only to any-member (except delete-band, still owner-gated); `/api/track/list` and `/api/setlist/list` converted from GET to POST with a `searchQuery` request body; single-track setlist add/remove consolidated into the bulk `tracks` endpoints (`AddSetlistTracks`/`RemoveSetlistTracks`). App is unreleased, so no backward-compat shims were needed.
 
-**API gap this milestone:** `publicapi.yml`'s `ListBandTracks` request gained a client-defined `searchQuery` field (SETL-12) — the client sends it, but the backend does not yet implement server-side filtering; the picker degrades to offline substring filtering until backend support ships.
+**Search now server-side (v1.3 Phase 17):** the SETL-12 gap noted at v1.1 close is resolved — `ListUserTracks`/`ListUserSetlists` and the setlist track picker's `ListBandTracks` all migrated to GET+`SearchQuery` with real backend filtering; no client-side substring fallback remains for these three surfaces.
 
-**song→track rename scope (Phase 16):** client-code-only — `lib/api/publicapi.yml`'s `Songs` tag/operation names are untouched by design, deferred to Phase 17 (API Contract Sync) so the rename isn't touched twice.
+**song→track rename (v1.3 Phase 16):** completed app-wide — `lib/api/publicapi.yml`'s `Songs` tag/operation names remain the one deliberate exception (backend-owned, unrenamed by design).
 
-**Known non-blocking items carried into next milestone:** one manual accessibility check outstanding (offline-banner text under ≥200% font scaling, from v1.0 Phase 5); Nyquist `/gsd-validate-phase` never run this or the prior milestone (coverage TODO, not a compliance failure).
+**Known non-blocking items carried into next milestone:** one manual accessibility check outstanding (offline-banner text under ≥200% font scaling, from v1.0 Phase 5); Nyquist `/gsd-validate-phase` never run in any milestone to date (coverage TODO, not a compliance failure); a real-clock multi-minute metronome drift soak test remains a human-verification item (fake-clock verified only, v1.3 Phase 18).
 
 ## Constraints
 
@@ -161,4 +156,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-28 after Phase 18*
+*Last updated: 2026-08-28 after v1.3 milestone*

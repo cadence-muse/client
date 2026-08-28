@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.3 Quality of Life (Shipped: 2026-08-28)
+
+**Phases completed:** 4 phases, 10 plans, 19 tasks
+
+**Key accomplishments:**
+
+- Replaced raw-text `eventDate` entry in both setlist forms with Flutter's native `showDatePicker`, bounded to a 5-years-back/2-years-forward range, with pre-population and a malformed-date fallback on the edit form.
+- Invite-code copy button now works offline (isOnline gate removed, D-05); 02-VERIFICATION.md's 4 carried-over gaps re-verified against current code and re-stamped resolved (v1.3 audit_acknowledged entry appended).
+- Clamped `EditSetlistScreen._showDatePickerDialog`'s parsed `initialDate` into `[firstDate, lastDate]`, fixing an `AssertionError` crash for any setlist dated more than 5 years in the past or 2 years in the future.
+- Moved `lib/features/songs/tracks_screen.dart` into `lib/features/tracks/`, and renamed the ARB key `homeAddSongButton` to `homeAddTrackButton` (regenerating localization output), eliminating the last "song" references outside `publicapi.yml`.
+- Renamed all 51 arbitrary "Song"-named sample track-title fixtures across 7 test files to their "Track" equivalents, then ran a full-tree audit confirming zero surviving "song" references anywhere in `lib/` or `test/` except the deferred `publicapi.yml` Songs tag, a clean `flutter analyze`, and a green 461-test `flutter test` suite.
+- Migrated `listUserTracks`/`listUserSetlists` from POST+body to GET+query-parameters and wired real debounced, online-gated search onto the global Tracks and Setlists tabs.
+- Fixed `AddSetlistTracksDialog`'s D-03 discard bug: the debounced `listBandTracks(searchQuery:)` response now renders in the checklist instead of being thrown away, with `currentTrackIds` exclusion preserved and offline substring filtering untouched.
+- LoginScreen's shared password validator now only enforces the 8-character minimum in signup mode, so login attempts with short legacy passwords reach the server instead of being blocked client-side.
+- Metronome playback engine (audioplayers low-latency tick sounds + Stopwatch/Timer beat scheduler + pulsing beat-indicator dots) wired into two navigation entry points, with BPM shown as a plain-text stub for Plan 18-02's dial.
+- Large round drag-to-rotate BPM dial (CustomPainter + GestureDetector, 270-degree sweep clamped to [40,300]) replacing Plan 18-01's plain BPM-number stub, plus flanking +/-1/+/-5 quick-adjust buttons -- both routed through the existing setBpm clamp choke point.
+
+---
+
 ## v1.2 i18n and Duration Input (Shipped: 2026-08-26)
 
 **Phases completed:** 4 phases, 20 plans, 41 tasks
