@@ -35,10 +35,12 @@ class MetronomeScreen extends ConsumerWidget {
         loading: () => _buildLoading(context, l10n),
         error: (e, st) => _buildError(context, ref, l10n),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: notifier.togglePlay,
-        child: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
-      ),
+      floatingActionButton: audioAsync.hasValue
+          ? FloatingActionButton(
+              onPressed: notifier.togglePlay,
+              child: Icon(state.isPlaying ? Icons.pause : Icons.play_arrow),
+            )
+          : null,
     );
   }
 
