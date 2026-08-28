@@ -29,7 +29,9 @@ class MetronomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.metronomeAppBarTitle)),
       body: audioAsync.when(
-        data: (_) => _buildContent(context, state, notifier),
+        data: (service) => service.assetsLoaded
+            ? _buildContent(context, state, notifier)
+            : _buildError(context, ref, l10n),
         loading: () => _buildLoading(context, l10n),
         error: (e, st) => _buildError(context, ref, l10n),
       ),
