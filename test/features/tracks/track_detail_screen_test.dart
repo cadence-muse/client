@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
+import 'package:cadence/features/metronome/metronome_screen.dart';
 import 'package:cadence/features/tracks/edit_track_screen.dart';
 import 'package:cadence/features/tracks/track_detail_screen.dart';
 import 'package:cadence/generated/app_localizations.dart';
@@ -325,6 +326,82 @@ void main() {
       );
       expect(deleteTile.enabled, isTrue);
       expect(deleteTile.onTap, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'a track with a non-null tempo shows a metronome IconButton left of '
+    'Edit, and tapping it pushes MetronomeScreen with initialBpm equal to '
+    'that tempo (METR-02)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'id': 't1',
+            'title': 'Track',
+            'artist': 'Artist',
+            'tempo': 140,
+          }),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      final metronomeButton = tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byIcon(Icons.speed),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(
+        metronomeButton.tooltip,
+        tester.strings.trackDetailMetronomeTooltip,
+      );
+
+      // The metronome action appears before (left of) the Edit action.
+      final actionsRow = tester.widgetList<IconButton>(
+        find.byType(IconButton),
+      );
+      expect(actionsRow.first.icon, isA<Icon>());
+      final icons = actionsRow
+          .map((button) => (button.icon as Icon).icon)
+          .toList();
+      expect(icons.indexOf(Icons.speed), lessThan(icons.indexOf(Icons.edit)));
+
+      // A single pump (not pumpAndSettle) -- MetronomeScreen's own audio
+      // asset loading is out of scope here and would otherwise pull in the
+      // real audioplayers platform channel, which has no native counterpart
+      // in a widget test.
+      await tester.tap(find.byIcon(Icons.speed));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(MetronomeScreen), findsOneWidget);
+      final metronomeScreen = tester.widget<MetronomeScreen>(
+        find.byType(MetronomeScreen),
+      );
+      expect(metronomeScreen.initialBpm, 140);
+    },
+  );
+
+  testWidgets(
+    'a track with tempo == null shows no metronome icon at all (D-11)',
+    (tester) async {
+      final cacheService = CacheService.inMemory();
+      final apiClient = buildApiClient((request) async {
+        return http.Response(
+          jsonEncode({'id': 't1', 'title': 'Track', 'artist': 'Artist'}),
+          200,
+        );
+      });
+
+      await tester.pumpWidget(wrap(apiClient, cacheService));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.speed), findsNothing);
     },
   );
 }

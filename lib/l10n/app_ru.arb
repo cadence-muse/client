@@ -286,6 +286,7 @@
   "trackListEmptyDescription": "Создайте трек или попросите участника группы добавить его.",
   "trackDetailFallbackTitle": "Трек",
   "trackDetailEditTooltip": "Изменить трек",
+  "trackDetailMetronomeTooltip": "Тренироваться с метрономом",
   "trackDetailTempoLine": "Темп: {tempo} BPM",
   "@trackDetailTempoLine": {
     "placeholders": {
@@ -310,5 +311,12 @@
   "editTrackAppBarTitle": "Изменить трек",
   "tracksTabEmptyTitle": "Треков нет",
   "tracksTabEmptyDescription": "Создавайте треки в группе, чтобы они отображались здесь.",
-  "tracksTabViewBandsButton": "Перейти к группам"
+  "tracksTabViewBandsButton": "Перейти к группам",
+
+  "homeToolsHeader": "Инструменты",
+  "homeMetronomeButton": "Метроном",
+  "metronomeAppBarTitle": "Метроном",
+  "metronomeBpmUnitLabel": "BPM",
+  "metronomeLoadingMessage": "Инициализация метронома...",
+  "metronomeErrorMessage": "Не удалось загрузить метроном. Попробуйте снова."
 }

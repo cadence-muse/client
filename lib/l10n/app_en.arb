@@ -286,6 +286,7 @@
   "trackListEmptyDescription": "Create a track or ask a bandmate to add one.",
   "trackDetailFallbackTitle": "Track",
   "trackDetailEditTooltip": "Edit track",
+  "trackDetailMetronomeTooltip": "Practice with metronome",
   "trackDetailTempoLine": "Tempo: {tempo} BPM",
   "@trackDetailTempoLine": {
     "placeholders": {
@@ -310,5 +311,12 @@
   "editTrackAppBarTitle": "Edit track",
   "tracksTabEmptyTitle": "No tracks",
   "tracksTabEmptyDescription": "Create tracks in a band to see them here.",
-  "tracksTabViewBandsButton": "View bands"
+  "tracksTabViewBandsButton": "View bands",
+
+  "homeToolsHeader": "Tools",
+  "homeMetronomeButton": "Metronome",
+  "metronomeAppBarTitle": "Metronome",
+  "metronomeBpmUnitLabel": "BPM",
+  "metronomeLoadingMessage": "Initializing metronome...",
+  "metronomeErrorMessage": "Couldn't load metronome. Try again."
 }

@@ -22,6 +22,8 @@ dependencies:
     sdk: flutter
   intl: ^0.20.2
   shared_preferences: ^2.2.0
+  audioplayers: ^5.2.0
+  clock: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +31,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_secure_storage_platform_interface: ^2.0.3
   plugin_platform_interface: ^2.1.8
+  audioplayers_platform_interface: ^6.1.0
+  file: ^7.0.1
   riverpod_generator: ^2.6.5
   build_runner: ^2.5.4
   flutter_launcher_icons: ^0.14.4
@@ -43,6 +47,7 @@ flutter:
 
   assets:
     - assets/images/logo.png
+    - assets/audio/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

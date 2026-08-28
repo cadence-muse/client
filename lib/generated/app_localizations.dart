@@ -1163,6 +1163,12 @@ abstract class AppLocalizations {
   /// **'Edit track'**
   String get trackDetailEditTooltip;
 
+  /// No description provided for @trackDetailMetronomeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice with metronome'**
+  String get trackDetailMetronomeTooltip;
+
   /// No description provided for @trackDetailTempoLine.
   ///
   /// In en, this message translates to:
@@ -1216,6 +1222,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View bands'**
   String get tracksTabViewBandsButton;
+
+  /// No description provided for @homeToolsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get homeToolsHeader;
+
+  /// No description provided for @homeMetronomeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Metronome'**
+  String get homeMetronomeButton;
+
+  /// No description provided for @metronomeAppBarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Metronome'**
+  String get metronomeAppBarTitle;
+
+  /// No description provided for @metronomeBpmUnitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'BPM'**
+  String get metronomeBpmUnitLabel;
+
+  /// No description provided for @metronomeLoadingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing metronome...'**
+  String get metronomeLoadingMessage;
+
+  /// No description provided for @metronomeErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load metronome. Try again.'**
+  String get metronomeErrorMessage;
 }
 
 class _AppLocalizationsDelegate
