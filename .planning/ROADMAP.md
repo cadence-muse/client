@@ -55,7 +55,7 @@ Full detail: `.planning/milestones/v1.2-ROADMAP.md`
 - [x] **Phase 15: Carried-Over Fixes & Setlist Date Picker** - Invite-code copy works offline, stale verification gaps re-stamped, setlist dates use native picker (completed 2026-08-27)
 - [x] **Phase 16: Track Terminology Rename** - Full song→track rename across UI strings, directory, class, and ARB keys (completed 2026-08-27)
 - [x] **Phase 17: API Contract Sync** - Server-side search (GET+SearchQuery) replaces client filtering; 8-char minimum password validation (completed 2026-08-27)
-- [ ] **Phase 18: Metronome Tool** - Audio+visual metronome reachable from Homepage Tools and a track's detail screen
+- [x] **Phase 18: Metronome Tool** - Audio+visual metronome reachable from Homepage Tools and a track's detail screen (completed 2026-08-28)
 
 ## Phase Details
 
@@ -167,4 +167,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | Complete    | 2026-08-27 |
 | 16. Track Terminology Rename | v1.3 | 2/2 | Complete    | 2026-08-27 |
 | 17. API Contract Sync | v1.3 | 3/3 | Complete    | 2026-08-27 |
-| 18. Metronome Tool | v1.3 | 2/2 | In Progress|  |
+| 18. Metronome Tool | v1.3 | 2/2 | Complete    | 2026-08-28 |
