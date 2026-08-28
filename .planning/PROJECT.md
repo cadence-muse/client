@@ -73,10 +73,11 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 - ✓ Full song→track rename: `lib/features/songs/` dir moved to `lib/features/tracks/`, `homeAddSongButton` ARB key renamed to `homeAddTrackButton`, all "song"-named test fixtures renamed — zero surviving "song" references in `lib/` or `test/` except the deferred `lib/api/publicapi.yml` Songs tag (RENAME-01) — v1.3 Phase 16
 - ✓ Adopt server-side search: `ListUserTracks`/`ListUserSetlists` migrated POST+body → GET+`SearchQuery`, cross-band Tracks/Setlists tabs get real debounced online-gated search, setlist track picker renders (not discards) its `listBandTracks(searchQuery:)` server response (API-01) — v1.3 Phase 17
 - ✓ Adopt `minLength: 8` password validation scoping — `LoginScreen`'s shared validator now gates the 8-char minimum to signup mode only, fixing a client-side block on legacy-password logins; login's `/api/login` error handling also corrected to key off the real `400 invalid_input` contract response instead of a `401` the API never sends (API-02) — v1.3 Phase 17
+- ✓ Metronome tool: audio tick + visual pulse in 4/4 with accented beat 1, draggable round BPM dial plus ±1/±5 quick-adjust, reachable from Homepage "Tools" section (defaults 120 BPM) and from a track's detail screen (prefilled with that track's tempo), auto-pauses on app backgrounding (METR-01, METR-02, METR-03, METR-04) — v1.3 Phase 18
 
 ### Active
 
-- [ ] Metronome tool (audio + visual, homepage Tools section + track-prefilled entry, 4/4 only)
+_(none — all v1.3 requirements shipped)_
 
 ### Out of Scope
 
@@ -139,6 +140,8 @@ Full UI string localization (EN/RU) with live no-restart switching from Profile 
 | `ApiExceptionLocalization.localizedMessage()` as a shared extension over `ApiException`, with an `overrides` parameter for screen-specific error-code handling | 16 catch sites across Bands/Tracks/Setlists/Login needed the same known-code-to-localized-message mapping; the `overrides` mechanism let login's `already_exists` and change-password's `invalid_input` retire their bespoke handling onto the same path instead of staying special-cased (D-04) | ✓ Good — Phase 14; established pattern for any future ApiException catch site |
 | Clamp a persisted `eventDate` into the date picker's `[firstDate, lastDate]` window post-parse, rather than trusting the parsed value directly | `EditSetlistScreen`'s initial `showDatePicker` call asserts `initialDate` is in range and threw `AssertionError` for any setlist dated >5y past or >2y future (15-VERIFICATION.md Gap 1 / CR-01) | ✓ Good — Phase 15 gap-closure (15-03); same duplicated boundary math flagged again in 15-REVIEW.md (IN-01) as a future extraction candidate |
 | Branch `ApiException` handling on the `code` returned in the response body, never on a `statusCode` the spec doesn't declare for that operation | Code review (CR-01) found `LoginScreen` special-cased `statusCode == 401` for `/api/login`, but `publicapi.yml` only ever declares `200`/`400` for that operation — the branch was unreachable dead code, and its test mocked an impossible response shape, masking the real (misrouted) error message | ✓ Fixed — Phase 17 code review; login now keys off the `400` response's `invalid_input` code via `localizedMessage`'s `overrides`, matching the established pattern from I18N-05 |
+| Metronome audio players (accent/regular) initialize independently via `Future.wait()`, each wrapped in its own defensive dispose | Code review (CR-01) found the original single try/catch short-circuited the second player's init on the first player's failure, leaving its `late final AudioPlayer` unassigned — a later `dispose()` then threw an uncaught `LateInitializationError` | ✓ Fixed — Phase 18 code review; pattern for any future multi-resource async init |
+| Tick scheduling anchors to a fixed play-start time and accumulates from the previously *scheduled* tick, not the actual (possibly late) firing time | Code review (WR-02) found the original relative-to-actual-firing scheduling let real-clock jitter compound into audible drift over a long session — invisible to fake-clock tests | ✓ Fixed — Phase 18 code review; fake-clock verified, real-clock multi-minute soak still a human-verification item |
 
 ## Evolution
 
@@ -158,4 +161,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-27 after Phase 17*
+*Last updated: 2026-08-28 after Phase 18*

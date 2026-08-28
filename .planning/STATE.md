@@ -21,10 +21,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-27)
+See: .planning/PROJECT.md (updated 2026-08-28)
 
 **Core value:** A band member can open the app without signal — at a venue, in a basement, on tour — and still see their band's tracks and the setlist for tonight's show.
-**Current focus:** Phase 18 — Metronome Tool
+**Current focus:** v1.3 Quality of Life — milestone complete, ready to close out
 
 ## Current Position
 
@@ -33,7 +33,7 @@ Plan: Not started
 Status: All phases complete
 Last activity: 2026-08-28 — Phase 18 complete
 
-Progress: [████████░░] 75%
+Progress: [████████████████████] 10/10 plans (100%)
 
 ## Performance Metrics
 
@@ -123,6 +123,10 @@ Recent decisions affecting current work:
 - [Phase 17]: `listUserTracks`/`listUserSetlists` migrated POST+body → GET+`SearchQuery` query params, mirroring `listBandTracks`; cross-band Tracks/Setlists tabs gained real debounced (300ms), online-gated server search with offline substring fallback unchanged.
 - [Phase 17]: `AddSetlistTracksDialog`'s debounced online search response is now rendered (`_serverSearchResults` state), not discarded — same "capture into nullable state, consume in build()" pattern now used by all three debounced-search call sites.
 - [Phase 17 code review, CR-01 fixed]: `LoginScreen`'s error handling branched on `statusCode == 401` for `/api/login`, but the contract only ever returns `400` — dead code, masked by a test mocking an impossible response. Fixed to key off the `400` response's `invalid_input` code via `localizedMessage`'s `overrides`, scoped separately from `register()`'s own `already_exists` override so a signup-time `invalid_input` isn't mislabeled "Invalid credentials".
+- [Phase 18]: Metronome playback uses `clock.stopwatch()` (`package:clock`) instead of a bare `Stopwatch()` so fake-clock tests can drive beat cycling deterministically; app-lifecycle listener auto-pauses playback on backgrounding (PROHIBIT-BG-AUDIO).
+- [Phase 18]: BPM dial angle math and quick-adjust buttons both route through the same single `setBpm` clamp choke point (`[40,300]`) — no parallel validation paths.
+- [Phase 18 code review, CR-01/CR-02/CR-03 fixed]: audio players now initialize independently (`Future.wait`) with defensive dispose; asset-load failure surfaces through the screen's existing error/retry UI via `service.assetsLoaded`; Play FAB gated on `audioAsync.hasValue` so it's untappable during the loading window.
+- [Phase 18 code review, WR-02 fixed]: tick scheduling anchors to play-start and accumulates from the previously *scheduled* tick (not actual firing time) to prevent real-clock drift over long sessions — fake-clock verified; real-clock multi-minute soak flagged as a human-verification item, not re-tested automatically.
 
 ### Pending Todos
 
@@ -136,6 +140,7 @@ None yet.
 - [Phase 17 review, non-blocking] Debounced search in `tracks_screen.dart`/`setlists_screen.dart`/`add_setlist_tracks_dialog.dart` cancels the debounce timer but not the in-flight request — an out-of-order slow response can overwrite a fresher one (17-REVIEW.md WR-01).
 - [Phase 17 review, non-blocking] Setlists tab search field reuses `addSetlistTracksSearchHint` ("Search by title or artist"), but setlists only have a `name` field to match against (17-REVIEW.md WR-02).
 - [Phase 17 review, non-blocking] `LoginScreen._submit()` has no generic fallback for non-`ApiException` failures (raw network errors), unlike the sibling `add_setlist_tracks_dialog.dart` changed the same phase (17-REVIEW.md WR-03).
+- [Phase 18, human-verification needed] Tick-scheduling anti-drift fix (WR-02) is fake-clock verified only; real-clock jitter behavior should be manually checked on a real device over a 5+ minute play session at a fixed BPM.
 
 ### Quick Tasks Completed
 
@@ -166,10 +171,10 @@ Items acknowledged and deferred at milestone close on 2026-08-17:
 
 ## Session Continuity
 
-Last session: 2026-08-27T20:04:13.503Z
-Stopped at: Phase 18 complete — all phases complete
-Resume file: /home/bulat.khafizov/projects/personal/cadence/client/.planning/phases/18-metronome-tool/18-UI-SPEC.md
+Last session: 2026-08-28T07:15:00.000Z
+Stopped at: Phase 18 complete, milestone v1.3 Quality of Life 100% complete
+Resume file: None
 
 ## Operator Next Steps
 
-- Plan Phase 18 with `/gsd-plan-phase 18`
+- Complete milestone v1.3 with `/gsd-complete-milestone v1.3`
