@@ -286,6 +286,7 @@
   "trackListEmptyDescription": "Create a track or ask a bandmate to add one.",
   "trackDetailFallbackTitle": "Track",
   "trackDetailEditTooltip": "Edit track",
+  "trackDetailMetronomeTooltip": "Practice with metronome",
   "trackDetailTempoLine": "Tempo: {tempo} BPM",
   "@trackDetailTempoLine": {
     "placeholders": {

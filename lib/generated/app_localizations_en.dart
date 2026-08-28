@@ -615,6 +615,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackDetailEditTooltip => 'Edit track';
 
   @override
+  String get trackDetailMetronomeTooltip => 'Practice with metronome';
+
+  @override
   String trackDetailTempoLine(int tempo) {
     return 'Tempo: $tempo BPM';
   }

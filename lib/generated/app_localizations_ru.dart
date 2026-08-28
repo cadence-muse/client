@@ -627,6 +627,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get trackDetailEditTooltip => 'Изменить трек';
 
   @override
+  String get trackDetailMetronomeTooltip => 'Тренироваться с метрономом';
+
+  @override
   String trackDetailTempoLine(int tempo) {
     return 'Темп: $tempo BPM';
   }

@@ -6,6 +6,7 @@ import '../../providers/connectivity_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../providers/tracks_provider.dart';
 import '../../widgets/offline_no_cache_view.dart';
+import '../metronome/metronome_screen.dart';
 import 'confirm_delete_track_dialog.dart';
 import 'edit_track_screen.dart';
 import 'track_formatting.dart';
@@ -26,12 +27,28 @@ class TrackDetailScreen extends ConsumerWidget {
     final isOnline = ref.watch(isOnlineProvider);
     final title = trackAsync.valueOrNull?['title'] as String?;
     final currentTrack = trackAsync.valueOrNull;
+    // METR-02/D-11: a separate read from _buildContent's own local `tempo`
+    // (which operates on a different, definitely-non-null `track` map
+    // argument) -- both reads are independently valid.
+    final tempo = trackAsync.valueOrNull?['tempo'] as int?;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(title ?? l10n.trackDetailFallbackTitle),
         actions: [
+          // D-11: absent entirely (not disabled) when the track has no
+          // tempo set -- gated purely on `tempo != null`.
+          if (currentTrack != null && tempo != null)
+            IconButton(
+              icon: const Icon(Icons.speed),
+              tooltip: l10n.trackDetailMetronomeTooltip,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => MetronomeScreen(initialBpm: tempo),
+                ),
+              ),
+            ),
           if (currentTrack != null)
             IconButton(
               icon: const Icon(Icons.edit),

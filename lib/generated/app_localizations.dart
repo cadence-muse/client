@@ -1163,6 +1163,12 @@ abstract class AppLocalizations {
   /// **'Edit track'**
   String get trackDetailEditTooltip;
 
+  /// No description provided for @trackDetailMetronomeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Practice with metronome'**
+  String get trackDetailMetronomeTooltip;
+
   /// No description provided for @trackDetailTempoLine.
   ///
   /// In en, this message translates to:
