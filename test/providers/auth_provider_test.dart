@@ -282,8 +282,9 @@ void main() {
           (ref) => ApiClient(
             baseUrl: 'http://localhost',
             getToken: () => ref.read(authSessionProvider).value,
-            onUnauthorized: () =>
-                ref.read(authSessionProvider.notifier).signOut(),
+            onUnauthorized: () => ref
+                .read(authSessionProvider.notifier)
+                .signOut(sessionExpired: true),
             httpClient: MockClient(
               apiHandler ?? (request) async => http.Response('', 200),
             ),
@@ -426,6 +427,68 @@ void main() {
 
         final prefs = await SharedPreferences.getInstance();
         expect(prefs.getString('app_locale'), 'ru');
+      },
+    );
+
+    test(
+      'consumeSessionExpired() returns true exactly once after '
+      'signOut(sessionExpired: true), then false on a second call',
+      () async {
+        final container = buildContainer();
+        await container.read(authSessionProvider.future);
+        await container.read(authSessionProvider.notifier).signIn('token');
+
+        await container
+            .read(authSessionProvider.notifier)
+            .signOut(sessionExpired: true);
+
+        final notifier = container.read(authSessionProvider.notifier);
+        expect(notifier.consumeSessionExpired(), isTrue);
+        expect(notifier.consumeSessionExpired(), isFalse);
+      },
+    );
+
+    test(
+      'consumeSessionExpired() returns false after a manual signOut() '
+      '(default sessionExpired: false)',
+      () async {
+        final container = buildContainer();
+        await container.read(authSessionProvider.future);
+        await container.read(authSessionProvider.notifier).signIn('token');
+
+        await container.read(authSessionProvider.notifier).signOut();
+
+        expect(
+          container.read(authSessionProvider.notifier).consumeSessionExpired(),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'signOut(sessionExpired: true) completes exactly once (no unbounded '
+      'recursion) when the logout call itself gets a 401, and '
+      'consumeSessionExpired() still ends up true',
+      () async {
+        final fakeCacheService = _FakeCacheService();
+        final container = buildContainer(
+          fakeCacheService: fakeCacheService,
+          apiHandler: (request) async => http.Response('', 401),
+        );
+        await container.read(authSessionProvider.future);
+        await container.read(authSessionProvider.notifier).signIn('new-token');
+
+        await container
+            .read(authSessionProvider.notifier)
+            .signOut(sessionExpired: true);
+
+        expect(container.read(authSessionProvider).value, isNull);
+        expect(await TokenStorage().read(), isNull);
+        expect(fakeCacheService.clearAllCallCount, 1);
+        expect(
+          container.read(authSessionProvider.notifier).consumeSessionExpired(),
+          isTrue,
+        );
       },
     );
   });
