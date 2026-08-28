@@ -171,3 +171,13 @@ Phase 18 (Metronome Tool) is complete after this plan: METR-01 through METR-04 a
 ---
 *Phase: 18-metronome-tool*
 *Completed: 2026-08-28*
+
+## Self-Check: PASSED
+
+- FOUND: lib/features/metronome/metronome_dial.dart
+- FOUND: test/features/metronome/metronome_dial_test.dart
+- FOUND: test/features/metronome/metronome_screen_test.dart
+- FOUND: .planning/phases/18-metronome-tool/18-02-SUMMARY.md
+- FOUND commit: 3586d05 (Task 1)
+- FOUND commit: 79c4585 (Task 2)
+- FOUND commit: efe5280 (plan metadata)
