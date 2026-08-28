@@ -15,9 +15,8 @@ TokenStorage tokenStorage(TokenStorageRef ref) => TokenStorage();
 ApiClient apiClient(ApiClientRef ref) => ApiClient(
   baseUrl: AppConfig.apiBaseUrl,
   getToken: () => ref.read(authSessionProvider).value,
-  onUnauthorized: () => ref
-      .read(authSessionProvider.notifier)
-      .signOut(sessionExpired: true),
+  onUnauthorized: () =>
+      ref.read(authSessionProvider.notifier).signOut(sessionExpired: true),
 );
 
 @riverpod

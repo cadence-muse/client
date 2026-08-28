@@ -78,38 +78,32 @@ void main() {
     );
   }
 
-  testWidgets(
-    'registering with an already-taken username still shows the '
-    'loginUsernameTakenError override, not the generic already_exists '
-    'message',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        if (request.url.path == '/api/register') {
-          return http.Response(
-            jsonEncode({'code': 'already_exists', 'message': 'raw'}),
-            400,
-          );
-        }
-        return http.Response('', 200);
-      });
+  testWidgets('registering with an already-taken username still shows the '
+      'loginUsernameTakenError override, not the generic already_exists '
+      'message', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/register') {
+        return http.Response(
+          jsonEncode({'code': 'already_exists', 'message': 'raw'}),
+          400,
+        );
+      }
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await tester.tap(
-        find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
-      );
-      await tester.pump();
-      await fillCredentials(tester);
-      await tester.tap(
-        find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(wrap(apiClient));
+    await tester.tap(
+      find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
+    );
+    await tester.pump();
+    await fillCredentials(tester);
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text(tester.strings.loginUsernameTakenError),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(find.text(tester.strings.loginUsernameTakenError), findsOneWidget);
+  });
 
   testWidgets(
     'registering and hitting a different known code (not_found) now shows '
@@ -140,34 +134,31 @@ void main() {
     },
   );
 
-  testWidgets(
-    'logging in with wrong credentials (400 invalid_input, per '
-    'publicapi.yml -- /api/login never returns 401) shows '
-    'loginInvalidCredentialsError',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        if (request.url.path == '/api/login') {
-          return http.Response(
-            jsonEncode({'code': 'invalid_input', 'message': 'bad login'}),
-            400,
-          );
-        }
-        return http.Response('', 200);
-      });
+  testWidgets('logging in with wrong credentials (400 invalid_input, per '
+      'publicapi.yml -- /api/login never returns 401) shows '
+      'loginInvalidCredentialsError', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/login') {
+        return http.Response(
+          jsonEncode({'code': 'invalid_input', 'message': 'bad login'}),
+          400,
+        );
+      }
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await fillCredentials(tester);
-      await tester.tap(
-        find.widgetWithText(FilledButton, tester.strings.loginLogInButton),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(wrap(apiClient));
+    await fillCredentials(tester);
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.loginLogInButton),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text(tester.strings.loginInvalidCredentialsError),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(
+      find.text(tester.strings.loginInvalidCredentialsError),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'logging in with a short (7-char) but non-empty password reaches the '
@@ -220,28 +211,27 @@ void main() {
     },
   );
 
-  testWidgets(
-    'signing up with a short (7-char) password still shows '
-    'commonAtLeast8Chars (D-04 must not relax signup enforcement)',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        return http.Response('', 200);
-      });
+  testWidgets('signing up with a short (7-char) password still shows '
+      'commonAtLeast8Chars (D-04 must not relax signup enforcement)', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await tester.tap(
-        find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
-      );
-      await tester.pump();
-      await fillCredentials(tester, password: 'short12');
-      await tester.tap(
-        find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
-      );
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient));
+    await tester.tap(
+      find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
+    );
+    await tester.pump();
+    await fillCredentials(tester, password: 'short12');
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
+    );
+    await tester.pump();
 
-      expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
-    },
-  );
+    expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
+  });
 
   testWidgets(
     'signing up with an empty password shows commonAtLeast8Chars, not '

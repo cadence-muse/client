@@ -24,6 +24,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    final sessionExpired = ref
+        .read(authSessionProvider.notifier)
+        .consumeSessionExpired();
+    if (sessionExpired) {
+      // A post-frame callback is required because initState() runs before
+      // this widget's own Scaffold (built by build()) and its
+      // MaterialApp-provided ScaffoldMessenger ancestor are attached to the
+      // tree.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.loginSessionExpiredSnackbar)),
+        );
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();

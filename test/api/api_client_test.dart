@@ -32,11 +32,7 @@ void main() {
       await expectLater(
         () => client.send('GET', '/api/example'),
         throwsA(
-          isA<ApiException>().having(
-            (e) => e.statusCode,
-            'statusCode',
-            401,
-          ),
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 401),
         ),
       );
       expect(onUnauthorizedCallCount, 1);
@@ -58,11 +54,7 @@ void main() {
       await expectLater(
         () => client.send('GET', '/api/example'),
         throwsA(
-          isA<ApiException>().having(
-            (e) => e.statusCode,
-            'statusCode',
-            403,
-          ),
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 403),
         ),
       );
       expect(onUnauthorizedCallCount, 1);
@@ -84,11 +76,7 @@ void main() {
       await expectLater(
         () => client.send('GET', '/api/example'),
         throwsA(
-          isA<ApiException>().having(
-            (e) => e.statusCode,
-            'statusCode',
-            400,
-          ),
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 400),
         ),
       );
       expect(onUnauthorizedCallCount, 0);
