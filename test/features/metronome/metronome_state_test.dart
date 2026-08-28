@@ -18,6 +18,30 @@ class FakeTickSoundPlayer implements TickSoundPlayer {
   Future<void> dispose() async {}
 }
 
+/// Spy [TickSoundPlayer] double -- records which sound was played (by
+/// [label]) into a shared [calls] list, letting a test assert the exact
+/// accent/regular call sequence produced by the real
+/// `MetronomeState` -> `MetronomeAudioService` -> `TickSoundPlayer.play()`
+/// chain, rather than reimplementing the beat-counting logic separately.
+class SpyTickSoundPlayer implements TickSoundPlayer {
+  SpyTickSoundPlayer(this.calls, this.label);
+
+  final List<String> calls;
+  final String label;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<void> play() {
+    calls.add(label);
+    return Future.value();
+  }
+
+  @override
+  Future<void> dispose() async {}
+}
+
 void main() {
   /// Every test builds its own [ProviderContainer] with
   /// [metronomeAudioServiceProvider] overridden to a fake-backed service --
@@ -148,6 +172,48 @@ void main() {
       await tester.pump();
 
       expect(container.read(metronomeStateProvider(120)).isPlaying, isFalse);
+    },
+  );
+
+  testWidgets(
+    'plays exactly 1 accent + 3 secondary ticks per 4/4 bar, not 5 '
+    '(regression)',
+    (tester) async {
+      final calls = <String>[];
+      final container = ProviderContainer(
+        overrides: [
+          metronomeAudioServiceProvider.overrideWith((ref) async {
+            final service = MetronomeAudioService(
+              accentPlayer: SpyTickSoundPlayer(calls, 'accent'),
+              regularPlayer: SpyTickSoundPlayer(calls, 'regular'),
+            );
+            await service.initialize();
+            return service;
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+      keepAlive(container, 120);
+      container.listen(metronomeAudioServiceProvider, (_, _) {});
+      await container.read(metronomeAudioServiceProvider.future);
+
+      container.read(metronomeStateProvider(120).notifier).togglePlay();
+
+      // 500ms/tick at 120 BPM -- 12 ticks covers exactly 3 full 4/4 bars.
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+
+      // Stop playback before the test ends -- otherwise the beat Timer is
+      // still running when flutter_test's teardown checks for pending
+      // timers.
+      container.read(metronomeStateProvider(120).notifier).togglePlay();
+
+      expect(calls, [
+        'accent', 'regular', 'regular', 'regular', //
+        'accent', 'regular', 'regular', 'regular', //
+        'accent', 'regular', 'regular', 'regular', //
+      ]);
     },
   );
 }
