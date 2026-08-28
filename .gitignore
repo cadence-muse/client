@@ -1,6 +1,8 @@
 /.idea/
 /.vscode/
 
+/.gsd/
+
 # Local dart-define config (copy env/config.example.json -> env/config.json)
 /env/config.json
 
