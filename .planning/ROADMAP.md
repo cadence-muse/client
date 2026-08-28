@@ -136,6 +136,10 @@ Plans:
   4. User can adjust tempo via a large round tempo selector, plus ±1 and ±5 quick-adjust buttons
 
 **Plans**: TBD
+
+- [x] 18-01-PLAN.md
+- [ ] 18-02-PLAN.md
+
 **UI hint**: yes
 
 ## Progress
@@ -163,4 +167,4 @@ Phases execute in numeric order: 15 → 16 → 17 → 18
 | 15. Carried-Over Fixes & Setlist Date Picker | v1.3 | 3/3 | Complete    | 2026-08-27 |
 | 16. Track Terminology Rename | v1.3 | 2/2 | Complete    | 2026-08-27 |
 | 17. API Contract Sync | v1.3 | 3/3 | Complete    | 2026-08-27 |
-| 18. Metronome Tool | v1.3 | 0/TBD | Not started | - |
+| 18. Metronome Tool | v1.3 | 1/2 | In Progress|  |
