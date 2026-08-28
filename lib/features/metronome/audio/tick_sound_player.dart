@@ -29,10 +29,19 @@ class AudioPlayersTickSoundPlayer implements TickSoundPlayer {
 
   late final AudioPlayer _player;
 
+  /// On web, the default [ReleaseMode.release] tears down and recreates the
+  /// underlying `<audio>` element (`audioplayers_web`'s `WrappedPlayer`)
+  /// after every completed tick -- an unawaited async reload before the next
+  /// `play()`/`resume()` -- producing an extra perceived click / timing lag.
+  /// [ReleaseMode.stop] keeps the buffered element intact across repeated
+  /// retriggers instead, matching this metronome's rapid-retrigger use case,
+  /// and is a no-op-safe config on native platforms (SoundPool/AVAudioPlayer
+  /// via [PlayerMode.lowLatency] don't hit this teardown path).
   @override
   Future<void> initialize() async {
     _player = AudioPlayer();
     await _player.setPlayerMode(PlayerMode.lowLatency);
+    await _player.setReleaseMode(ReleaseMode.stop);
     await _player.setSource(AssetSource(_assetPath));
   }
 
