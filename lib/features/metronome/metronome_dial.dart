@@ -119,9 +119,12 @@ class MetronomeDial extends StatelessWidget {
       final dx = localPosition.dx - diameter / 2;
       final dy = localPosition.dy - diameter / 2;
       final angleRadians = math.atan2(dy, dx);
+      // atan2 returns (-pi, pi], so after "+ 90" degrees ranges over
+      // (-90, 270]. This fold is enough to normalize into (-180, 180] with
+      // no gap -- degrees can never be <= -180 afterward, so no second
+      // correction branch is needed.
       var degrees = angleRadians * 180 / math.pi + 90;
       if (degrees > 180) degrees -= 360;
-      if (degrees <= -180) degrees += 360;
       onBpmChanged(angleToBpm(degrees));
     }
 
