@@ -48,6 +48,7 @@ class MetronomeState extends _$MetronomeState {
   Timer? _checkTimer;
   Stopwatch? _stopwatch;
   int _nextTickDueMs = 0;
+  bool _firstTickScheduled = false;
   late final AppLifecycleListener _lifecycleListener;
 
   @override
@@ -97,6 +98,7 @@ class MetronomeState extends _$MetronomeState {
       _stopwatch = clock.stopwatch()..start();
       // Fires the first tick almost immediately.
       _nextTickDueMs = 0;
+      _firstTickScheduled = false;
       _checkTimer = Timer.periodic(
         const Duration(milliseconds: 10),
         (_) => _maybeTick(),
@@ -125,10 +127,22 @@ class MetronomeState extends _$MetronomeState {
             Future.value(),
       );
       state = state.copyWith(currentBeat: (state.currentBeat + 1) % 4);
-      // Scheduling the next tick relative to right now (not a fixed
-      // bar-start offset) is what makes D-04's "tempo changes take effect
-      // immediately on the next tick" true.
-      _nextTickDueMs = _stopwatch!.elapsedMilliseconds + intervalMs;
+      if (!_firstTickScheduled) {
+        // The very first tick of a play session is deliberately fired
+        // almost immediately (_nextTickDueMs starts at 0) so Play gives
+        // instant feedback. Anchor the schedule to *this* tick's actual
+        // fire time once, then always advance from the previous *scheduled*
+        // due time (not the actual, possibly-late, elapsed time) below --
+        // otherwise an occasionally-late 10ms poll would push every
+        // subsequent tick later too, compounding drift over a long session.
+        // intervalMs is still read fresh from state.bpm above, so D-04's
+        // "tempo changes take effect immediately on the next tick" still
+        // holds.
+        _firstTickScheduled = true;
+        _nextTickDueMs = _stopwatch!.elapsedMilliseconds + intervalMs;
+      } else {
+        _nextTickDueMs += intervalMs;
+      }
     }
   }
 }
