@@ -5,13 +5,15 @@ import '../../generated/app_localizations.dart';
 import '../../providers/metronome_provider.dart';
 import 'audio/metronome_audio_service.dart';
 import 'beat_indicator.dart';
+import 'metronome_dial.dart';
 
-/// The metronome screen (METR-01/METR-02/METR-03). [initialBpm] seeds the
-/// [metronomeStateProvider] family -- 120 from the Homepage entry point
-/// (D-08 default) or a track's own tempo from the Track Detail entry point
-/// (METR-02). This plan's BPM display is a plain [Text] pair, an explicit
-/// stub for Plan 18-02's drag-to-BPM dial (D-05) -- no architectural change
-/// needed to swap it in later.
+/// The metronome screen (METR-01/METR-02/METR-03/METR-04). [initialBpm]
+/// seeds the [metronomeStateProvider] family -- 120 from the Homepage entry
+/// point (D-08 default) or a track's own tempo from the Track Detail entry
+/// point (METR-02). BPM display/adjustment is the large round drag-to-set
+/// [MetronomeDial] (D-05/D-06/D-07), replacing Plan 18-01's plain BPM `Text`
+/// stub -- a widget swap only, no architectural change to this screen, the
+/// provider, or the audio layer.
 class MetronomeScreen extends ConsumerWidget {
   const MetronomeScreen({super.key, required this.initialBpm});
 
@@ -27,7 +29,7 @@ class MetronomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.metronomeAppBarTitle)),
       body: audioAsync.when(
-        data: (_) => _buildContent(context, state),
+        data: (_) => _buildContent(context, state, notifier),
         loading: () => _buildLoading(context, l10n),
         error: (e, st) => _buildError(context, ref, l10n),
       ),
@@ -38,20 +40,17 @@ class MetronomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, MetronomeData state) {
+  Widget _buildContent(
+    BuildContext context,
+    MetronomeData state,
+    MetronomeState notifier,
+  ) {
     return Center(
       child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '${state.bpm}',
-              style: Theme.of(context).textTheme.headlineLarge,
-            ),
-            Text(
-              AppLocalizations.of(context)!.metronomeBpmUnitLabel,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            MetronomeDial(bpm: state.bpm, onBpmChanged: notifier.setBpm),
             const SizedBox(height: 32),
             BeatIndicator(
               currentBeat: state.currentBeat,
