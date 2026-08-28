@@ -7,6 +7,7 @@ import '../../providers/navigation_provider.dart';
 import '../../providers/offline_no_cache_exception.dart';
 import '../../widgets/offline_no_cache_view.dart';
 import '../bands/create_band_screen.dart';
+import '../metronome/metronome_screen.dart';
 import 'band_picker_sheet.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -150,6 +151,29 @@ class HomeScreen extends ConsumerWidget {
                       : null,
                   icon: const Icon(Icons.playlist_add),
                   label: Text(l10n.homeAddSetlistButton),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            // METR-01: "Tools" section, always reachable regardless of
+            // bandsCount -- the metronome is not band-scoped.
+            Text(
+              l10n.homeToolsHeader,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const MetronomeScreen(initialBpm: 120),
+                    ),
+                  ),
+                  icon: const Icon(Icons.speed),
+                  label: Text(l10n.homeMetronomeButton),
                 ),
               ],
             ),

@@ -647,4 +647,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tracksTabViewBandsButton => 'View bands';
+
+  @override
+  String get homeToolsHeader => 'Tools';
+
+  @override
+  String get homeMetronomeButton => 'Metronome';
+
+  @override
+  String get metronomeAppBarTitle => 'Metronome';
+
+  @override
+  String get metronomeBpmUnitLabel => 'BPM';
+
+  @override
+  String get metronomeLoadingMessage => 'Initializing metronome...';
+
+  @override
+  String get metronomeErrorMessage => 'Couldn\'t load metronome. Try again.';
 }

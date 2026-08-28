@@ -659,4 +659,23 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get tracksTabViewBandsButton => 'Перейти к группам';
+
+  @override
+  String get homeToolsHeader => 'Инструменты';
+
+  @override
+  String get homeMetronomeButton => 'Метроном';
+
+  @override
+  String get metronomeAppBarTitle => 'Метроном';
+
+  @override
+  String get metronomeBpmUnitLabel => 'BPM';
+
+  @override
+  String get metronomeLoadingMessage => 'Инициализация метронома...';
+
+  @override
+  String get metronomeErrorMessage =>
+      'Не удалось загрузить метроном. Попробуйте снова.';
 }
