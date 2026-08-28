@@ -79,9 +79,8 @@ class _FakeCacheService implements CacheService {
   bool get clearAllCalled => clearAllCallCount > 0;
 
   @override
-  Future<Map<String, dynamic>?> readProfile() async => _profile.isEmpty
-      ? null
-      : Map<String, dynamic>.from(_profile);
+  Future<Map<String, dynamic>?> readProfile() async =>
+      _profile.isEmpty ? null : Map<String, dynamic>.from(_profile);
 
   @override
   Future<bool> writeProfile(Map<String, dynamic> data) async {
@@ -92,9 +91,8 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
-  Future<Map<String, dynamic>?> readHomepage() async => _homepage.isEmpty
-      ? null
-      : Map<String, dynamic>.from(_homepage);
+  Future<Map<String, dynamic>?> readHomepage() async =>
+      _homepage.isEmpty ? null : Map<String, dynamic>.from(_homepage);
 
   @override
   Future<bool> writeHomepage(Map<String, dynamic> data) async {
@@ -105,9 +103,8 @@ class _FakeCacheService implements CacheService {
   }
 
   @override
-  Future<List<Map<String, dynamic>>?> readBands() async => _bands == null
-      ? null
-      : List<Map<String, dynamic>>.from(_bands!);
+  Future<List<Map<String, dynamic>>?> readBands() async =>
+      _bands == null ? null : List<Map<String, dynamic>>.from(_bands!);
 
   @override
   Future<bool> writeBands(List<Map<String, dynamic>> data) async {
@@ -118,14 +115,11 @@ class _FakeCacheService implements CacheService {
   @override
   Future<Map<String, dynamic>?> readBandDetail(String bandId) async =>
       _bandDetails.containsKey(bandId)
-          ? Map<String, dynamic>.from(_bandDetails[bandId]!)
-          : null;
+      ? Map<String, dynamic>.from(_bandDetails[bandId]!)
+      : null;
 
   @override
-  Future<bool> writeBandDetail(
-    String bandId,
-    Map<String, dynamic> data,
-  ) async {
+  Future<bool> writeBandDetail(String bandId, Map<String, dynamic> data) async {
     _bandDetails[bandId] = Map<String, dynamic>.from(data);
     return true;
   }
@@ -133,8 +127,8 @@ class _FakeCacheService implements CacheService {
   @override
   Future<List<Map<String, dynamic>>?> readBandTracks(String bandId) async =>
       _bandTracks.containsKey(bandId)
-          ? List<Map<String, dynamic>>.from(_bandTracks[bandId]!)
-          : null;
+      ? List<Map<String, dynamic>>.from(_bandTracks[bandId]!)
+      : null;
 
   @override
   Future<bool> writeBandTracks(
@@ -189,8 +183,8 @@ class _FakeCacheService implements CacheService {
   @override
   Future<List<Map<String, dynamic>>?> readBandSetlists(String bandId) async =>
       _bandSetlists.containsKey(bandId)
-          ? List<Map<String, dynamic>>.from(_bandSetlists[bandId]!)
-          : null;
+      ? List<Map<String, dynamic>>.from(_bandSetlists[bandId]!)
+      : null;
 
   @override
   Future<bool> writeBandSetlists(
@@ -282,8 +276,9 @@ void main() {
           (ref) => ApiClient(
             baseUrl: 'http://localhost',
             getToken: () => ref.read(authSessionProvider).value,
-            onUnauthorized: () =>
-                ref.read(authSessionProvider.notifier).signOut(),
+            onUnauthorized: () => ref
+                .read(authSessionProvider.notifier)
+                .signOut(sessionExpired: true),
             httpClient: MockClient(
               apiHandler ?? (request) async => http.Response('', 200),
             ),
@@ -323,9 +318,7 @@ void main() {
         final container = buildContainer();
         await container.read(authSessionProvider.future);
 
-        await container
-            .read(authSessionProvider.notifier)
-            .signIn('new-token');
+        await container.read(authSessionProvider.notifier).signIn('new-token');
 
         expect(container.read(authSessionProvider).value, 'new-token');
         expect(await TokenStorage().read(), 'new-token');
@@ -372,47 +365,41 @@ void main() {
       },
     );
 
-    test(
-      'signOut() completes local sign-out even when the logout network call '
-      'throws (offline/unreachable backend)',
-      () async {
-        final fakeCacheService = _FakeCacheService();
-        final container = buildContainer(
-          fakeCacheService: fakeCacheService,
-          apiHandler: (request) async =>
-              throw const SocketException('no network'),
-        );
-        await container.read(authSessionProvider.future);
-        await container.read(authSessionProvider.notifier).signIn('new-token');
+    test('signOut() completes local sign-out even when the logout network call '
+        'throws (offline/unreachable backend)', () async {
+      final fakeCacheService = _FakeCacheService();
+      final container = buildContainer(
+        fakeCacheService: fakeCacheService,
+        apiHandler: (request) async =>
+            throw const SocketException('no network'),
+      );
+      await container.read(authSessionProvider.future);
+      await container.read(authSessionProvider.notifier).signIn('new-token');
 
-        await container.read(authSessionProvider.notifier).signOut();
+      await container.read(authSessionProvider.notifier).signOut();
 
-        expect(container.read(authSessionProvider).value, isNull);
-        expect(await TokenStorage().read(), isNull);
-        expect(fakeCacheService.clearAllCallCount, 1);
-      },
-    );
+      expect(container.read(authSessionProvider).value, isNull);
+      expect(await TokenStorage().read(), isNull);
+      expect(fakeCacheService.clearAllCallCount, 1);
+    });
 
-    test(
-      'signOut() completes exactly once (no unbounded recursion) when the '
-      'logout call itself gets a 403, which triggers onUnauthorized -> '
-      'signOut() from inside the in-flight logout call',
-      () async {
-        final fakeCacheService = _FakeCacheService();
-        final container = buildContainer(
-          fakeCacheService: fakeCacheService,
-          apiHandler: (request) async => http.Response('', 403),
-        );
-        await container.read(authSessionProvider.future);
-        await container.read(authSessionProvider.notifier).signIn('new-token');
+    test('signOut() completes exactly once (no unbounded recursion) when the '
+        'logout call itself gets a 403, which triggers onUnauthorized -> '
+        'signOut() from inside the in-flight logout call', () async {
+      final fakeCacheService = _FakeCacheService();
+      final container = buildContainer(
+        fakeCacheService: fakeCacheService,
+        apiHandler: (request) async => http.Response('', 403),
+      );
+      await container.read(authSessionProvider.future);
+      await container.read(authSessionProvider.notifier).signIn('new-token');
 
-        await container.read(authSessionProvider.notifier).signOut();
+      await container.read(authSessionProvider.notifier).signOut();
 
-        expect(container.read(authSessionProvider).value, isNull);
-        expect(await TokenStorage().read(), isNull);
-        expect(fakeCacheService.clearAllCallCount, 1);
-      },
-    );
+      expect(container.read(authSessionProvider).value, isNull);
+      expect(await TokenStorage().read(), isNull);
+      expect(fakeCacheService.clearAllCallCount, 1);
+    });
 
     test(
       'signOut() does not clear the app_locale SharedPreferences key (D-04)',
@@ -428,6 +415,59 @@ void main() {
         expect(prefs.getString('app_locale'), 'ru');
       },
     );
+
+    test('consumeSessionExpired() returns true exactly once after '
+        'signOut(sessionExpired: true), then false on a second call', () async {
+      final container = buildContainer();
+      await container.read(authSessionProvider.future);
+      await container.read(authSessionProvider.notifier).signIn('token');
+
+      await container
+          .read(authSessionProvider.notifier)
+          .signOut(sessionExpired: true);
+
+      final notifier = container.read(authSessionProvider.notifier);
+      expect(notifier.consumeSessionExpired(), isTrue);
+      expect(notifier.consumeSessionExpired(), isFalse);
+    });
+
+    test('consumeSessionExpired() returns false after a manual signOut() '
+        '(default sessionExpired: false)', () async {
+      final container = buildContainer();
+      await container.read(authSessionProvider.future);
+      await container.read(authSessionProvider.notifier).signIn('token');
+
+      await container.read(authSessionProvider.notifier).signOut();
+
+      expect(
+        container.read(authSessionProvider.notifier).consumeSessionExpired(),
+        isFalse,
+      );
+    });
+
+    test('signOut(sessionExpired: true) completes exactly once (no unbounded '
+        'recursion) when the logout call itself gets a 401, and '
+        'consumeSessionExpired() still ends up true', () async {
+      final fakeCacheService = _FakeCacheService();
+      final container = buildContainer(
+        fakeCacheService: fakeCacheService,
+        apiHandler: (request) async => http.Response('', 401),
+      );
+      await container.read(authSessionProvider.future);
+      await container.read(authSessionProvider.notifier).signIn('new-token');
+
+      await container
+          .read(authSessionProvider.notifier)
+          .signOut(sessionExpired: true);
+
+      expect(container.read(authSessionProvider).value, isNull);
+      expect(await TokenStorage().read(), isNull);
+      expect(fakeCacheService.clearAllCallCount, 1);
+      expect(
+        container.read(authSessionProvider.notifier).consumeSessionExpired(),
+        isTrue,
+      );
+    });
   });
 
   test(

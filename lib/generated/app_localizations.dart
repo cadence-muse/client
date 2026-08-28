@@ -344,6 +344,12 @@ abstract class AppLocalizations {
   /// **'Invalid credentials'**
   String get loginInvalidCredentialsError;
 
+  /// No description provided for @loginSessionExpiredSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Session expired'**
+  String get loginSessionExpiredSnackbar;
+
   /// No description provided for @commonCancel.
   ///
   /// In en, this message translates to:

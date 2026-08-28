@@ -14,6 +14,23 @@ import 'package:http/testing.dart';
 
 import '../../test_strings.dart';
 
+/// Test-only [AuthSession] double that never touches real `TokenStorage`/
+/// secure-storage plumbing (`build()` always resolves to `null`) and whose
+/// [consumeSessionExpired] is driven directly by the constructor-supplied
+/// [sessionExpired] flag, so `LoginScreen`'s "Session expired" SnackBar
+/// logic can be exercised in isolation from `signOut()`.
+class _FakeAuthSession extends AuthSession {
+  _FakeAuthSession({required this.sessionExpired});
+
+  final bool sessionExpired;
+
+  @override
+  Future<String?> build() => Future.value(null);
+
+  @override
+  bool consumeSessionExpired() => sessionExpired;
+}
+
 void main() {
   ApiClient buildApiClient(
     Future<http.Response> Function(http.Request) handler,
@@ -26,11 +43,12 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient) {
+  Widget wrap(ApiClient apiClient, {List<Override> extraOverrides = const []}) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(CacheService.inMemory()),
+        ...extraOverrides,
       ],
       child: const MaterialApp(
         localizationsDelegates: [
@@ -60,38 +78,32 @@ void main() {
     );
   }
 
-  testWidgets(
-    'registering with an already-taken username still shows the '
-    'loginUsernameTakenError override, not the generic already_exists '
-    'message',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        if (request.url.path == '/api/register') {
-          return http.Response(
-            jsonEncode({'code': 'already_exists', 'message': 'raw'}),
-            400,
-          );
-        }
-        return http.Response('', 200);
-      });
+  testWidgets('registering with an already-taken username still shows the '
+      'loginUsernameTakenError override, not the generic already_exists '
+      'message', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/register') {
+        return http.Response(
+          jsonEncode({'code': 'already_exists', 'message': 'raw'}),
+          400,
+        );
+      }
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await tester.tap(
-        find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
-      );
-      await tester.pump();
-      await fillCredentials(tester);
-      await tester.tap(
-        find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(wrap(apiClient));
+    await tester.tap(
+      find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
+    );
+    await tester.pump();
+    await fillCredentials(tester);
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text(tester.strings.loginUsernameTakenError),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(find.text(tester.strings.loginUsernameTakenError), findsOneWidget);
+  });
 
   testWidgets(
     'registering and hitting a different known code (not_found) now shows '
@@ -122,34 +134,31 @@ void main() {
     },
   );
 
-  testWidgets(
-    'logging in with wrong credentials (400 invalid_input, per '
-    'publicapi.yml -- /api/login never returns 401) shows '
-    'loginInvalidCredentialsError',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        if (request.url.path == '/api/login') {
-          return http.Response(
-            jsonEncode({'code': 'invalid_input', 'message': 'bad login'}),
-            400,
-          );
-        }
-        return http.Response('', 200);
-      });
+  testWidgets('logging in with wrong credentials (400 invalid_input, per '
+      'publicapi.yml -- /api/login never returns 401) shows '
+      'loginInvalidCredentialsError', (tester) async {
+    final apiClient = buildApiClient((request) async {
+      if (request.url.path == '/api/login') {
+        return http.Response(
+          jsonEncode({'code': 'invalid_input', 'message': 'bad login'}),
+          400,
+        );
+      }
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await fillCredentials(tester);
-      await tester.tap(
-        find.widgetWithText(FilledButton, tester.strings.loginLogInButton),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(wrap(apiClient));
+    await fillCredentials(tester);
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.loginLogInButton),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text(tester.strings.loginInvalidCredentialsError),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(
+      find.text(tester.strings.loginInvalidCredentialsError),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'logging in with a short (7-char) but non-empty password reaches the '
@@ -202,28 +211,27 @@ void main() {
     },
   );
 
-  testWidgets(
-    'signing up with a short (7-char) password still shows '
-    'commonAtLeast8Chars (D-04 must not relax signup enforcement)',
-    (tester) async {
-      final apiClient = buildApiClient((request) async {
-        return http.Response('', 200);
-      });
+  testWidgets('signing up with a short (7-char) password still shows '
+      'commonAtLeast8Chars (D-04 must not relax signup enforcement)', (
+    tester,
+  ) async {
+    final apiClient = buildApiClient((request) async {
+      return http.Response('', 200);
+    });
 
-      await tester.pumpWidget(wrap(apiClient));
-      await tester.tap(
-        find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
-      );
-      await tester.pump();
-      await fillCredentials(tester, password: 'short12');
-      await tester.tap(
-        find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
-      );
-      await tester.pump();
+    await tester.pumpWidget(wrap(apiClient));
+    await tester.tap(
+      find.widgetWithText(TextButton, tester.strings.loginToggleToSignUp),
+    );
+    await tester.pump();
+    await fillCredentials(tester, password: 'short12');
+    await tester.tap(
+      find.widgetWithText(FilledButton, tester.strings.loginSignUpButton),
+    );
+    await tester.pump();
 
-      expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
-    },
-  );
+    expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
+  });
 
   testWidgets(
     'signing up with an empty password shows commonAtLeast8Chars, not '
@@ -249,6 +257,57 @@ void main() {
       await tester.pump();
 
       expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'mounting LoginScreen while consumeSessionExpired() would return true '
+    'shows exactly one SnackBar with the loginSessionExpiredSnackbar text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          extraOverrides: [
+            authSessionProvider.overrideWith(
+              () => _FakeAuthSession(sessionExpired: true),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.loginSessionExpiredSnackbar),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'mounting LoginScreen while consumeSessionExpired() would return false '
+    'shows no SnackBar at all',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          extraOverrides: [
+            authSessionProvider.overrideWith(
+              () => _FakeAuthSession(sessionExpired: false),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsNothing);
     },
   );
 }

@@ -62,6 +62,7 @@
   "loginToggleToSignUp": "Don't have an account? Sign up",
   "loginUsernameTakenError": "This username is already taken",
   "loginInvalidCredentialsError": "Invalid credentials",
+  "loginSessionExpiredSnackbar": "Session expired",
 
   "commonCancel": "Cancel",
   "commonDelete": "Delete",

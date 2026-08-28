@@ -159,6 +159,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginInvalidCredentialsError => 'Invalid credentials';
 
   @override
+  String get loginSessionExpiredSnackbar => 'Session expired';
+
+  @override
   String get commonCancel => 'Cancel';
 
   @override

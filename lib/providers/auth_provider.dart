@@ -15,7 +15,8 @@ TokenStorage tokenStorage(TokenStorageRef ref) => TokenStorage();
 ApiClient apiClient(ApiClientRef ref) => ApiClient(
   baseUrl: AppConfig.apiBaseUrl,
   getToken: () => ref.read(authSessionProvider).value,
-  onUnauthorized: () => ref.read(authSessionProvider.notifier).signOut(),
+  onUnauthorized: () =>
+      ref.read(authSessionProvider.notifier).signOut(sessionExpired: true),
 );
 
 @riverpod
@@ -40,6 +41,10 @@ class AuthSession extends _$AuthSession {
   /// same 403 and recursing without a depth bound.
   bool _loggingOut = false;
 
+  /// Set by [signOut] when `sessionExpired: true`, and read exactly once by
+  /// [consumeSessionExpired] -- see that method's doc comment.
+  bool _sessionExpiredFlag = false;
+
   Future<void> signIn(String token) async {
     await ref.read(tokenStorageProvider).write(token);
     state = AsyncData(token);
@@ -50,7 +55,13 @@ class AuthSession extends _$AuthSession {
   /// account data — it must survive sign-out. Do not extend this method to
   /// clear it or any other local UI-preference state; only clear
   /// auth-specific keys (token, cache).
-  Future<void> signOut() async {
+  ///
+  /// [sessionExpired] distinguishes a forced sign-out (401/403 from
+  /// [ApiClient.onUnauthorized]) from a manual one (e.g. Profile screen's
+  /// "Log out"). When `true`, it sets [_sessionExpiredFlag] so
+  /// [LoginScreen] can show a one-time "Session expired" message via
+  /// [consumeSessionExpired] -- a manual sign-out must never set it.
+  Future<void> signOut({bool sessionExpired = false}) async {
     if (state.value == null || _loggingOut) return;
     _loggingOut = true;
     try {
@@ -58,8 +69,8 @@ class AuthSession extends _$AuthSession {
       // the token is still attached (before the local clear below), since
       // ApiClient's getToken callback reads this provider's current value.
       // This milestone has no offline mutation queue (see CLAUDE.md), so any
-      // failure here (offline, timeout, 403, etc.) is swallowed — local
-      // sign-out always completes regardless of network outcome.
+      // failure here (offline, timeout, 401/403, etc.) is swallowed --
+      // local sign-out always completes regardless of network outcome.
       await ref.read(publicApiProvider).logout();
     } catch (_) {
       // Swallow: see comment above.
@@ -68,6 +79,18 @@ class AuthSession extends _$AuthSession {
     }
     await ref.read(tokenStorageProvider).delete();
     await ref.read(cacheServiceProvider).clearAll();
+    if (sessionExpired) _sessionExpiredFlag = true;
     state = const AsyncData(null);
+  }
+
+  /// One-time read of [_sessionExpiredFlag], resetting it to `false`.
+  /// [LoginScreen] consumes this on mount to decide whether to show a
+  /// "Session expired" message -- it only ever returns `true` once per
+  /// forced sign-out (`signOut(sessionExpired: true)`), never for a manual
+  /// sign-out or a cold start.
+  bool consumeSessionExpired() {
+    final value = _sessionExpiredFlag;
+    _sessionExpiredFlag = false;
+    return value;
   }
 }
