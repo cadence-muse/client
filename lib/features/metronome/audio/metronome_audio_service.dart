@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -33,15 +35,26 @@ class MetronomeAudioService {
   bool get assetsLoaded => _assetsLoaded;
 
   Future<void> initialize() async {
+    // Initialize both players independently (via Future.wait) rather than
+    // sequentially under one try/catch -- a failure in one must not skip the
+    // other's initialize() call, which would leave its `late final` player
+    // field unset and make dispose() throw later.
+    final results = await Future.wait([
+      _initPlayer(_accentPlayer),
+      _initPlayer(_regularPlayer),
+    ]);
+    _assetsLoaded = results.every((ok) => ok);
+  }
+
+  Future<bool> _initPlayer(TickSoundPlayer player) async {
     try {
-      await _accentPlayer.initialize();
-      await _regularPlayer.initialize();
-      _assetsLoaded = true;
+      await player.initialize();
+      return true;
     } catch (e) {
       // T-18-02: never rethrow, never surface the raw exception/asset path
       // to the user -- the UI-SPEC error copy is fixed and generic.
-      _assetsLoaded = false;
-      debugPrint('MetronomeAudioService: failed to load tick assets: $e');
+      debugPrint('MetronomeAudioService: failed to load tick asset: $e');
+      return false;
     }
   }
 
@@ -58,8 +71,11 @@ class MetronomeAudioService {
   }
 
   void dispose() {
-    _accentPlayer.dispose();
-    _regularPlayer.dispose();
+    // Defensive against a player whose initialize() never completed --
+    // dispose() must never throw (T-18-02's graceful-degradation contract
+    // applies to teardown too, not just playback).
+    unawaited(_accentPlayer.dispose().catchError((_) {}));
+    unawaited(_regularPlayer.dispose().catchError((_) {}));
   }
 }
 
