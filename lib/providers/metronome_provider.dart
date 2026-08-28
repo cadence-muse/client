@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
+import 'package:flutter/widgets.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../features/metronome/audio/metronome_audio_service.dart';
@@ -47,12 +48,29 @@ class MetronomeState extends _$MetronomeState {
   Timer? _checkTimer;
   Stopwatch? _stopwatch;
   int _nextTickDueMs = 0;
+  late final AppLifecycleListener _lifecycleListener;
 
   @override
   MetronomeData build(int initialBpm) {
+    // PROHIBIT-BG-AUDIO: stop playback the moment the app leaves the
+    // foreground -- background audio is explicitly out of scope
+    // (REQUIREMENTS.md). Registered once per notifier instance, mirroring
+    // the Timer/Stopwatch lifecycle managed below.
+    _lifecycleListener = AppLifecycleListener(
+      onStateChange: (AppLifecycleState lifecycleState) {
+        final isBackgrounded =
+            lifecycleState == AppLifecycleState.paused ||
+            lifecycleState == AppLifecycleState.inactive ||
+            lifecycleState == AppLifecycleState.hidden;
+        if (isBackgrounded && state.isPlaying) {
+          togglePlay();
+        }
+      },
+    );
     ref.onDispose(() {
       _checkTimer?.cancel();
       _stopwatch?.stop();
+      _lifecycleListener.dispose();
     });
     return MetronomeData(
       bpm: initialBpm.clamp(40, 300),
