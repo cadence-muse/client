@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-08-27)
 Phase: 18 — Metronome Tool
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-08-27 - Completed quick task 260827-uqv: fix a bug, search bar in setlists says 'search by artist or title' same as tracks, but it should be different (by name)
+Last activity: 2026-08-28 - Completed quick task 260828-c98: when online, if any of the API requests returns 401, clear current session token and show the login page with a toast like 'Session expired'
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -140,6 +140,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260827-uqv | fix a bug, search bar in setlists says 'search by artist or title' same as tracks, but it should be different (by name) | 2026-08-27 | d02b9a4 | [260827-uqv-fix-a-bug-search-bar-in-setlists-says-se](./quick/260827-uqv-fix-a-bug-search-bar-in-setlists-says-se/) |
+| 260828-c98 | when online, if any of the API requests returns 401, clear current session token and show the login page with a toast like 'Session expired' | 2026-08-28 | 648f8b0 | [260828-c98-when-online-if-any-of-the-api-requests-r](./quick/260828-c98-when-online-if-any-of-the-api-requests-r/) |
 
 ### Roadmap Evolution
 
