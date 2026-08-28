@@ -14,6 +14,23 @@ import 'package:http/testing.dart';
 
 import '../../test_strings.dart';
 
+/// Test-only [AuthSession] double that never touches real `TokenStorage`/
+/// secure-storage plumbing (`build()` always resolves to `null`) and whose
+/// [consumeSessionExpired] is driven directly by the constructor-supplied
+/// [sessionExpired] flag, so `LoginScreen`'s "Session expired" SnackBar
+/// logic can be exercised in isolation from `signOut()`.
+class _FakeAuthSession extends AuthSession {
+  _FakeAuthSession({required this.sessionExpired});
+
+  final bool sessionExpired;
+
+  @override
+  Future<String?> build() => Future.value(null);
+
+  @override
+  bool consumeSessionExpired() => sessionExpired;
+}
+
 void main() {
   ApiClient buildApiClient(
     Future<http.Response> Function(http.Request) handler,
@@ -26,11 +43,12 @@ void main() {
     );
   }
 
-  Widget wrap(ApiClient apiClient) {
+  Widget wrap(ApiClient apiClient, {List<Override> extraOverrides = const []}) {
     return ProviderScope(
       overrides: [
         apiClientProvider.overrideWithValue(apiClient),
         cacheServiceProvider.overrideWithValue(CacheService.inMemory()),
+        ...extraOverrides,
       ],
       child: const MaterialApp(
         localizationsDelegates: [
@@ -249,6 +267,57 @@ void main() {
       await tester.pump();
 
       expect(find.text(tester.strings.commonAtLeast8Chars), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'mounting LoginScreen while consumeSessionExpired() would return true '
+    'shows exactly one SnackBar with the loginSessionExpiredSnackbar text',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          extraOverrides: [
+            authSessionProvider.overrideWith(
+              () => _FakeAuthSession(sessionExpired: true),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(tester.strings.loginSessionExpiredSnackbar),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'mounting LoginScreen while consumeSessionExpired() would return false '
+    'shows no SnackBar at all',
+    (tester) async {
+      final apiClient = buildApiClient((request) async {
+        return http.Response('', 200);
+      });
+
+      await tester.pumpWidget(
+        wrap(
+          apiClient,
+          extraOverrides: [
+            authSessionProvider.overrideWith(
+              () => _FakeAuthSession(sessionExpired: false),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsNothing);
     },
   );
 }

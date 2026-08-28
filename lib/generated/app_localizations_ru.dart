@@ -166,6 +166,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get loginInvalidCredentialsError => 'Неверные учётные данные';
 
   @override
+  String get loginSessionExpiredSnackbar => 'Сессия истекла';
+
+  @override
   String get commonCancel => 'Отмена';
 
   @override

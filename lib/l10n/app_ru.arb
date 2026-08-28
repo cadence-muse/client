@@ -62,6 +62,7 @@
   "loginToggleToSignUp": "Нет аккаунта? Зарегистрироваться",
   "loginUsernameTakenError": "Это имя пользователя уже занято",
   "loginInvalidCredentialsError": "Неверные учётные данные",
+  "loginSessionExpiredSnackbar": "Сессия истекла",
 
   "commonCancel": "Отмена",
   "commonDelete": "Удалить",
