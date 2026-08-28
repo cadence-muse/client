@@ -10,7 +10,7 @@ import 'http_client_factory.dart';
 /// Attaches the session token the API expects via the `Authorization` header
 /// (see `components.securitySchemes.sessionAuth` in the spec) to authenticated
 /// requests, and signs the user out whenever a request comes back with a
-/// 403, since that means the session is no longer valid.
+/// 401 or 403, since that means the session is no longer valid.
 ///
 /// [getToken] and [onUnauthorized] decouple this class from the concrete
 /// auth-state implementation (a Riverpod-generated `AuthSession` class, not
@@ -53,7 +53,7 @@ class ApiClient {
     final streamedResponse = await _httpClient.send(request);
     final response = await http.Response.fromStream(streamedResponse);
 
-    if (response.statusCode == 403) {
+    if (response.statusCode == 401 || response.statusCode == 403) {
       await onUnauthorized();
       throw ApiException.fromResponse(response);
     }
