@@ -87,7 +87,10 @@ class MetronomeDialPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(MetronomeDialPainter oldDelegate) =>
-      oldDelegate.bpm != bpm;
+      oldDelegate.bpm != bpm ||
+      oldDelegate.ringColor != ringColor ||
+      oldDelegate.numberStyle != numberStyle ||
+      oldDelegate.unitStyle != unitStyle;
 }
 
 /// The large round drag-to-rotate BPM dial (D-05). Dragging a finger around
