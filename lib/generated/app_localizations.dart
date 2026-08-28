@@ -1258,6 +1258,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load metronome. Try again.'**
   String get metronomeErrorMessage;
+
+  /// No description provided for @metronomeMinus5Tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'–5 BPM'**
+  String get metronomeMinus5Tooltip;
+
+  /// No description provided for @metronomeMinus1Tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'–1 BPM'**
+  String get metronomeMinus1Tooltip;
+
+  /// No description provided for @metronomePlus1Tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'+1 BPM'**
+  String get metronomePlus1Tooltip;
+
+  /// No description provided for @metronomePlus5Tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'+5 BPM'**
+  String get metronomePlus5Tooltip;
 }
 
 class _AppLocalizationsDelegate

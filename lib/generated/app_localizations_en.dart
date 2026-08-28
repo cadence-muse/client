@@ -668,4 +668,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metronomeErrorMessage => 'Couldn\'t load metronome. Try again.';
+
+  @override
+  String get metronomeMinus5Tooltip => '–5 BPM';
+
+  @override
+  String get metronomeMinus1Tooltip => '–1 BPM';
+
+  @override
+  String get metronomePlus1Tooltip => '+1 BPM';
+
+  @override
+  String get metronomePlus5Tooltip => '+5 BPM';
 }
