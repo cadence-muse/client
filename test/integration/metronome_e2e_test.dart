@@ -9,6 +9,7 @@ import 'package:cadence/api/api_client.dart';
 import 'package:cadence/cache/cache_service.dart';
 import 'package:cadence/features/home/home_screen.dart';
 import 'package:cadence/features/metronome/beat_indicator.dart';
+import 'package:cadence/features/metronome/metronome_dial.dart';
 import 'package:cadence/features/metronome/metronome_screen.dart';
 import 'package:cadence/generated/app_localizations.dart';
 import 'package:cadence/providers/auth_provider.dart';
@@ -61,11 +62,8 @@ class _FakeAudioCache extends AudioCache {
 class _FakeAudioplayersPlatform extends AudioplayersPlatformInterface {
   final Map<String, StreamController<AudioEvent>> _controllers = {};
 
-  StreamController<AudioEvent> _controllerFor(String playerId) =>
-      _controllers.putIfAbsent(
-        playerId,
-        () => StreamController<AudioEvent>.broadcast(),
-      );
+  StreamController<AudioEvent> _controllerFor(String playerId) => _controllers
+      .putIfAbsent(playerId, () => StreamController<AudioEvent>.broadcast());
 
   @override
   Future<void> create(String playerId) async {}
@@ -95,10 +93,7 @@ class _FakeAudioplayersPlatform extends AudioplayersPlatformInterface {
   Future<void> setVolume(String playerId, double volume) async {}
 
   @override
-  Future<void> setReleaseMode(
-    String playerId,
-    ReleaseMode releaseMode,
-  ) async {}
+  Future<void> setReleaseMode(String playerId, ReleaseMode releaseMode) async {}
 
   @override
   Future<void> setPlaybackRate(String playerId, double playbackRate) async {}
@@ -210,15 +205,16 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.widgetWithText(
-          ElevatedButton,
-          tester.strings.homeMetronomeButton,
-        ),
+        find.widgetWithText(ElevatedButton, tester.strings.homeMetronomeButton),
       );
       await tester.pumpAndSettle();
 
       expect(find.byType(MetronomeScreen), findsOneWidget);
-      expect(find.text('120'), findsOneWidget);
+      // Plan 18-02: the BPM number is now painted directly onto a Canvas by
+      // MetronomeDialPainter, not rendered as a Flutter Text widget -- read
+      // the rendered value off MetronomeDial's own `bpm` property instead of
+      // find.text('120').
+      expect(tester.widget<MetronomeDial>(find.byType(MetronomeDial)).bpm, 120);
 
       // Tap the Play FAB -- icon swaps to pause after one pump.
       await tester.tap(find.byIcon(Icons.play_arrow));

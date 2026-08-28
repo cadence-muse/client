@@ -45,12 +45,16 @@ class MetronomeScreen extends ConsumerWidget {
     MetronomeData state,
     MetronomeState notifier,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Center(
       child: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             MetronomeDial(bpm: state.bpm, onBpmChanged: notifier.setBpm),
+            const SizedBox(height: 16),
+            _buildQuickAdjustRow(l10n, state, notifier),
             const SizedBox(height: 32),
             BeatIndicator(
               currentBeat: state.currentBeat,
@@ -59,6 +63,57 @@ class MetronomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  // METR-04: ±1/±5 quick-adjust buttons, ordered [-5, -1, +1, +5] flanking
+  // the dial (outer pair = ±5, inner pair = ±1). Both pairs share an icon
+  // (Icons.remove/Icons.add) and are differentiated by position, iconSize
+  // (28 for ±5, 20 for ±1), and tooltip text. Every button routes through
+  // notifier.setBpm -- the same clamped [40,300] choke point the dial uses
+  // (D-06/T-18-06) -- the onPressed bound check below is a UI-only
+  // convenience for disabling at the edges, not the real enforcement point.
+  Widget _buildQuickAdjustRow(
+    AppLocalizations l10n,
+    MetronomeData state,
+    MetronomeState notifier,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove),
+          iconSize: 28,
+          tooltip: l10n.metronomeMinus5Tooltip,
+          onPressed: state.bpm > 40
+              ? () => notifier.setBpm(state.bpm - 5)
+              : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.remove),
+          iconSize: 20,
+          tooltip: l10n.metronomeMinus1Tooltip,
+          onPressed: state.bpm > 40
+              ? () => notifier.setBpm(state.bpm - 1)
+              : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.add),
+          iconSize: 20,
+          tooltip: l10n.metronomePlus1Tooltip,
+          onPressed: state.bpm < 300
+              ? () => notifier.setBpm(state.bpm + 1)
+              : null,
+        ),
+        IconButton(
+          icon: const Icon(Icons.add),
+          iconSize: 28,
+          tooltip: l10n.metronomePlus5Tooltip,
+          onPressed: state.bpm < 300
+              ? () => notifier.setBpm(state.bpm + 5)
+              : null,
+        ),
+      ],
     );
   }
 

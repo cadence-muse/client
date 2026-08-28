@@ -681,4 +681,16 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get metronomeErrorMessage =>
       'Не удалось загрузить метроном. Попробуйте снова.';
+
+  @override
+  String get metronomeMinus5Tooltip => '–5 BPM';
+
+  @override
+  String get metronomeMinus1Tooltip => '–1 BPM';
+
+  @override
+  String get metronomePlus1Tooltip => '+1 BPM';
+
+  @override
+  String get metronomePlus5Tooltip => '+5 BPM';
 }

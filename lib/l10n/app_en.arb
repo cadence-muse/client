@@ -318,5 +318,9 @@
   "metronomeAppBarTitle": "Metronome",
   "metronomeBpmUnitLabel": "BPM",
   "metronomeLoadingMessage": "Initializing metronome...",
-  "metronomeErrorMessage": "Couldn't load metronome. Try again."
+  "metronomeErrorMessage": "Couldn't load metronome. Try again.",
+  "metronomeMinus5Tooltip": "–5 BPM",
+  "metronomeMinus1Tooltip": "–1 BPM",
+  "metronomePlus1Tooltip": "+1 BPM",
+  "metronomePlus5Tooltip": "+5 BPM"
 }
