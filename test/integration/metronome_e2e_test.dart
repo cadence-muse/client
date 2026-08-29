@@ -103,6 +103,7 @@ class _FakeAudioplayersPlatform extends AudioplayersPlatformInterface {
     String playerId,
     String url, {
     bool? isLocal,
+    String? mimeType,
   }) async {
     _controllerFor(playerId).add(
       const AudioEvent(eventType: AudioEventType.prepared, isPrepared: true),
@@ -110,7 +111,11 @@ class _FakeAudioplayersPlatform extends AudioplayersPlatformInterface {
   }
 
   @override
-  Future<void> setSourceBytes(String playerId, Uint8List bytes) async {
+  Future<void> setSourceBytes(
+    String playerId,
+    Uint8List bytes, {
+    String? mimeType,
+  }) async {
     _controllerFor(playerId).add(
       const AudioEvent(eventType: AudioEventType.prepared, isPrepared: true),
     );
@@ -142,8 +147,38 @@ class _FakeAudioplayersPlatform extends AudioplayersPlatformInterface {
       _controllerFor(playerId).stream;
 }
 
+/// `AudioPlayer._create()` awaits `GlobalAudioScope.ensureInitialized()`
+/// before touching the per-player [AudioplayersPlatformInterface] faked
+/// above -- that scope's own platform interface
+/// ([GlobalAudioplayersPlatformInterface]) defaults to a real method channel
+/// with no native handler in `flutter test`, so its unmocked `init()` call
+/// hangs forever, `creatingCompleter` never completes, and
+/// [MetronomeAudioService.initialize] never resolves. Faking this
+/// global-scope interface too lets `_create()` complete immediately.
+class _FakeGlobalAudioplayersPlatform
+    extends GlobalAudioplayersPlatformInterface {
+  final _controller = StreamController<GlobalAudioEvent>.broadcast();
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> setGlobalAudioContext(AudioContext ctx) async {}
+
+  @override
+  Future<void> emitGlobalLog(String message) async {}
+
+  @override
+  Future<void> emitGlobalError(String code, String message) async {}
+
+  @override
+  Stream<GlobalAudioEvent> getGlobalEventStream() => _controller.stream;
+}
+
 void main() {
   AudioplayersPlatformInterface.instance = _FakeAudioplayersPlatform();
+  GlobalAudioplayersPlatformInterface.instance =
+      _FakeGlobalAudioplayersPlatform();
   AudioCache.instance = _FakeAudioCache();
   // The real LocalFileSystem write (of the asset bytes into the temp dir
   // above) also hangs in this sandbox -- an in-memory filesystem sidesteps
