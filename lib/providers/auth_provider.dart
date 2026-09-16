@@ -68,7 +68,7 @@ class AuthSession extends _$AuthSession {
       // Best-effort: invalidate the session server-side. Must fire while
       // the token is still attached (before the local clear below), since
       // ApiClient's getToken callback reads this provider's current value.
-      // This milestone has no offline mutation queue (see CLAUDE.md), so any
+      // This milestone has no offline mutation queue (see AGENTS.md), so any
       // failure here (offline, timeout, 401/403, etc.) is swallowed --
       // local sign-out always completes regardless of network outcome.
       await ref.read(publicApiProvider).logout();
