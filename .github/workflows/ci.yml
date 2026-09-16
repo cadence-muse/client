@@ -2,8 +2,17 @@ name: CI
 
 on:
   pull_request:
+    paths: &code-paths
+      - '**/*.dart'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - 'l10n.yaml'
+      - '.metadata'
+      - '.github/workflows/ci.yml'
   push:
     branches: [ main ]
+    paths: *code-paths
 
 permissions:
   contents: read
